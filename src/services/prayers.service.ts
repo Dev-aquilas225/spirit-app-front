@@ -57,6 +57,16 @@ export const PrayersService = {
     }
   },
 
+  /** Prières d'une date passée au format YYYY-MM-DD */
+  async getByDate(date: string): Promise<DailyPrayers> {
+    try {
+      const data = await http.get<{ morning: DailyPrayer; evening: DailyPrayer }>(`/prayers/daily/${date}`);
+      return { morning: data.morning ?? null, evening: data.evening ?? null };
+    } catch {
+      return { morning: null, evening: null };
+    }
+  },
+
   async getAll(category?: PrayerCategory): Promise<Prayer[]> {
     const query = category ? `?category=${category}` : '';
     try {

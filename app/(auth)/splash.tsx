@@ -3,12 +3,14 @@ import { MessageCircle } from "lucide-react-native";
 import React, { useEffect, useRef } from "react";
 import { Animated, Dimensions, StyleSheet, Text, View } from "react-native";
 import { AppIcon } from "../../src/components/common/AppIcon";
+import { useI18n } from "../../src/i18n";
 import { useTheme } from "../../src/theme";
 
 const { width, height } = Dimensions.get("window");
 
 export default function SplashScreen() {
   const { colors } = useTheme();
+  const { t } = useI18n();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
@@ -75,7 +77,7 @@ export default function SplashScreen() {
           />
         </View>
         <Text style={styles.appName}>Oracle Plus</Text>
-        <Text style={styles.tagline}>Votre compagnon spirituel</Text>
+        <Text style={styles.tagline}>{t.auth.tagline}</Text>
       </Animated.View>
 
       <Animated.View style={[styles.footer, { opacity: fadeAnim }]}>

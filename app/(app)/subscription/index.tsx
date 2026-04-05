@@ -18,53 +18,27 @@ import { AppIcon } from "../../../src/components/common/AppIcon";
 import { BackButton } from "../../../src/components/common/BackButton";
 import { Button } from "../../../src/components/common/Button";
 import { GoldCard } from "../../../src/components/common/Card";
+import { useI18n } from "../../../src/i18n";
 import { usePremiumAccess } from "../../../src/hooks/usePremiumAccess";
 import { useSubscription } from "../../../src/hooks/useSubscription";
 import { useTheme } from "../../../src/theme";
 import { formatCurrency, formatDate } from "../../../src/utils/helpers";
 
-const PREMIUM_FEATURES = [
-  {
-    icon: MessageCircle,
-    label: "Discuter avec le prophète illimité",
-    desc: "Posez autant de questions que vous voulez",
-  },
-  {
-    icon: BookOpen,
-    label: "Bibliothèque complète",
-    desc: "4+ livres spirituels en lecture illimitée",
-  },
-  {
-    icon: GraduationCap,
-    label: "Formations",
-    desc: "Accès à toutes nos formations spirituelles",
-  },
-  {
-    icon: Calendar,
-    label: "Consultations gratuites",
-    desc: "1 consultation mensuelle avec un ministère",
-  },
-  {
-    icon: Heart,
-    label: "Prières complètes",
-    desc: "Accès à toutes les prières du jour et archives",
-  },
-  {
-    icon: CloudMoon,
-    label: "Interprétation des rêves",
-    desc: "Analyse de vos rêves et visions",
-  },
-  {
-    icon: ClipboardList,
-    label: "Programme personnalisé",
-    desc: "Un programme de prière adapté à votre vie",
-  },
-] satisfies { icon: LucideIcon; label: string; desc: string }[];
-
 export default function SubscriptionScreen() {
   const { colors, spacing } = useTheme();
+  const { t } = useI18n();
   const { isPremium } = usePremiumAccess();
   const { subscription, daysUntilExpiry, isExpiringSoon } = useSubscription();
+
+  const PREMIUM_FEATURES: { icon: LucideIcon; label: string; desc: string }[] = [
+    { icon: MessageCircle, label: t.subscription.features.aiChat, desc: t.subscription.features.aiDesc },
+    { icon: BookOpen, label: t.subscription.features.library, desc: t.subscription.features.libraryDesc },
+    { icon: GraduationCap, label: t.subscription.features.formations, desc: t.subscription.features.formDesc },
+    { icon: Calendar, label: t.subscription.features.consult, desc: t.subscription.features.consultDesc },
+    { icon: Heart, label: t.subscription.features.prayers, desc: t.subscription.features.prayersDesc },
+    { icon: CloudMoon, label: t.subscription.features.dreams, desc: t.subscription.features.dreamsDesc },
+    { icon: ClipboardList, label: t.subscription.features.program, desc: t.subscription.features.programDesc },
+  ];
 
   if (isPremium && subscription) {
     return (
@@ -82,33 +56,31 @@ export default function SubscriptionScreen() {
           <View style={{ marginBottom: 12 }}>
             <AppIcon icon={Crown} size={56} color="#C9A84C" strokeWidth={1.8} />
           </View>
-          <Text style={styles.headerTitle}>Vous êtes Premium !</Text>
-          <Text style={styles.headerSubtitle}>
-            Tous les accès sont déverrouillés
-          </Text>
+          <Text style={styles.headerTitle}>{t.subscription.premiumTitle}</Text>
+          <Text style={styles.headerSubtitle}>{t.subscription.premiumSubtitle}</Text>
         </View>
 
         <View style={{ padding: spacing.base, gap: spacing.md }}>
           <GoldCard>
             <Text style={{ color: "#C9A84C", fontWeight: "700", fontSize: 13 }}>
-              MON ABONNEMENT
+              {t.subscription.mySubscription}
             </Text>
             <View style={{ marginTop: 12, gap: 8 }}>
               <View style={styles.infoRow}>
-                <Text style={{ color: colors.textSecondary }}>Statut</Text>
+                <Text style={{ color: colors.textSecondary }}>{t.subscription.status}</Text>
                 <Text style={{ color: "#10B981", fontWeight: "600" }}>
-                  ● Actif
+                  {t.subscription.statusActive}
                 </Text>
               </View>
               <View style={styles.infoRow}>
-                <Text style={{ color: colors.textSecondary }}>Expire le</Text>
+                <Text style={{ color: colors.textSecondary }}>{t.subscription.expiresOn}</Text>
                 <Text style={{ color: colors.text, fontWeight: "600" }}>
                   {formatDate(subscription.expiryDate)}
                 </Text>
               </View>
               <View style={styles.infoRow}>
                 <Text style={{ color: colors.textSecondary }}>
-                  Jours restants
+                  {t.subscription.daysLeft}
                 </Text>
                 <View
                   style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
@@ -119,7 +91,7 @@ export default function SubscriptionScreen() {
                       fontWeight: "600",
                     }}
                   >
-                    {daysUntilExpiry} jours
+                    {daysUntilExpiry} {t.common.days}
                   </Text>
                   {isExpiringSoon ? (
                     <AppIcon
@@ -132,7 +104,7 @@ export default function SubscriptionScreen() {
                 </View>
               </View>
               <View style={styles.infoRow}>
-                <Text style={{ color: colors.textSecondary }}>Montant</Text>
+                <Text style={{ color: colors.textSecondary }}>{t.subscription.amount}</Text>
                 <Text style={{ color: colors.text, fontWeight: "600" }}>
                   {formatCurrency(subscription.amount)}
                 </Text>
@@ -142,7 +114,7 @@ export default function SubscriptionScreen() {
 
           {isExpiringSoon && (
             <Button
-              label="Renouveler maintenant"
+              label={t.subscription.renewNow}
               variant="gold"
               fullWidth
               onPress={() => router.push("/(app)/subscription/payment")}
@@ -150,14 +122,14 @@ export default function SubscriptionScreen() {
           )}
 
           <Button
-            label="Gérer mon abonnement"
+            label={t.subscription.manage}
             variant="outline"
             fullWidth
             onPress={() => router.push("/(app)/subscription/manage")}
           />
 
           <Button
-            label="Historique des paiements"
+            label={t.subscription.history}
             variant="ghost"
             fullWidth
             onPress={() => router.push("/(app)/subscription/history")}
@@ -186,20 +158,18 @@ export default function SubscriptionScreen() {
         <View style={{ marginBottom: 12 }}>
           <AppIcon icon={Crown} size={56} color="#C9A84C" strokeWidth={1.8} />
         </View>
-        <Text style={styles.headerTitle}>Oracle Plus Premium</Text>
-        <Text style={styles.headerSubtitle}>
-          Accès complet à votre croissance spirituelle
-        </Text>
+        <Text style={styles.headerTitle}>{t.subscription.upgradeTitle}</Text>
+        <Text style={styles.headerSubtitle}>{t.subscription.upgradeSubtitle}</Text>
         <View style={styles.priceBadge}>
-          <Text style={styles.price}>5 000 FCFA</Text>
-          <Text style={styles.period}>/mois</Text>
+          <Text style={styles.price}>{t.subscription.price}</Text>
+          <Text style={styles.period}>{t.subscription.perMonth}</Text>
         </View>
       </View>
 
       <View style={{ padding: spacing.base, gap: spacing.md }}>
         {/* Features */}
         <Text style={[{ fontSize: 16, fontWeight: "700", color: colors.text }]}>
-          Ce qui est inclus
+          {t.subscription.included}
         </Text>
         {PREMIUM_FEATURES.map((feat) => (
           <View key={feat.label} style={styles.feature}>
@@ -237,7 +207,7 @@ export default function SubscriptionScreen() {
         ))}
 
         <Button
-          label="S'abonner maintenant — 5 000 FCFA/mois"
+          label={t.subscription.subscribeCta}
           variant="gold"
           fullWidth
           size="lg"
@@ -252,7 +222,7 @@ export default function SubscriptionScreen() {
             textAlign: "center",
           }}
         >
-          Sans engagement • Annulable à tout moment • Renouvellement automatique
+          {t.subscription.disclaimer}
         </Text>
       </View>
     </ScrollView>

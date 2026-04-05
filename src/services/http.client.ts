@@ -19,6 +19,16 @@ async function getAccessToken(): Promise<string | null> {
   return StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
 }
 
+async function getLanguage(): Promise<string> {
+  const storedLanguage = await StorageService.get<string>(STORAGE_KEYS.LANGUAGE);
+  if (storedLanguage) {
+    return storedLanguage;
+  }
+
+  const storedUser = await StorageService.get<{ language?: string }>(STORAGE_KEYS.USER);
+  return storedUser?.language ?? 'fr';
+}
+
 async function getRefreshToken(): Promise<string | null> {
   return StorageService.get<string>('refresh_token');
 }
@@ -57,8 +67,10 @@ export async function request<T>(
   options: RequestInit & { token?: string } = {},
 ): Promise<T> {
   const token = options.token ?? (await getAccessToken());
+  const language = await getLanguage();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    'Accept-Language': language,
     ...(options.headers as Record<string, string>),
   };
   if (token) headers['Authorization'] = `Bearer ${token}`;

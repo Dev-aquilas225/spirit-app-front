@@ -14,8 +14,9 @@ export function useAuth() {
   const login = useAuthStore((s) => s.login);
   const setPin = useAuthStore((s) => s.setPin);
   const logout = useAuthStore((s) => s.logout);
-  const updateUser = useAuthStore((s) => s.updateUser);
-  const clearError = useAuthStore((s) => s.clearError);
+  const updateUser  = useAuthStore((s) => s.updateUser);
+  const setLanguage = useAuthStore((s) => s.setLanguage);
+  const clearError  = useAuthStore((s) => s.clearError);
 
   return {
     user,
@@ -28,6 +29,7 @@ export function useAuth() {
     setPin,
     logout,
     updateUser,
+    setLanguage,
     clearError,
   };
 }

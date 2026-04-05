@@ -6,8 +6,12 @@ import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Link } from 'expo-router';
+import { useI18n } from '../../src/i18n';
 
 export default function HomeScreen() {
+  const { language } = useI18n();
+  const isEnglish = language === 'en';
+
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
@@ -18,59 +22,65 @@ export default function HomeScreen() {
         />
       }>
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
+        <ThemedText type="title">{isEnglish ? 'Welcome!' : 'Bienvenue !'}</ThemedText>
         <HelloWave />
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
+        <ThemedText type="subtitle">{isEnglish ? 'Step 1: Try it' : 'Étape 1 : Essayez'}</ThemedText>
         <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
+          {isEnglish ? 'Edit ' : 'Modifiez '}
+          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText>
+          {isEnglish ? ' to see changes. Press ' : ' pour voir les changements. Appuyez sur '}
           <ThemedText type="defaultSemiBold">
             {Platform.select({
               ios: 'cmd + d',
               android: 'cmd + m',
               web: 'F12',
             })}
-          </ThemedText>{' '}
-          to open developer tools.
+          </ThemedText>
+          {isEnglish ? ' to open developer tools.' : ' pour ouvrir les outils de développement.'}
         </ThemedText>
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
         <Link href="/modal">
           <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
+            <ThemedText type="subtitle">{isEnglish ? 'Step 2: Explore' : 'Étape 2 : Explorer'}</ThemedText>
           </Link.Trigger>
           <Link.Preview />
           <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
+            <Link.MenuAction title={isEnglish ? 'Action' : 'Action'} icon="cube" onPress={() => alert(isEnglish ? 'Action pressed' : 'Action déclenchée')} />
             <Link.MenuAction
-              title="Share"
+              title={isEnglish ? 'Share' : 'Partager'}
               icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
+              onPress={() => alert(isEnglish ? 'Share pressed' : 'Partage déclenché')}
             />
-            <Link.Menu title="More" icon="ellipsis">
+            <Link.Menu title={isEnglish ? 'More' : 'Plus'} icon="ellipsis">
               <Link.MenuAction
-                title="Delete"
+                title={isEnglish ? 'Delete' : 'Supprimer'}
                 icon="trash"
                 destructive
-                onPress={() => alert('Delete pressed')}
+                onPress={() => alert(isEnglish ? 'Delete pressed' : 'Suppression déclenchée')}
               />
             </Link.Menu>
           </Link.Menu>
         </Link>
 
         <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
+          {isEnglish
+            ? `Tap the Explore tab to learn more about what's included in this starter app.`
+            : `Touchez l’onglet Explorer pour en savoir plus sur ce qui est inclus dans cette application de démarrage.`}
         </ThemedText>
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
+        <ThemedText type="subtitle">{isEnglish ? 'Step 3: Get a fresh start' : 'Étape 3 : Repartir sur une base saine'}</ThemedText>
         <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
+          {isEnglish ? `When you're ready, run ` : `Quand vous êtes prêt, lancez `}
+          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText>
+          {isEnglish ? ` to recreate a fresh ` : ` pour recréer un dossier `}
+          <ThemedText type="defaultSemiBold">app</ThemedText>
+          {isEnglish
+            ? ` directory. The current one will be moved to `
+            : ` neuf. Le dossier actuel sera déplacé vers `}
           <ThemedText type="defaultSemiBold">app-example</ThemedText>.
         </ThemedText>
       </ThemedView>

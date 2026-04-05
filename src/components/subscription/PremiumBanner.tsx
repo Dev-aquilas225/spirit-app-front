@@ -2,6 +2,7 @@ import { router } from "expo-router";
 import { Crown, MessageCircle } from "lucide-react-native";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useI18n } from "../../i18n";
 import { useTheme } from "../../theme";
 import { AppIcon } from "../common/AppIcon";
 
@@ -11,6 +12,7 @@ interface PremiumBannerProps {
 
 export function PremiumBanner({ compact = false }: PremiumBannerProps) {
   const { colors, spacing, borderRadius: br } = useTheme();
+  const { t } = useI18n();
 
   if (compact) {
     return (
@@ -34,7 +36,7 @@ export function PremiumBanner({ compact = false }: PremiumBannerProps) {
             strokeWidth={2.4}
           />
           <Text style={styles.compactText}>
-            Passer Premium — 5 000 FCFA/mois
+            {t.premiumBanner.compact}
           </Text>
         </View>
       </TouchableOpacity>
@@ -64,14 +66,14 @@ export function PremiumBanner({ compact = false }: PremiumBannerProps) {
       />
       <View style={styles.textContainer}>
         <Text style={[styles.title, { color: colors.primary }]}>
-          Passez Premium
+          {t.premiumBanner.title}
         </Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          Accès illimité IA, Livres, Formations & plus
+          {t.premiumBanner.subtitle}
         </Text>
       </View>
       <Text style={[styles.price, { color: colors.primary }]}>
-        5 000{"\n"}FCFA/mois
+        {t.premiumBanner.price1}{"\n"}{t.premiumBanner.price2}
       </Text>
     </TouchableOpacity>
   );

@@ -4,7 +4,9 @@
  */
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import { NOTIFICATION_TIMES } from '../utils/constants';
+import { getTranslations } from '../i18n';
+import { StorageService } from './storage.service';
+import { NOTIFICATION_TIMES, STORAGE_KEYS } from '../utils/constants';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -34,18 +36,21 @@ export const NotificationService = {
     const hasPermission = await NotificationService.requestPermissions();
     if (!hasPermission) return;
 
+    const language = (await StorageService.get<string>(STORAGE_KEYS.LANGUAGE)) ?? 'fr';
+    const t = getTranslations(language);
+
     const notificationContents = [
       {
-        title: 'Prière du matin',
-        body: 'Commencez votre journée avec Dieu. Votre prière du matin vous attend.',
+        title: t.notifications.pushMorningTitle,
+        body: t.notifications.pushMorningBody,
       },
       {
-        title: 'Message spirituel',
-        body: 'Un message d\'encouragement vous attend pour cette après-midi.',
+        title: t.notifications.pushMiddayTitle,
+        body: t.notifications.pushMiddayBody,
       },
       {
-        title: 'Prière du soir',
-        body: 'Terminez votre journée dans la paix. Votre prière du soir est prête.',
+        title: t.notifications.pushEveningTitle,
+        body: t.notifications.pushEveningBody,
       },
     ];
 

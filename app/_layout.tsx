@@ -17,6 +17,7 @@ import { PWAInstallBanner } from '../src/components/common/PWAInstallBanner';
 export default function RootLayout() {
   const initializeAuth  = useAuthStore((s) => s.initialize);
   const initializeTheme = useThemeStore((s) => s.initialize);
+  const language = useAuthStore((s) => s.user?.language ?? 'fr');
 
   useEffect(() => {
     initializeAuth();
@@ -37,6 +38,12 @@ export default function RootLayout() {
         });
     }
   }, []);
+
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      document.documentElement.lang = language;
+    }
+  }, [language]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Lock } from 'lucide-react-native';
+import { useI18n } from '../../i18n';
 import { usePremiumAccess } from '../../hooks/usePremiumAccess';
 import { useTheme } from '../../theme';
 import { Button } from '../common/Button';
@@ -31,6 +32,7 @@ interface PremiumGuardProps {
 export function PremiumGuard({ children, inline = false, featureName }: PremiumGuardProps) {
   const { isPremium } = usePremiumAccess();
   const { colors, spacing } = useTheme();
+  const { t } = useI18n();
 
   if (isPremium) {
     return <>{children}</>;
@@ -43,13 +45,13 @@ export function PremiumGuard({ children, inline = false, featureName }: PremiumG
           <AppIcon icon={Lock} size={32} color={colors.primary} strokeWidth={2} />
         </View>
         <Text style={[styles.title, { color: colors.text }]}>
-          {featureName ? `${featureName} — Abonnés uniquement` : 'Contenu premium'}
+          {t.premiumGuard.inlineTitle(featureName)}
         </Text>
         <Text style={[styles.desc, { color: colors.textSecondary }]}>
-          Abonnez-vous pour accéder à ce contenu et à toutes les fonctionnalités premium.
+          {t.premiumGuard.inlineDesc}
         </Text>
         <Button
-          label="S'abonner — 5 000 FCFA/mois"
+          label={t.premiumGuard.inlineCta}
           variant="gold"
           fullWidth
           style={{ marginTop: spacing.md }}
@@ -65,20 +67,20 @@ export function PremiumGuard({ children, inline = false, featureName }: PremiumG
         <AppIcon icon={Lock} size={64} color={colors.primary} strokeWidth={1.8} />
       </View>
       <Text style={[styles.title, { color: colors.text, fontSize: 22, textAlign: 'center' }]}>
-        {featureName ? `${featureName}` : 'Contenu Premium'}
+        {t.premiumGuard.fullTitle(featureName)}
       </Text>
       <Text style={[styles.desc, { color: colors.textSecondary, textAlign: 'center', marginHorizontal: 32 }]}>
-        Cette section est réservée aux abonnés. Rejoignez Oracle Plus Premium pour un accès illimité.
+        {t.premiumGuard.fullDesc}
       </Text>
       <View style={{ marginTop: 24, width: '80%' }}>
         <Button
-          label="Découvrir l'abonnement"
+          label={t.premiumGuard.discover}
           variant="gold"
           fullWidth
           onPress={() => router.push('/(app)/subscription')}
         />
         <Button
-          label="Retour"
+          label={t.common.back}
           variant="ghost"
           fullWidth
           style={{ marginTop: 12 }}

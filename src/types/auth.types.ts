@@ -1,9 +1,13 @@
 export type UserRole = 'free' | 'subscriber';
 export type Language = 'fr' | 'en' | 'ar';
+export type Gender = 'male' | 'female' | 'other';
 
 export interface User {
   id: string;
   name: string;
+  firstName?: string;
+  lastName?: string;
+  gender?: Gender;
   phone: string;
   country: string;
   language: Language;

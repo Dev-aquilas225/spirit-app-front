@@ -17,10 +17,13 @@ export interface ServiceResult<T> {
   error?: string;
 }
 
-function mapApiUser(u: any): User {
+function mapApiUser(u: any, gender?: import('../types/auth.types').Gender): User {
   return {
     id: u.id,
     name: [u.firstName, u.lastName].filter(Boolean).join(' ') || 'Utilisateur',
+    firstName: u.firstName ?? '',
+    lastName: u.lastName ?? '',
+    gender,                 // fourni depuis le store (stockage local)
     phone: u.phone,
     country: u.country ?? 'CI',
     language: u.language ?? 'fr',
@@ -157,10 +160,19 @@ export const AuthService = {
   },
 
   /** Mettre à jour le profil */
-  async updateProfile(updates: { firstName?: string; lastName?: string; email?: string; country?: string; avatar?: string }): Promise<ServiceResult<User>> {
+  async updateProfile(updates: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    country?: string;
+    avatar?: string;
+    gender?: import('../types/auth.types').Gender;
+  }): Promise<ServiceResult<User>> {
     try {
-      const data = await http.patch<any>('/users/me', updates);
-      const user = mapApiUser(data);
+      // gender n'est pas dans le DTO backend → on l'extrait avant d'envoyer
+      const { gender, ...apiUpdates } = updates;
+      const data = await http.patch<any>('/users/me', apiUpdates);
+      const user = mapApiUser(data, gender);
       await StorageService.set(STORAGE_KEYS.USER, user);
       return { data: user };
     } catch (e) {

@@ -7,20 +7,21 @@ import { BackButton } from '../../../src/components/common/BackButton';
 import { simulateApiDelay, generateId } from '../../../src/utils/helpers';
 import { StorageService } from '../../../src/services/storage.service';
 import { useAuth } from '../../../src/hooks/useAuth';
+import { useI18n } from '../../../src/i18n';
 import { Consultation } from '../../../src/types/content.types';
-
-const TOPICS = ['Prière', 'Guérison', 'Finance', 'Famille', 'Mariage', 'Travail', 'Délivrance', 'Prophétie'];
 
 export default function ConsultationFormScreen() {
   const { colors, spacing } = useTheme();
   const { user } = useAuth();
+  const { t } = useI18n();
   const [topic, setTopic] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const topics = [...t.consultation.topics];
 
   async function handleSubmit() {
     if (!topic || !message.trim()) {
-      Alert.alert('Champs requis', 'Veuillez sélectionner un sujet et décrire votre besoin.');
+      Alert.alert(t.consultation.requiredTitle, t.consultation.requiredMsg);
       return;
     }
 
@@ -42,9 +43,9 @@ export default function ConsultationFormScreen() {
 
     setLoading(false);
     Alert.alert(
-      'Demande envoyée',
-      'Votre demande de consultation a été reçue. Notre équipe vous contactera dans les 24h.',
-      [{ text: 'OK', onPress: () => router.replace('/(app)/consultation/my-consultations') }],
+      t.consultation.sentTitle,
+      t.consultation.sentMsg,
+      [{ text: t.common.ok, onPress: () => router.replace('/(app)/consultation/my-consultations') }],
     );
   }
 
@@ -54,26 +55,26 @@ export default function ConsultationFormScreen() {
         <BackButton style={{ marginBottom: 24, marginTop: 56 }} />
 
         <Text style={{ fontSize: 22, fontWeight: '800', color: colors.text, marginBottom: 4 }}>
-          Demande de consultation
+          {t.consultation.formTitle}
         </Text>
         <Text style={{ color: colors.textSecondary, fontSize: 14, marginBottom: 32 }}>
-          Remplissez ce formulaire et nous vous recontactons dans les 24h
+          {t.consultation.formSubtitle}
         </Text>
 
         {/* Topic */}
         <View style={{ marginBottom: 20 }}>
-          <Text style={[styles.label, { color: colors.textSecondary }]}>Sujet de consultation *</Text>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>{t.consultation.topicLabel}</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
-            {TOPICS.map((t) => (
+            {topics.map((item) => (
               <TouchableOpacity
-                key={t}
-                onPress={() => setTopic(t)}
+                key={item}
+                onPress={() => setTopic(item)}
                 style={[
                   styles.chip,
-                  { backgroundColor: topic === t ? colors.primary : colors.surface, borderColor: topic === t ? colors.primary : colors.border },
+                  { backgroundColor: topic === item ? colors.primary : colors.surface, borderColor: topic === item ? colors.primary : colors.border },
                 ]}
               >
-                <Text style={{ color: topic === t ? '#fff' : colors.text, fontSize: 13 }}>{t}</Text>
+                <Text style={{ color: topic === item ? '#fff' : colors.text, fontSize: 13 }}>{item}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -81,13 +82,13 @@ export default function ConsultationFormScreen() {
 
         {/* Message */}
         <View style={{ marginBottom: 20 }}>
-          <Text style={[styles.label, { color: colors.textSecondary }]}>Décrivez votre besoin *</Text>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>{t.consultation.needLabel}</Text>
           <View style={[styles.textArea, { borderColor: colors.border, backgroundColor: colors.surface }]}>
             <TextInput
               style={[{ color: colors.text, fontSize: 14, minHeight: 100 }]}
               value={message}
               onChangeText={setMessage}
-              placeholder="Décrivez votre situation en détail..."
+              placeholder={t.consultation.needPh}
               placeholderTextColor={colors.textTertiary}
               multiline
               textAlignVertical="top"
@@ -96,7 +97,7 @@ export default function ConsultationFormScreen() {
         </View>
 
         <Button
-          label="Soumettre la demande"
+          label={t.consultation.submit}
           variant="gold"
           fullWidth
           size="lg"

@@ -29,46 +29,24 @@ import { getTodayMessage } from "../../../../src/data/messages.data";
 import { useAuth } from "../../../../src/hooks/useAuth";
 import { usePremiumAccess } from "../../../../src/hooks/usePremiumAccess";
 import { useDailyPrayers } from "../../../../src/hooks/useDailyPrayers";
+import { useI18n } from "../../../../src/i18n";
 import { useTheme } from "../../../../src/theme";
 import { formatDate } from "../../../../src/utils/helpers";
 
-const QUICK_ACTIONS = [
-  {
-    icon: Heart,
-    label: "Prière et suivie spirituel",
-    route: "/(app)/(tabs)/prayers" as const,
-  },
-  {
-    icon: MessageCircle,
-    label: "Discuter avec le prophète",
-    route: "/(app)/(tabs)/ai" as const,
-  },
-  {
-    icon: BookOpen,
-    label: "Bibliothèque et formations",
-    route: "/(app)/(tabs)/library" as const,
-  },
-  {
-    icon: Lightbulb,
-    label: "Conseil et orientation pour un cas precis",
-    route: "/(app)/formations" as const,
-  },
-  {
-    icon: CloudMoon,
-    label: "Interpreter mon rêve",
-    route: "/(app)/dreams" as const,
-  },
-  {
-    icon: Calendar,
-    label: "Consultation et prophetie",
-    route: "/(app)/consultation" as const,
-  },
-] satisfies { icon: LucideIcon; label: string; route: Href }[];
+const QUICK_ACTIONS_CONFIG = [
+  { icon: Heart,         labelKey: "prayer"       as const, route: "/(app)/(tabs)/prayers"  as const },
+  { icon: MessageCircle, labelKey: "ai"           as const, route: "/(app)/(tabs)/ai"        as const },
+  { icon: BookOpen,      labelKey: "library"      as const, route: "/(app)/(tabs)/library"   as const },
+  { icon: Lightbulb,     labelKey: "consultation" as const, route: "/(app)/formations"       as const },
+  { icon: CloudMoon,     labelKey: "dreams"       as const, route: "/(app)/dreams"           as const },
+  { icon: Calendar,      labelKey: "prophet"      as const, route: "/(app)/consultation"     as const },
+];
 
 export default function HomeScreen() {
   const { colors, spacing } = useTheme();
   const { user } = useAuth();
   const { isPremium } = usePremiumAccess();
+  const { t } = useI18n();
 
   const todayMessage = getTodayMessage();
   const { list: dailyPrayers } = useDailyPrayers();
@@ -96,7 +74,7 @@ export default function HomeScreen() {
           <View>
             <View style={styles.greetingRow}>
               <Text style={styles.greeting}>
-                Bienvenue, {user?.name?.split(" ")[0]}
+                {t.home.greeting(user?.name?.split(" ")[0] ?? "")}
               </Text>
               <AppIcon icon={Hand} size={18} color="#fff" strokeWidth={2.4} />
             </View>
@@ -133,7 +111,7 @@ export default function HomeScreen() {
               <Text
                 style={{ color: "#C9A84C", fontSize: 12, fontWeight: "700" }}
               >
-                Membre Premium
+                {t.common.premium}
               </Text>
             </View>
           </View>
@@ -153,7 +131,7 @@ export default function HomeScreen() {
                 letterSpacing: 1,
               }}
             >
-              MESSAGE DU JOUR
+              {t.home.todayMessage}
             </Text>
             <Text
               style={{
@@ -185,10 +163,10 @@ export default function HomeScreen() {
           <View>
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                Prières du jour
+                {t.home.dailyPrayers}
               </Text>
               <TouchableOpacity onPress={() => router.push("/(app)/(tabs)/prayers")}>
-                <Text style={{ color: colors.primary, fontSize: 13 }}>Voir tout</Text>
+                <Text style={{ color: colors.primary, fontSize: 13 }}>{t.common.seeAll}</Text>
               </TouchableOpacity>
             </View>
             {todayPrayers.map((prayer) => (
@@ -218,7 +196,7 @@ export default function HomeScreen() {
                     </Text>
                   </View>
                   <View style={[styles.readHint, { backgroundColor: colors.primary + "1A" }]}>
-                    <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "600" }}>Lire</Text>
+                    <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "600" }}>{t.common.read}</Text>
                   </View>
                 </View>
               </Card>
@@ -234,12 +212,12 @@ export default function HomeScreen() {
               { color: colors.text, marginBottom: 12 },
             ]}
           >
-            Accès rapide
+            {t.home.quickAccess}
           </Text>
           <View style={styles.grid}>
-            {QUICK_ACTIONS.map((action) => (
+            {QUICK_ACTIONS_CONFIG.map((action) => (
               <TouchableOpacity
-                key={action.label}
+                key={action.labelKey}
                 onPress={() => router.push(action.route)}
                 style={[
                   styles.actionBtn,
@@ -265,7 +243,7 @@ export default function HomeScreen() {
                     textAlign: "center",
                   }}
                 >
-                  {action.label}
+                  {t.home.actions[action.labelKey]}
                 </Text>
               </TouchableOpacity>
             ))}

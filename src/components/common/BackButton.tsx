@@ -2,6 +2,7 @@ import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ViewStyle } from 'react-native';
 import { router } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
+import { useI18n } from '../../i18n';
 import { useTheme } from '../../theme';
 
 interface BackButtonProps {
@@ -14,16 +15,18 @@ interface BackButtonProps {
 
 export function BackButton({
   onPress,
-  label = 'Retour',
+  label,
   variant = 'light',
   style,
   disabled,
 }: BackButtonProps) {
   const { colors } = useTheme();
+  const { t } = useI18n();
 
   const isDark = variant === 'dark';
   const bg    = isDark ? 'rgba(255,255,255,0.15)' : (colors.primaryPale ?? '#EDE9FE');
   const color = isDark ? '#ffffff' : colors.primary;
+  const resolvedLabel = label ?? t.common.back;
 
   return (
     <TouchableOpacity
@@ -33,7 +36,7 @@ export function BackButton({
       style={[styles.btn, { backgroundColor: bg }, style]}
     >
       <ChevronLeft size={18} color={color} strokeWidth={2.5} />
-      <Text style={[styles.label, { color }]}>{label}</Text>
+      <Text style={[styles.label, { color }]}>{resolvedLabel}</Text>
     </TouchableOpacity>
   );
 }

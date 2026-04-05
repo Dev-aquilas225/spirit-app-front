@@ -16,6 +16,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import { useI18n } from "../../i18n";
 import { usePWAInstall } from "../../hooks/usePWAInstall";
 
 /**
@@ -29,6 +30,7 @@ import { usePWAInstall } from "../../hooks/usePWAInstall";
 export function PWAInstallBanner() {
   const { canShowNative, canShowIOS, install, dismiss } = usePWAInstall();
   const { width } = useWindowDimensions();
+  const { t } = useI18n();
   const [showIOSModal, setShowIOSModal] = useState(false);
 
   if (Platform.OS !== "web") return null;
@@ -49,11 +51,11 @@ export function PWAInstallBanner() {
 
             <View style={styles.texts}>
               <Text style={styles.title} numberOfLines={1}>
-                Installer Oracle Plus
+                {t.pwa.installTitle}
               </Text>
               {!isNarrow && (
                 <Text style={styles.sub} numberOfLines={1}>
-                  Appuyez pour voir comment l'ajouter à l'écran d'accueil
+                  {t.pwa.iosSubtitle}
                 </Text>
               )}
             </View>
@@ -65,7 +67,7 @@ export function PWAInstallBanner() {
                 style={styles.installBtn}
               >
                 <Share size={14} color="#1A1A3E" strokeWidth={2.5} />
-                <Text style={styles.installLabel}>Comment ?</Text>
+                <Text style={styles.installLabel}>{t.pwa.howTo}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -95,12 +97,11 @@ export function PWAInstallBanner() {
               {/* Flèche vers le bas pointant vers la barre Safari */}
               <View style={styles.modalHeader}>
                 <MessageCircle size={22} color="#C9A84C" strokeWidth={2} />
-                <Text style={styles.modalTitle}>Installer Oracle Plus</Text>
+                <Text style={styles.modalTitle}>{t.pwa.installTitle}</Text>
               </View>
 
               <Text style={styles.modalSub}>
-                Safari ne propose pas de bouton automatique.{"\n"}
-                Suivez ces 3 étapes simples :
+                {t.pwa.safariNoAuto}
               </Text>
 
               {/* Étape 1 */}
@@ -112,12 +113,11 @@ export function PWAInstallBanner() {
                   <View style={styles.stepIconRow}>
                     <Share size={18} color="#C9A84C" strokeWidth={2} />
                     <Text style={styles.stepText}>
-                      Appuyez sur l'icône{" "}
-                      <Text style={styles.bold}>Partager</Text>
+                      {t.pwa.step1}
                     </Text>
                   </View>
                   <Text style={styles.stepHint}>
-                    (le carré avec une flèche vers le haut, en bas de Safari)
+                    {t.pwa.step1Hint}
                   </Text>
                 </View>
               </View>
@@ -128,10 +128,7 @@ export function PWAInstallBanner() {
                   <Text style={styles.stepNumText}>2</Text>
                 </View>
                 <View style={styles.stepContent}>
-                  <Text style={styles.stepText}>
-                    Faites défiler et appuyez sur{"\n"}
-                    <Text style={styles.bold}>« Sur l'écran d'accueil »</Text>
-                  </Text>
+                  <Text style={styles.stepText}>{t.pwa.step2}</Text>
                 </View>
               </View>
 
@@ -141,9 +138,7 @@ export function PWAInstallBanner() {
                   <Text style={styles.stepNumText}>3</Text>
                 </View>
                 <View style={styles.stepContent}>
-                  <Text style={styles.stepText}>
-                    Appuyez sur <Text style={styles.bold}>« Ajouter »</Text>
-                  </Text>
+                  <Text style={styles.stepText}>{t.pwa.step3}</Text>
                 </View>
               </View>
 
@@ -155,7 +150,7 @@ export function PWAInstallBanner() {
                   strokeWidth={2}
                   style={{ transform: [{ rotate: "180deg" }] }}
                 />
-                <Text style={styles.arrowHintText}>Barre Safari en bas</Text>
+                <Text style={styles.arrowHintText}>{t.pwa.safariBarHint}</Text>
               </View>
 
               <TouchableOpacity
@@ -166,7 +161,7 @@ export function PWAInstallBanner() {
                 style={styles.modalCloseBtn}
                 activeOpacity={0.8}
               >
-                <Text style={styles.modalCloseBtnText}>Compris !</Text>
+                <Text style={styles.modalCloseBtnText}>{t.common.understood}</Text>
               </TouchableOpacity>
             </Pressable>
           </Pressable>
@@ -188,11 +183,11 @@ export function PWAInstallBanner() {
 
         <View style={styles.texts}>
           <Text style={styles.title} numberOfLines={1}>
-            Installer Oracle Plus
+            {t.pwa.installTitle}
           </Text>
           {!isNarrow && (
             <Text style={styles.sub} numberOfLines={1}>
-              Accès rapide depuis votre écran d'accueil
+              {t.pwa.nativeSubtitle}
             </Text>
           )}
         </View>
@@ -204,7 +199,7 @@ export function PWAInstallBanner() {
             style={styles.installBtn}
           >
             <Download size={14} color="#1A1A3E" strokeWidth={2.5} />
-            <Text style={styles.installLabel}>Installer</Text>
+            <Text style={styles.installLabel}>{t.pwa.installButton}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity

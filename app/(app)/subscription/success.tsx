@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Animated } from 'react-native';
 import { router } from 'expo-router';
 import { Crown, PartyPopper } from 'lucide-react-native';
 import { useTheme } from '../../../src/theme';
+import { useI18n } from '../../../src/i18n';
 import { Button } from '../../../src/components/common/Button';
 import { AppIcon } from '../../../src/components/common/AppIcon';
 import { useSubscription } from '../../../src/hooks/useSubscription';
@@ -10,6 +11,7 @@ import { formatDate, formatCurrency } from '../../../src/utils/helpers';
 
 export default function PaymentSuccessScreen() {
   const { colors, spacing } = useTheme();
+  const { t } = useI18n();
   const { subscription, pendingReference } = useSubscription();
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -28,29 +30,29 @@ export default function PaymentSuccessScreen() {
         <View style={styles.iconWrapper}>
           <AppIcon icon={PartyPopper} size={80} color="#C9A84C" strokeWidth={1.8} />
         </View>
-        <Text style={[styles.title, { color: colors.text }]}>Paiement réussi !</Text>
+        <Text style={[styles.title, { color: colors.text }]}>{t.subscription.successTitle}</Text>
         <View style={styles.subtitleRow}>
           <AppIcon icon={Crown} size={18} color={colors.primary} strokeWidth={2.2} />
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Bienvenue dans la famille Premium Oracle Plus
+            {t.subscription.successSubtitle}
           </Text>
         </View>
 
         <Animated.View style={{ opacity: fadeAnim, width: '100%', marginTop: 24 }}>
           <View style={[styles.infoCard, { backgroundColor: colors.premiumBackground, borderColor: colors.premiumBorder }]}>
             <View style={styles.infoRow}>
-              <Text style={{ color: colors.textSecondary }}>Montant</Text>
+              <Text style={{ color: colors.textSecondary }}>{t.subscription.successAmount}</Text>
               <Text style={{ color: colors.text, fontWeight: '700' }}>{formatCurrency(5000)}</Text>
             </View>
             {subscription && (
               <View style={styles.infoRow}>
-                <Text style={{ color: colors.textSecondary }}>Expire le</Text>
+                <Text style={{ color: colors.textSecondary }}>{t.subscription.successExpiry}</Text>
                 <Text style={{ color: colors.text, fontWeight: '700' }}>{formatDate(subscription.expiryDate)}</Text>
               </View>
             )}
             {pendingReference && (
               <View style={styles.infoRow}>
-                <Text style={{ color: colors.textSecondary }}>Référence</Text>
+                <Text style={{ color: colors.textSecondary }}>{t.subscription.successRef}</Text>
                 <Text style={{ color: colors.textSecondary, fontSize: 11 }}>{pendingReference}</Text>
               </View>
             )}
@@ -60,14 +62,14 @@ export default function PaymentSuccessScreen() {
 
       <View style={{ width: '100%', padding: spacing.xl, gap: spacing.md }}>
         <Button
-          label="Commencer l'exploration"
+          label={t.subscription.successExplore}
           variant="gold"
           fullWidth
           size="lg"
           onPress={() => router.replace('/(app)/(tabs)/home')}
         />
         <Button
-          label="Voir mon abonnement"
+          label={t.subscription.successManage}
           variant="outline"
           fullWidth
           onPress={() => router.replace('/(app)/subscription')}

@@ -3,6 +3,7 @@ import { View, Text, FlatList, StyleSheet } from 'react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { CircleCheck, CircleX, CreditCard, Hourglass } from 'lucide-react-native';
 import { useTheme } from '../../../src/theme';
+import { useI18n } from '../../../src/i18n';
 import { useSubscription } from '../../../src/hooks/useSubscription';
 import { EmptyState } from '../../../src/components/common/EmptyState';
 import { BackButton } from '../../../src/components/common/BackButton';
@@ -12,28 +13,29 @@ import { PaymentRecord } from '../../../src/types/subscription.types';
 
 export default function PaymentHistoryScreen() {
   const { colors, spacing } = useTheme();
+  const { t } = useI18n();
   const { payments, loadSubscription } = useSubscription();
 
   useEffect(() => { loadSubscription(); }, [loadSubscription]);
 
   const statusConfig: Record<PaymentRecord['status'], { color: string; label: string; icon: LucideIcon }> = {
-    success: { color: '#10B981', label: 'Réussi', icon: CircleCheck },
-    failed: { color: '#EF4444', label: 'Échoué', icon: CircleX },
-    pending: { color: '#F59E0B', label: 'En attente', icon: Hourglass },
+    success: { color: '#10B981', label: t.subscription.statusSuccess, icon: CircleCheck },
+    failed: { color: '#EF4444', label: t.subscription.statusFailed, icon: CircleX },
+    pending: { color: '#F59E0B', label: t.subscription.statusPending, icon: Hourglass },
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <View style={[styles.header, { backgroundColor: colors.deepBlue ?? '#1A1A3E', paddingTop: 56 }]}>
         <BackButton variant="dark" style={{ alignSelf: 'flex-start' }} />
-        <Text style={styles.headerTitle}>Historique paiements</Text>
+        <Text style={styles.headerTitle}>{t.subscription.history}</Text>
       </View>
 
       {payments.length === 0 ? (
         <EmptyState
           icon={<AppIcon icon={CreditCard} size={48} color={colors.primary} strokeWidth={1.9} />}
-          title="Aucun paiement"
-          message="Votre historique de paiements apparaîtra ici."
+          title={t.subscription.emptyPaymentsTitle}
+          message={t.subscription.emptyPaymentsMsg}
         />
       ) : (
         <FlatList
@@ -58,7 +60,7 @@ export default function PaymentHistoryScreen() {
                   <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{formatDate(item.createdAt)}</Text>
                 </View>
                 <Text style={{ color: colors.textTertiary, fontSize: 11, marginTop: 4 }}>
-                  Réf: {item.reference}
+                  {t.subscription.referenceShort(item.reference)}
                 </Text>
               </View>
             );

@@ -2,15 +2,17 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { ArrowLeft, ArrowRight, Play, X } from 'lucide-react-native';
+import { useI18n } from '../../../../src/i18n';
 import { useTheme } from '../../../../src/theme';
-import { FORMATIONS_DATA } from '../../../../src/data/formations.data';
+import { getFormationsData } from '../../../../src/data/formations.data';
 import { AppIcon } from '../../../../src/components/common/AppIcon';
 
 export default function FormationReaderScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors, spacing } = useTheme();
+  const { t, language } = useI18n();
   const [currentLesson, setCurrentLesson] = useState(0);
-  const formation = FORMATIONS_DATA.find((f) => f.id === id);
+  const formation = getFormationsData(language).find((f) => f.id === id);
 
   if (!formation) return null;
   const lesson = formation.lessons[currentLesson];
@@ -24,7 +26,9 @@ export default function FormationReaderScreen() {
         </TouchableOpacity>
         <View style={{ flex: 1, paddingHorizontal: 12 }}>
           <Text style={{ color: colors.text, fontWeight: '600', fontSize: 13 }} numberOfLines={1}>{formation.title}</Text>
-          <Text style={{ color: colors.textTertiary, fontSize: 11 }}>Leçon {currentLesson + 1}/{formation.lessons.length}</Text>
+          <Text style={{ color: colors.textTertiary, fontSize: 11 }}>
+            {t.formations.lessonProgress(currentLesson + 1, formation.lessons.length)}
+          </Text>
         </View>
       </View>
 
@@ -43,7 +47,7 @@ export default function FormationReaderScreen() {
         <Text style={[styles.lessonTitle, { color: colors.text }]}>{lesson.title}</Text>
         <Text style={[styles.lessonContent, { color: colors.text }]}>{lesson.content}</Text>
         <Text style={[styles.lessonContent, { color: colors.text }]}>
-          {`\nDans cette leçon, nous explorons en profondeur les principes spirituels qui fondent notre marche avec Dieu. Chaque vérité présentée ici a été soigneusement sélectionnée pour vous accompagner dans votre croissance spirituelle.\n\nPrenez le temps de méditer sur ce qui est enseigné. La connaissance sans méditation reste superficielle. C'est dans le silence de la réflexion que la Parole prend racine dans votre cœur.\n\nNote pratique : Tenez un journal de vos révélations au fur et à mesure que vous progressez dans cette formation.`}
+          {`\n${t.formations.readerExtra}`}
         </Text>
       </ScrollView>
 
@@ -56,7 +60,7 @@ export default function FormationReaderScreen() {
         >
           <View style={styles.navBtnContent}>
             <AppIcon icon={ArrowLeft} size={16} color={colors.text} strokeWidth={2.6} />
-            <Text style={{ color: colors.text }}>Précédente</Text>
+            <Text style={{ color: colors.text }}>{t.formations.previous}</Text>
           </View>
         </TouchableOpacity>
         <TouchableOpacity
@@ -65,7 +69,7 @@ export default function FormationReaderScreen() {
           style={[styles.navBtn, { opacity: currentLesson === formation.lessons.length - 1 ? 0.3 : 1, backgroundColor: colors.primary }]}
         >
           <View style={styles.navBtnContent}>
-            <Text style={{ color: '#fff' }}>Suivante</Text>
+            <Text style={{ color: '#fff' }}>{t.formations.next}</Text>
             <AppIcon icon={ArrowRight} size={16} color="#fff" strokeWidth={2.6} />
           </View>
         </TouchableOpacity>

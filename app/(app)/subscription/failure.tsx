@@ -3,12 +3,14 @@ import { View, Text, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { CircleX } from 'lucide-react-native';
 import { useTheme } from '../../../src/theme';
+import { useI18n } from '../../../src/i18n';
 import { Button } from '../../../src/components/common/Button';
 import { AppIcon } from '../../../src/components/common/AppIcon';
 import { useSubscription } from '../../../src/hooks/useSubscription';
 
 export default function PaymentFailureScreen() {
   const { colors, spacing } = useTheme();
+  const { t } = useI18n();
   const { paymentError, clearPaymentError } = useSubscription();
 
   function handleRetry() {
@@ -22,22 +24,22 @@ export default function PaymentFailureScreen() {
         <View style={{ marginBottom: 24 }}>
           <AppIcon icon={CircleX} size={80} color="#EF4444" strokeWidth={1.8} />
         </View>
-        <Text style={[styles.title, { color: colors.text }]}>Paiement échoué</Text>
+        <Text style={[styles.title, { color: colors.text }]}>{t.subscription.failureTitle}</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          {paymentError ?? 'Une erreur est survenue lors du paiement. Veuillez réessayer.'}
+          {paymentError ?? t.subscription.failureDefault}
         </Text>
 
         <View style={[styles.helpCard, { backgroundColor: colors.surfaceSecondary, borderRadius: 12 }]}>
-          <Text style={{ color: colors.text, fontWeight: '600', marginBottom: 8 }}>Causes possibles :</Text>
-          {['Solde insuffisant', 'Numéro incorrect', 'Connexion instable', 'Transaction refusée'].map((cause) => (
+          <Text style={{ color: colors.text, fontWeight: '600', marginBottom: 8 }}>{t.subscription.failureCausesTitle}</Text>
+          {t.subscription.failureCauses.map((cause) => (
             <Text key={cause} style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>• {cause}</Text>
           ))}
         </View>
       </View>
 
       <View style={{ width: '100%', padding: spacing.xl, gap: spacing.md }}>
-        <Button label="Réessayer" variant="gold" fullWidth size="lg" onPress={handleRetry} />
-        <Button label="Retour" variant="ghost" fullWidth onPress={() => router.replace('/(app)/subscription')} />
+        <Button label={t.common.retry} variant="gold" fullWidth size="lg" onPress={handleRetry} />
+        <Button label={t.common.back} variant="ghost" fullWidth onPress={() => router.replace('/(app)/subscription')} />
       </View>
     </View>
   );

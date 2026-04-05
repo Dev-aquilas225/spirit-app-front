@@ -1,75 +1,73 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   ActivityIndicator, RefreshControl, Modal, Pressable,
 } from 'react-native';
 import { router } from 'expo-router';
-import { BookOpen, Brain, Flame, Heart, Moon, Music, RefreshCw, Sunrise, Sunset, X } from 'lucide-react-native';
+import {
+  BookOpen, Brain, ChevronLeft, ChevronRight,
+  Flame, Heart, Moon, Music, RefreshCw, Sunrise, Sunset, X,
+} from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
+import { useI18n } from '../../../../src/i18n';
 import { useTheme } from '../../../../src/theme';
 import { usePremiumAccess } from '../../../../src/hooks/usePremiumAccess';
 import { useDailyPrayers } from '../../../../src/hooks/useDailyPrayers';
-import { DailyPrayer, PrayerMood } from '../../../../src/services/prayers.service';
+import { DailyPrayer, DailyPrayers, PrayerMood, PrayersService } from '../../../../src/services/prayers.service';
 import { Card } from '../../../../src/components/common/Card';
 import { PremiumBanner } from '../../../../src/components/subscription/PremiumBanner';
 import { AppIcon } from '../../../../src/components/common/AppIcon';
-import { getArchivedPrayers } from '../../../../src/data/prayers.data';
-import { Prayer, PrayerTime } from '../../../../src/types/content.types';
+import { formatDate, formatMonthYear, getWeekdayShortNames } from '../../../../src/utils/helpers';
 
 type Tab = 'today' | 'archive';
 
-/* ─── Helpers ─────────────────────────────────────────────────────────── */
+/* ─── Constantes ───────────────────────────────────────────────────────────── */
 
-const PERIOD_ICONS: Record<'morning' | 'evening', LucideIcon> = {
-  morning: Sunrise,
-  evening: Sunset,
-};
-const PERIOD_LABELS: Record<'morning' | 'evening', string> = {
-  morning: 'Matin',
-  evening: 'Soir',
-};
-
+const PERIOD_ICONS: Record<'morning' | 'evening', LucideIcon> = { morning: Sunrise, evening: Sunset };
+// PERIOD_LABELS are now sourced from t.prayers.morning / t.prayers.evening via useI18n() in each component
 const MOOD_ICONS: Record<PrayerMood, LucideIcon> = {
-  meditate: Brain,
-  pray:     Heart,
-  worship:  Music,
-  fast:     Flame,
-  read:     BookOpen,
+  meditate: Brain, pray: Heart, worship: Music, fast: Flame, read: BookOpen,
 };
 
-/* ─── Modal de détail ──────────────────────────────────────────────────── */
+/* ─── Helpers date ─────────────────────────────────────────────────────────── */
+
+function toYMD(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+function todayYMD(): string {
+  return toYMD(new Date());
+}
+
+/* ─── Modal de détail ──────────────────────────────────────────────────────── */
 
 function PrayerDetailModal({
-  prayer,
-  visible,
-  onClose,
+  prayer, visible, onClose,
 }: {
-  prayer: DailyPrayer | null;
-  visible: boolean;
-  onClose: () => void;
+  prayer: DailyPrayer | null; visible: boolean; onClose: () => void;
 }) {
   const { colors, spacing } = useTheme();
+  const { t } = useI18n();
   if (!prayer) return null;
 
   const PeriodIcon = PERIOD_ICONS[prayer.period];
-  const MoodIcon = prayer.mood ? MOOD_ICONS[prayer.mood] ?? Heart : Heart;
+  const MoodIcon = prayer.mood ? (MOOD_ICONS[prayer.mood] ?? Heart) : Heart;
+  const periodLabels: Record<'morning' | 'evening', string> = { morning: t.prayers.morning, evening: t.prayers.evening };
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose} />
       <View style={[styles.sheet, { backgroundColor: colors.background }]}>
-        {/* Handle */}
         <View style={[styles.handle, { backgroundColor: colors.border }]} />
-
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: spacing.base, paddingBottom: 40 }}
         >
-          {/* Header période */}
+          {/* Header */}
           <View style={[styles.modalHeader, { backgroundColor: colors.deepBlue ?? '#1A1A3E' }]}>
             <View style={styles.periodBadge}>
               <AppIcon icon={PeriodIcon} size={18} color="#C9A84C" strokeWidth={2.4} />
-              <Text style={styles.periodLabel}>{PERIOD_LABELS[prayer.period]}</Text>
+              <Text style={styles.periodLabel}>{periodLabels[prayer.period]}</Text>
+              <Text style={styles.periodDate}>{prayer.date}</Text>
             </View>
             <Text style={styles.modalTheme}>{prayer.theme}</Text>
           </View>
@@ -78,7 +76,7 @@ function PrayerDetailModal({
           <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.sectionTitleRow}>
               <AppIcon icon={Heart} size={16} color={colors.primary} strokeWidth={2.4} />
-              <Text style={[styles.sectionTitle, { color: colors.primary }]}>Prière</Text>
+              <Text style={[styles.sectionTitle, { color: colors.primary }]}>{t.prayers.sectionPrayer}</Text>
             </View>
             <Text style={[styles.prayerText, { color: colors.text }]}>{prayer.prayerText}</Text>
           </View>
@@ -89,7 +87,7 @@ function PrayerDetailModal({
             <Text style={[styles.verseRef, { color: '#C9A84C' }]}>— {prayer.verseReference}</Text>
           </View>
 
-          {/* Mood / pratique */}
+          {/* Mood */}
           <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.sectionTitleRow}>
               <AppIcon icon={MoodIcon} size={16} color={colors.primary} strokeWidth={2.4} />
@@ -98,19 +96,17 @@ function PrayerDetailModal({
             <Text style={[styles.bodyText, { color: colors.textSecondary }]}>{prayer.moodDescription}</Text>
           </View>
 
-          {/* Instruction de pratique */}
+          {/* Pratique */}
           <View style={[styles.practiceCard, { backgroundColor: colors.surfaceSecondary ?? colors.surface, borderLeftColor: colors.primary }]}>
-            <Text style={[styles.practiceLabel, { color: colors.textTertiary ?? colors.textSecondary }]}>
-              PRATIQUE DU JOUR
-            </Text>
+            <Text style={[styles.practiceLabel, { color: colors.textTertiary ?? colors.textSecondary }]}>{t.prayers.practiceLabel}</Text>
             <Text style={[styles.bodyText, { color: colors.text }]}>{prayer.practiceInstruction}</Text>
           </View>
 
-          {/* Fréquence quantique (optionnel) */}
+          {/* Fréquence quantique */}
           {prayer.quanticFrequency !== null && (
             <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <Text style={[styles.sectionTitle, { color: colors.primary, marginBottom: 4 }]}>
-                Fréquence quantique — {prayer.quanticFrequency} Hz
+                {t.prayers.quanticFreq(prayer.quanticFrequency!)}
               </Text>
               {prayer.quanticDescription && (
                 <Text style={[styles.bodyText, { color: colors.textSecondary }]}>{prayer.quanticDescription}</Text>
@@ -119,14 +115,13 @@ function PrayerDetailModal({
           )}
         </ScrollView>
 
-        {/* Bouton fermer */}
         <View style={[styles.closeRow, { borderTopColor: colors.border, backgroundColor: colors.background }]}>
           <TouchableOpacity
             onPress={onClose}
             style={[styles.closeBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
           >
             <AppIcon icon={X} size={16} color={colors.text} strokeWidth={2.4} />
-            <Text style={[styles.closeBtnLabel, { color: colors.text }]}>Fermer</Text>
+            <Text style={[styles.closeBtnLabel, { color: colors.text }]}>{t.common.close}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -134,112 +129,191 @@ function PrayerDetailModal({
   );
 }
 
-/* ─── Carte prière du jour ─────────────────────────────────────────────── */
+/* ─── Carte prière ─────────────────────────────────────────────────────────── */
 
-function DailyPrayerCard({
-  prayer,
-  onPress,
-}: {
-  prayer: DailyPrayer;
-  onPress: () => void;
-}) {
+function DailyPrayerCard({ prayer, onPress }: { prayer: DailyPrayer; onPress: () => void }) {
   const { colors, spacing } = useTheme();
+  const { t } = useI18n();
+  const periodLabels: Record<'morning' | 'evening', string> = { morning: t.prayers.morning, evening: t.prayers.evening };
   const PeriodIcon = PERIOD_ICONS[prayer.period];
-
   return (
     <Card onPress={onPress} style={{ marginBottom: spacing.sm }}>
       <View style={styles.cardRow}>
         <View style={[styles.iconWrap, { backgroundColor: prayer.period === 'morning' ? '#FFF7E0' : '#EDE9FF' }]}>
           <AppIcon
-            icon={PeriodIcon}
-            size={24}
+            icon={PeriodIcon} size={24}
             color={prayer.period === 'morning' ? '#C9A84C' : '#7C5CBF'}
             strokeWidth={2.4}
           />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.cardPeriod, { color: colors.textSecondary }]}>
-            {PERIOD_LABELS[prayer.period]}
-          </Text>
-          <Text style={[styles.cardTheme, { color: colors.text }]} numberOfLines={1}>
-            {prayer.theme}
-          </Text>
+          <Text style={[styles.cardPeriod, { color: colors.textSecondary }]}>{periodLabels[prayer.period]}</Text>
+          <Text style={[styles.cardTheme, { color: colors.text }]} numberOfLines={1}>{prayer.theme}</Text>
           <Text style={[styles.cardVerse, { color: colors.textTertiary ?? colors.textSecondary }]} numberOfLines={1}>
             {prayer.verseReference}
           </Text>
         </View>
         <View style={[styles.tapHint, { backgroundColor: colors.primary + '1A' }]}>
-          <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '600' }}>Lire</Text>
+          <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '600' }}>{t.common.read}</Text>
         </View>
       </View>
     </Card>
   );
 }
 
-/* ─── Carte archive (ancien format mock) ──────────────────────────────── */
+/* ─── Calendrier de sélection ──────────────────────────────────────────────── */
 
-const ARCHIVE_ICONS: Record<PrayerTime, LucideIcon> = {
-  morning: Sunrise,
-  evening: Sunset,
-  night: Moon,
-};
-const ARCHIVE_LABELS: Record<PrayerTime, string> = {
-  morning: 'Matin', evening: 'Soir', night: 'Nuit',
-};
+function DatePicker({
+  selected,
+  onSelect,
+}: {
+  selected: string | null;
+  onSelect: (ymd: string) => void;
+}) {
+  const { colors } = useTheme();
+  const { language } = useI18n();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-function ArchivePrayerCard({ prayer, isPremium }: { prayer: Prayer; isPremium: boolean }) {
-  const { colors, spacing } = useTheme();
-  const isLocked = prayer.access === 'premium' && !isPremium;
-  const [expanded, setExpanded] = useState(false);
+  const [viewYear, setViewYear] = useState(today.getFullYear());
+  const [viewMonth, setViewMonth] = useState(today.getMonth()); // 0-indexed
+
+  const isCurrentMonth = viewYear === today.getFullYear() && viewMonth === today.getMonth();
+
+  function prevMonth() {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
+    else setViewMonth(m => m - 1);
+  }
+  function nextMonth() {
+    if (isCurrentMonth) return; // pas de futur
+    if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
+    else setViewMonth(m => m + 1);
+  }
+
+  // Jours du mois (début lundi)
+  const firstDay = new Date(viewYear, viewMonth, 1);
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  // Décalage : lundi=0, ... dimanche=6
+  let startOffset = firstDay.getDay() - 1;
+  if (startOffset < 0) startOffset = 6;
+
+  const cells: (number | null)[] = [
+    ...Array(startOffset).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+  ];
+  // Compléter à multiple de 7
+  while (cells.length % 7 !== 0) cells.push(null);
 
   return (
-    <Card
-      onPress={() => isLocked ? router.push('/(app)/subscription') : setExpanded(!expanded)}
-      style={{ marginBottom: spacing.sm }}
-    >
-      <View style={styles.cardRow}>
-        <AppIcon icon={ARCHIVE_ICONS[prayer.time]} size={26} color={colors.primary} strokeWidth={2.4} />
-        <View style={{ flex: 1, marginLeft: 12 }}>
-          <Text style={[styles.cardTheme, { color: colors.text }]}>{prayer.title}</Text>
-          <Text style={[styles.cardPeriod, { color: colors.textSecondary }]}>
-            {ARCHIVE_LABELS[prayer.time]}{prayer.duration ? ` • ${prayer.duration}` : ''}
-          </Text>
-        </View>
-        {prayer.access === 'premium' && (
-          <View style={[styles.premiumTag, { backgroundColor: '#C9A84C' }]}>
-            <Text style={{ fontSize: 9, color: '#fff', fontWeight: '700' }}>PREMIUM</Text>
-          </View>
-        )}
-      </View>
-      {expanded && !isLocked && (
-        <Text style={[{ color: colors.text, fontSize: 14, lineHeight: 24, fontStyle: 'italic', marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border }]}>
-          {prayer.content}
+    <View style={{ marginBottom: 16 }}>
+      {/* Navigation mois */}
+      <View style={styles.calNav}>
+        <TouchableOpacity onPress={prevMonth} style={styles.calNavBtn}>
+          <AppIcon icon={ChevronLeft} size={20} color={colors.text} strokeWidth={2.4} />
+        </TouchableOpacity>
+        <Text style={[styles.calTitle, { color: colors.text }]}>
+          {formatMonthYear(new Date(viewYear, viewMonth, 1), language)}
         </Text>
-      )}
-    </Card>
+        <TouchableOpacity onPress={nextMonth} style={[styles.calNavBtn, isCurrentMonth && { opacity: 0.3 }]} disabled={isCurrentMonth}>
+          <AppIcon icon={ChevronRight} size={20} color={colors.text} strokeWidth={2.4} />
+        </TouchableOpacity>
+      </View>
+
+      {/* En-têtes jours */}
+      <View style={styles.calRow}>
+        {getWeekdayShortNames(language).map(d => (
+          <Text key={d} style={[styles.calDayHeader, { color: colors.textSecondary }]}>{d}</Text>
+        ))}
+      </View>
+
+      {/* Grille */}
+      {Array.from({ length: cells.length / 7 }, (_, week) => (
+        <View key={week} style={styles.calRow}>
+          {cells.slice(week * 7, week * 7 + 7).map((day, col) => {
+            if (!day) return <View key={col} style={styles.calCell} />;
+
+            const cellDate = new Date(viewYear, viewMonth, day);
+            cellDate.setHours(0, 0, 0, 0);
+            const ymd = toYMD(cellDate);
+            const isToday = ymd === todayYMD();
+            const isFuture = cellDate >= today;
+            const isSelected = ymd === selected;
+
+            return (
+              <TouchableOpacity
+                key={col}
+                style={styles.calCell}
+                onPress={() => !isFuture && onSelect(ymd)}
+                disabled={isFuture}
+              >
+                <View style={[
+                  styles.calDayInner,
+                  isSelected && { backgroundColor: colors.primary },
+                  isToday && !isSelected && { borderWidth: 1.5, borderColor: colors.primary },
+                ]}>
+                  <Text style={[
+                    styles.calDayText,
+                    { color: isFuture ? colors.border : isSelected ? '#fff' : colors.text },
+                  ]}>
+                    {day}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      ))}
+    </View>
   );
 }
 
-/* ─── Écran principal ──────────────────────────────────────────────────── */
+/* ─── Écran principal ──────────────────────────────────────────────────────── */
 
 export default function PrayersScreen() {
   const { colors, spacing } = useTheme();
   const { isPremium } = usePremiumAccess();
+  const { t, language } = useI18n();
   const [activeTab, setActiveTab] = useState<Tab>('today');
   const [selectedPrayer, setSelectedPrayer] = useState<DailyPrayer | null>(null);
 
+  // Aujourd'hui
   const { list: dailyPrayers, isLoading, refresh } = useDailyPrayers();
-  const archivedPrayers = getArchivedPrayers();
+
+  // Archive
+  const [archiveDate, setArchiveDate] = useState<string | null>(null);
+  const [archiveData, setArchiveData] = useState<DailyPrayers | null>(null);
+  const [archiveLoading, setArchiveLoading] = useState(false);
+  const [archiveError, setArchiveError] = useState<string | null>(null);
+
+  const fetchArchive = useCallback(async (ymd: string) => {
+    setArchiveDate(ymd);
+    setArchiveLoading(true);
+    setArchiveError(null);
+    setArchiveData(null);
+    const result = await PrayersService.getByDate(ymd);
+    if (!result.morning && !result.evening) {
+      setArchiveError(t.prayers.noArchive);
+    } else {
+      setArchiveData(result);
+    }
+    setArchiveLoading(false);
+  }, []);
+
+  const archivePrayers = archiveData
+    ? [archiveData.morning, archiveData.evening].filter((p): p is DailyPrayer => p !== null)
+    : [];
+
+  // Formatage date affichée
+  function formatDisplayDate(ymd: string) {
+    return formatDate(ymd, language);
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       {/* Header */}
-      <View style={[
-        styles.header,
-        { backgroundColor: colors.deepBlue ?? '#1A1A3E', paddingTop: 56, paddingHorizontal: spacing.base, paddingBottom: spacing.base },
-      ]}>
-        <Text style={styles.headerTitle}>Prières</Text>
-        <Text style={styles.headerSubtitle}>Restez connecté à Dieu chaque jour</Text>
+      <View style={[styles.header, { backgroundColor: colors.deepBlue ?? '#1A1A3E', paddingTop: 56, paddingHorizontal: spacing.base, paddingBottom: spacing.base }]}>
+        <Text style={styles.headerTitle}>{t.prayers.title}</Text>
+        <Text style={styles.headerSubtitle}>{t.prayers.subtitle}</Text>
       </View>
 
       {/* Tabs */}
@@ -251,7 +325,7 @@ export default function PrayersScreen() {
             style={[styles.tab, activeTab === tab && { borderBottomColor: colors.primary }]}
           >
             <Text style={[styles.tabLabel, { color: activeTab === tab ? colors.primary : colors.textSecondary }]}>
-              {tab === 'today' ? "Aujourd'hui" : 'Archives'}
+              {tab === 'today' ? t.prayers.tabToday : t.prayers.tabArchive}
             </Text>
           </TouchableOpacity>
         ))}
@@ -265,43 +339,82 @@ export default function PrayersScreen() {
             : undefined
         }
       >
-        {activeTab === 'today' ? (
+        {/* ── Onglet Aujourd'hui ── */}
+        {activeTab === 'today' && (
           isLoading ? (
             <View style={{ alignItems: 'center', paddingTop: 64 }}>
               <ActivityIndicator size="large" color={colors.primary} />
-              <Text style={{ color: colors.textSecondary, marginTop: 12, fontSize: 14 }}>
-                Chargement des prières...
-              </Text>
+              <Text style={{ color: colors.textSecondary, marginTop: 12, fontSize: 14 }}>{t.prayers.loading}</Text>
             </View>
           ) : dailyPrayers.length === 0 ? (
             <View style={{ alignItems: 'center', paddingTop: 64, gap: 12 }}>
               <AppIcon icon={Heart} size={48} color={colors.primary} strokeWidth={2} />
-              <Text style={{ color: colors.textSecondary, fontSize: 14 }}>Aucune prière pour aujourd'hui</Text>
+              <Text style={{ color: colors.textSecondary, fontSize: 14 }}>{t.prayers.empty}</Text>
               <TouchableOpacity onPress={refresh} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <AppIcon icon={RefreshCw} size={16} color={colors.primary} strokeWidth={2.2} />
-                <Text style={{ color: colors.primary, fontSize: 14 }}>Réessayer</Text>
+                <Text style={{ color: colors.primary, fontSize: 14 }}>{t.common.retry}</Text>
               </TouchableOpacity>
             </View>
           ) : (
             dailyPrayers.map((prayer) => (
-              <DailyPrayerCard
-                key={prayer.id}
-                prayer={prayer}
-                onPress={() => setSelectedPrayer(prayer)}
-              />
+              <DailyPrayerCard key={prayer.id} prayer={prayer} onPress={() => setSelectedPrayer(prayer)} />
             ))
           )
-        ) : (
-          archivedPrayers.length === 0 ? (
-            <View style={{ alignItems: 'center', paddingTop: 64 }}>
-              <AppIcon icon={Heart} size={48} color={colors.primary} strokeWidth={2} />
-              <Text style={{ color: colors.textSecondary, marginTop: 16, fontSize: 14 }}>Aucune archive</Text>
+        )}
+
+        {/* ── Onglet Archives ── */}
+        {activeTab === 'archive' && (
+          <View>
+            <Text style={[styles.archiveHint, { color: colors.textSecondary }]}>
+              {t.prayers.archiveHint}
+            </Text>
+
+            {/* Calendrier */}
+            <View style={[styles.calCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <DatePicker selected={archiveDate} onSelect={fetchArchive} />
             </View>
-          ) : (
-            archivedPrayers.map((prayer) => (
-              <ArchivePrayerCard key={prayer.id} prayer={prayer} isPremium={isPremium} />
-            ))
-          )
+
+            {/* Résultats */}
+            {archiveLoading && (
+              <View style={{ alignItems: 'center', paddingVertical: 32 }}>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={{ color: colors.textSecondary, marginTop: 8, fontSize: 13 }}>
+                  {t.prayers.loadingArchive(archiveDate ? formatDisplayDate(archiveDate) : '')}
+                </Text>
+              </View>
+            )}
+
+            {archiveError && !archiveLoading && (
+              <View style={[styles.archiveEmpty, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <AppIcon icon={Moon} size={32} color={colors.textSecondary} strokeWidth={2} />
+                <Text style={{ color: colors.textSecondary, fontSize: 14, textAlign: 'center', marginTop: 8 }}>
+                  {archiveError}
+                </Text>
+              </View>
+            )}
+
+            {!archiveLoading && !archiveError && archivePrayers.length > 0 && (
+              <View>
+                <View style={styles.archiveDateBanner}>
+                  <Text style={[styles.archiveDateLabel, { color: colors.text }]}>
+                    {t.prayers.prayerOf(formatDisplayDate(archiveDate!))}
+                  </Text>
+                </View>
+                {archivePrayers.map((prayer) => (
+                  <DailyPrayerCard key={prayer.id} prayer={prayer} onPress={() => setSelectedPrayer(prayer)} />
+                ))}
+              </View>
+            )}
+
+            {!archiveDate && !archiveLoading && (
+              <View style={{ alignItems: 'center', paddingVertical: 24, gap: 8 }}>
+                <AppIcon icon={Sunrise} size={36} color={colors.border} strokeWidth={2} />
+                <Text style={{ color: colors.textSecondary, fontSize: 13, textAlign: 'center' }}>
+                  {t.prayers.noDateSelected}
+                </Text>
+              </View>
+            )}
+          </View>
         )}
 
         {!isPremium && (
@@ -321,6 +434,8 @@ export default function PrayersScreen() {
   );
 }
 
+/* ─── Styles ───────────────────────────────────────────────────────────────── */
+
 const styles = StyleSheet.create({
   header: {},
   headerTitle: { fontSize: 26, fontWeight: '800', color: '#fff' },
@@ -329,34 +444,43 @@ const styles = StyleSheet.create({
   tab: { flex: 1, alignItems: 'center', paddingVertical: 14, borderBottomWidth: 2, borderBottomColor: 'transparent' },
   tabLabel: { fontSize: 14, fontWeight: '600' },
 
-  /* Card */
+  /* Cards */
   cardRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   iconWrap: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   cardPeriod: { fontSize: 11, fontWeight: '500', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
   cardTheme: { fontSize: 14, fontWeight: '700', lineHeight: 20 },
   cardVerse: { fontSize: 12, marginTop: 2 },
   tapHint: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  premiumTag: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, alignSelf: 'flex-start' },
+
+  /* Archive */
+  archiveHint: { fontSize: 13, textAlign: 'center', marginBottom: 14, lineHeight: 20 },
+  calCard: { borderRadius: 16, borderWidth: 1, padding: 14, marginBottom: 16 },
+  archiveDateBanner: { marginBottom: 10 },
+  archiveDateLabel: { fontSize: 15, fontWeight: '700' },
+  archiveEmpty: {
+    borderRadius: 14, borderWidth: 1, padding: 24,
+    alignItems: 'center', justifyContent: 'center', gap: 4,
+  },
+
+  /* Calendrier */
+  calNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  calNavBtn: { padding: 6 },
+  calTitle: { fontSize: 15, fontWeight: '700' },
+  calRow: { flexDirection: 'row', marginBottom: 4 },
+  calDayHeader: { flex: 1, textAlign: 'center', fontSize: 11, fontWeight: '600' },
+  calCell: { flex: 1, alignItems: 'center', paddingVertical: 3 },
+  calDayInner: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+  calDayText: { fontSize: 13, fontWeight: '500' },
 
   /* Modal */
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' },
-  sheet: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '90%',
-    overflow: 'hidden',
-  },
+  sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '90%', overflow: 'hidden' },
   handle: { width: 36, height: 4, borderRadius: 2, alignSelf: 'center', marginTop: 10, marginBottom: 4 },
-  modalHeader: {
-    padding: 20,
-    paddingTop: 16,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  periodBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
+  modalHeader: { padding: 20, paddingTop: 16, alignItems: 'center', marginBottom: 16 },
+  periodBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8, flexWrap: 'wrap', justifyContent: 'center' },
   periodLabel: { color: '#C9A84C', fontWeight: '700', fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 },
+  periodDate: { color: 'rgba(201,168,76,0.7)', fontSize: 11 },
   modalTheme: { fontSize: 18, fontWeight: '800', color: '#fff', textAlign: 'center', lineHeight: 26 },
-
   section: { borderWidth: 1, borderRadius: 14, padding: 16, marginBottom: 12 },
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
   sectionTitle: { fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
@@ -364,19 +488,9 @@ const styles = StyleSheet.create({
   verseText: { fontSize: 14, lineHeight: 24, fontStyle: 'italic', textAlign: 'center', marginBottom: 8 },
   verseRef: { fontSize: 13, fontWeight: '700', textAlign: 'center' },
   bodyText: { fontSize: 14, lineHeight: 22 },
-  practiceCard: {
-    borderLeftWidth: 3,
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 12,
-  },
+  practiceCard: { borderLeftWidth: 3, borderRadius: 10, padding: 14, marginBottom: 12 },
   practiceLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, marginBottom: 6 },
-
   closeRow: { borderTopWidth: 1, padding: 16, alignItems: 'center' },
-  closeBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 24, paddingVertical: 12,
-    borderRadius: 24, borderWidth: 1,
-  },
+  closeBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 24, borderWidth: 1 },
   closeBtnLabel: { fontSize: 15, fontWeight: '600' },
 });

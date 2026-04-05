@@ -8,10 +8,12 @@ import {
 } from "lucide-react-native";
 import React from "react";
 import { Platform, StyleSheet, View } from "react-native";
+import { useI18n } from "../../../src/i18n";
 import { useTheme } from "../../../src/theme";
 
 export default function TabsLayout() {
   const { colors, isDark } = useTheme();
+  const { t } = useI18n();
 
   return (
     <Tabs
@@ -53,7 +55,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="home/index"
         options={{
-          tabBarLabel: "Accueil",
+          tabBarLabel: t.tabs.home,
           tabBarIcon: ({ color, focused }) => (
             <Home size={22} color={color} strokeWidth={focused ? 2.5 : 1.8} />
           ),
@@ -63,7 +65,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="prayers/index"
         options={{
-          tabBarLabel: "Prières",
+          tabBarLabel: t.prayers.title,
           tabBarIcon: ({ color, focused }) => (
             <Heart size={22} color={color} strokeWidth={focused ? 2.5 : 1.8} />
           ),
@@ -73,7 +75,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="ai/index"
         options={{
-          tabBarLabel: "Consultation",
+          tabBarLabel: t.tabs.consultation,
           tabBarLabelStyle: {
             fontSize: 10,
             fontWeight: "700",
@@ -100,7 +102,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="library/index"
         options={{
-          tabBarLabel: "Livres",
+          tabBarLabel: t.tabs.library,
           tabBarIcon: ({ color, focused }) => (
             <BookOpen
               size={22}
@@ -114,7 +116,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="profile/index"
         options={{
-          tabBarLabel: "Profil",
+          tabBarLabel: t.tabs.profile,
           tabBarIcon: ({ color, focused }) => (
             <User size={22} color={color} strokeWidth={focused ? 2.5 : 1.8} />
           ),

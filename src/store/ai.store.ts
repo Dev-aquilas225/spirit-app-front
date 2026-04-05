@@ -16,7 +16,7 @@ interface AIStore {
   // Actions
   loadConversations: () => Promise<void>;
   startNewConversation: () => Promise<void>;
-  loadConversation: (id: string) => void;
+  loadConversation: (id: string) => Promise<void>;
   sendMessage: (content: string) => Promise<void>;
   deleteConversation: (id: string) => Promise<void>;
   refreshUsage: () => Promise<void>;
@@ -52,9 +52,29 @@ export const useAIStore = create<AIStore>((set, get) => ({
     }));
   },
 
-  loadConversation: (id) => {
+  loadConversation: async (id) => {
     const conv = get().conversations.find((c) => c.id === id) ?? null;
-    set({ currentConversation: conv });
+    if (!conv) {
+      set({ currentConversation: null });
+      return;
+    }
+
+    set({ currentConversation: conv, isLoading: true });
+
+    const history = await AIService.getConversationHistory(id);
+    const hydratedConversation: AIConversation = {
+      ...conv,
+      messages: history.length > 0 ? history : conv.messages,
+      updatedAt: conv.updatedAt ?? new Date().toISOString(),
+    };
+
+    set((state) => ({
+      currentConversation: hydratedConversation,
+      conversations: state.conversations.map((conversation) =>
+        conversation.id === id ? hydratedConversation : conversation,
+      ),
+      isLoading: false,
+    }));
   },
 
   sendMessage: async (content) => {
@@ -94,11 +114,16 @@ export const useAIStore = create<AIStore>((set, get) => ({
     await AIService.addMessageToConversation(conv.id, userMessage);
 
     // Obtenir la réponse IA
-    const { message: aiMessage, error } = await AIService.sendMessage(conv.id, content, isPremium);
+    const {
+      message: aiMessage,
+      conversationId: resolvedConversationId,
+      error,
+    } = await AIService.sendMessage(conv.id, content, isPremium);
 
     // Ajouter la réponse IA
     const finalConv: AIConversation = {
       ...updatedConv,
+      id: resolvedConversationId ?? updatedConv.id,
       messages: [...updatedConv.messages, aiMessage],
       updatedAt: new Date().toISOString(),
     };
@@ -108,7 +133,13 @@ export const useAIStore = create<AIStore>((set, get) => ({
     // Mettre à jour l'état des conversations
     set((state) => ({
       currentConversation: finalConv,
-      conversations: state.conversations.map((c) => (c.id === finalConv.id ? finalConv : c)),
+      conversations: [
+        finalConv,
+        ...state.conversations.filter(
+          (conversation) =>
+            conversation.id !== conv.id && conversation.id !== finalConv.id,
+        ),
+      ],
       isSending: false,
       limitReached: error === 'limit_reached',
     }));

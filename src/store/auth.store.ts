@@ -1,8 +1,14 @@
 import { create } from 'zustand';
-import { User } from '../types/auth.types';
+import { User, Gender } from '../types/auth.types';
 import { AuthService } from '../services/auth.service';
 import { StorageService } from '../services/storage.service';
 import { STORAGE_KEYS } from '../utils/constants';
+
+/** Profil considéré complet si firstName + lastName + genre sont renseignés */
+export function isUserProfileComplete(user: User | null): boolean {
+  if (!user) return false;
+  return !!(user.firstName?.trim() && user.lastName?.trim() && user.gender);
+}
 
 interface AuthStore {
   user: User | null;
@@ -11,14 +17,18 @@ interface AuthStore {
   isLoading: boolean;
   isInitialized: boolean;
   error: string | null;
+  /** Vrai si nom + prénom + genre sont tous renseignés */
+  isProfileComplete: boolean;
 
   initialize: () => Promise<void>;
-  /** Connexion avec téléphone + PIN */
   login: (phone: string, pin: string) => Promise<boolean>;
-  /** Définir le PIN après vérification OTP (nouveau compte) */
   setPin: (pin: string, tempToken: string) => Promise<boolean>;
+  /** Compléter le profil (nom, prénom, genre) — appelé depuis complete-profile.tsx */
+  completeProfile: (firstName: string, lastName: string, gender: Gender) => Promise<boolean>;
   logout: () => Promise<void>;
   updateUser: (updates: Partial<User>) => Promise<boolean>;
+  /** Changer la langue (stockage local uniquement) */
+  setLanguage: (lang: import('../types/auth.types').Language) => Promise<void>;
   clearError: () => void;
   upgradeToSubscriber: () => void;
   downgradeToFree: () => void;
@@ -30,6 +40,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   isAuthenticated: false,
   isLoading: false,
   isInitialized: false,
+  isProfileComplete: false,
   error: null,
 
   initialize: async () => {
@@ -37,10 +48,19 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     try {
       const session = await AuthService.restoreSession();
       if (session) {
+        // Lire le genre et la langue stockés localement
+        const gender   = await StorageService.get<Gender>(STORAGE_KEYS.USER_GENDER);
+        const language = await StorageService.get<import('../types/auth.types').Language>(STORAGE_KEYS.LANGUAGE);
+        const user: User = {
+          ...session.user,
+          gender: gender ?? undefined,
+          language: language ?? session.user.language,
+        };
         set({
-          user: session.user,
+          user,
           token: session.token,
           isAuthenticated: true,
+          isProfileComplete: isUserProfileComplete(user),
           isInitialized: true,
           isLoading: false,
         });
@@ -59,10 +79,14 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       set({ isLoading: false, error: result.error ?? 'Connexion échouée' });
       return false;
     }
+    // Récupérer le genre stocké (l'utilisateur a peut-être déjà complété son profil avant)
+    const gender = await StorageService.get<Gender>(STORAGE_KEYS.USER_GENDER);
+    const user: User = { ...result.data.user, gender: gender ?? undefined };
     set({
-      user: result.data.user,
+      user,
       token: result.data.accessToken,
       isAuthenticated: true,
+      isProfileComplete: isUserProfileComplete(user),
       isLoading: false,
       error: null,
     });
@@ -76,10 +100,31 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       set({ isLoading: false, error: result.error ?? 'Erreur PIN' });
       return false;
     }
+    const user: User = { ...result.data.user };
     set({
-      user: result.data.user,
+      user,
       token: result.data.accessToken,
       isAuthenticated: true,
+      isProfileComplete: false, // Nouveau compte → toujours incomplet
+      isLoading: false,
+      error: null,
+    });
+    return true;
+  },
+
+  completeProfile: async (firstName, lastName, gender) => {
+    set({ isLoading: true, error: null });
+    const result = await AuthService.updateProfile({ firstName, lastName, gender });
+    if (result.error || !result.data) {
+      set({ isLoading: false, error: result.error ?? 'Mise à jour échouée' });
+      return false;
+    }
+    // Stocker le genre localement (non supporté par le backend)
+    await StorageService.set(STORAGE_KEYS.USER_GENDER, gender);
+    const user: User = { ...result.data, gender };
+    set({
+      user,
+      isProfileComplete: true,
       isLoading: false,
       error: null,
     });
@@ -87,8 +132,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   },
 
   logout: async () => {
-    set({ user: null, token: null, isAuthenticated: false, isLoading: false, error: null });
+    set({ user: null, token: null, isAuthenticated: false, isProfileComplete: false, isLoading: false, error: null });
     await AuthService.logout();
+    await StorageService.remove(STORAGE_KEYS.USER_GENDER);
   },
 
   updateUser: async (updates) => {
@@ -96,17 +142,31 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     if (!user) return false;
     set({ isLoading: true });
     const result = await AuthService.updateProfile({
-      firstName: (updates.name ?? user.name).split(' ')[0],
-      lastName: (updates.name ?? user.name).split(' ').slice(1).join(' '),
+      firstName: updates.firstName ?? user.firstName,
+      lastName: updates.lastName ?? user.lastName,
       country: updates.country ?? user.country,
       avatar: updates.avatar,
+      gender: updates.gender ?? user.gender,
     });
     if (result.error || !result.data) {
       set({ isLoading: false, error: result.error ?? 'Mise à jour échouée' });
       return false;
     }
-    set({ user: result.data, isLoading: false });
+    const gender = updates.gender ?? user.gender;
+    if (gender) await StorageService.set(STORAGE_KEYS.USER_GENDER, gender);
+    const updated: User = { ...result.data, gender };
+    set({ user: updated, isProfileComplete: isUserProfileComplete(updated), isLoading: false });
     return true;
+  },
+
+  setLanguage: async (lang) => {
+    await StorageService.set(STORAGE_KEYS.LANGUAGE, lang);
+    const { user } = get();
+    if (user) {
+      const updated = { ...user, language: lang };
+      set({ user: updated });
+      await StorageService.set(STORAGE_KEYS.USER, updated);
+    }
   },
 
   clearError: () => set({ error: null }),

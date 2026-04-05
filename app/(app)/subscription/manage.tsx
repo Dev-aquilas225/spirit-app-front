@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Alert, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '../../../src/theme';
+import { useI18n } from '../../../src/i18n';
 import { useSubscription } from '../../../src/hooks/useSubscription';
 import { ScreenWrapper } from '../../../src/components/common/ScreenWrapper';
 import { BackButton } from '../../../src/components/common/BackButton';
@@ -11,20 +12,21 @@ import { formatDate, formatCurrency } from '../../../src/utils/helpers';
 
 export default function ManageSubscriptionScreen() {
   const { colors, spacing } = useTheme();
+  const { t } = useI18n();
   const { subscription, cancelSubscription, isLoading } = useSubscription();
 
   function handleCancel() {
     Alert.alert(
-      'Annuler l\'abonnement',
-      'Vous perdrez tous vos accès premium à la date d\'expiration. Confirmez-vous ?',
+      t.subscription.cancelConfirmTitle,
+      t.subscription.cancelConfirmMsg,
       [
-        { text: 'Non, garder', style: 'cancel' },
+        { text: t.subscription.cancelKeep, style: 'cancel' },
         {
-          text: 'Annuler l\'abonnement',
+          text: t.common.cancel,
           style: 'destructive',
           onPress: async () => {
             await cancelSubscription();
-            Alert.alert('Abonnement annulé', 'Votre abonnement expirera à la date prévue.');
+            Alert.alert(t.subscription.cancelSuccessTitle, t.subscription.cancelSuccessMsg);
             router.back();
           },
         },
@@ -39,39 +41,39 @@ export default function ManageSubscriptionScreen() {
       <BackButton style={{ marginBottom: 24 }} />
 
       <Text style={{ fontSize: 24, fontWeight: '800', color: colors.text, marginBottom: 24 }}>
-        Gérer l’abonnement
+        {t.subscription.manage}
       </Text>
 
       <GoldCard style={{ marginBottom: spacing.lg }}>
-        <Text style={{ color: '#C9A84C', fontWeight: '700', fontSize: 12, marginBottom: 12 }}>ABONNEMENT ACTUEL</Text>
+        <Text style={{ color: '#C9A84C', fontWeight: '700', fontSize: 12, marginBottom: 12 }}>{t.subscription.mySubscription}</Text>
         <View style={styles.row}>
-          <Text style={{ color: colors.textSecondary }}>Statut</Text>
+          <Text style={{ color: colors.textSecondary }}>{t.subscription.status}</Text>
           <Text style={{ color: subscription.status === 'active' ? '#10B981' : '#EF4444', fontWeight: '600' }}>
-            {subscription.status === 'active' ? '● Actif' : '● Annulé'}
+            {subscription.status === 'active' ? t.subscription.statusActive : '● Annulé'}
           </Text>
         </View>
         <View style={styles.row}>
-          <Text style={{ color: colors.textSecondary }}>Début</Text>
+          <Text style={{ color: colors.textSecondary }}>{t.subscription.startDate}</Text>
           <Text style={{ color: colors.text, fontWeight: '600' }}>{formatDate(subscription.startDate)}</Text>
         </View>
         <View style={styles.row}>
-          <Text style={{ color: colors.textSecondary }}>Expiration</Text>
+          <Text style={{ color: colors.textSecondary }}>{t.subscription.expiresOn}</Text>
           <Text style={{ color: colors.text, fontWeight: '600' }}>{formatDate(subscription.expiryDate)}</Text>
         </View>
         <View style={styles.row}>
-          <Text style={{ color: colors.textSecondary }}>Montant</Text>
+          <Text style={{ color: colors.textSecondary }}>{t.subscription.amount}</Text>
           <Text style={{ color: colors.text, fontWeight: '600' }}>{formatCurrency(subscription.amount)}</Text>
         </View>
         <View style={styles.row}>
-          <Text style={{ color: colors.textSecondary }}>Renouvellement</Text>
+          <Text style={{ color: colors.textSecondary }}>{t.subscription.renewal}</Text>
           <Text style={{ color: subscription.autoRenew ? '#10B981' : colors.textSecondary, fontWeight: '600' }}>
-            {subscription.autoRenew ? 'Automatique' : 'Désactivé'}
+            {subscription.autoRenew ? t.subscription.renewalAuto : t.subscription.renewalDisabled}
           </Text>
         </View>
       </GoldCard>
 
       <Button
-        label="Renouveler maintenant"
+        label={t.subscription.renewNow}
         variant="gold"
         fullWidth
         style={{ marginBottom: spacing.md }}
@@ -80,7 +82,7 @@ export default function ManageSubscriptionScreen() {
 
       {subscription.status === 'active' && (
         <Button
-          label="Annuler l'abonnement"
+          label={t.common.cancel}
           variant="danger"
           fullWidth
           loading={isLoading}

@@ -7,12 +7,14 @@ import { BackButton } from '../../src/components/common/BackButton';
 import { Button } from '../../src/components/common/Button';
 import { Input } from '../../src/components/common/Input';
 import { ScreenWrapper } from '../../src/components/common/ScreenWrapper';
+import { useI18n } from '../../src/i18n';
 import { AuthService } from '../../src/services/auth.service';
 import { useTheme } from '../../src/theme';
 import { validatePhone } from '../../src/utils/validators';
 
 export default function ForgotPasswordScreen() {
   const { colors, spacing } = useTheme();
+  const { t } = useI18n();
   const [phone, setPhone] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -37,14 +39,14 @@ export default function ForgotPasswordScreen() {
       </View>
 
       <Text style={{ fontSize: 24, fontWeight: '800', color: colors.text, textAlign: 'center' }}>
-        Mot de passe oublié
+        {t.auth.forgotTitle}
       </Text>
       <Text style={{ color: colors.textSecondary, textAlign: 'center', marginTop: 8, fontSize: 14, marginBottom: 32 }}>
-        Entrez votre numéro pour recevoir un code de vérification
+        {t.auth.forgotSubtitle}
       </Text>
 
       <Input
-        label="Numéro de téléphone"
+        label={t.auth.phoneLabel}
         placeholder="+225 07 00 00 00 00"
         value={phone}
         onChangeText={(v) => { setPhone(v); setError(null); }}
@@ -54,7 +56,7 @@ export default function ForgotPasswordScreen() {
       />
 
       <Button
-        label="Envoyer le code"
+        label={t.auth.sendCode}
         variant="gold"
         fullWidth
         size="lg"

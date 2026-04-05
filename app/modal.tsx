@@ -1,15 +1,17 @@
 import { Link } from 'expo-router';
 import { StyleSheet } from 'react-native';
+import { useI18n } from '../src/i18n';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
 export default function ModalScreen() {
+  const { language } = useI18n();
   return (
     <ThemedView style={styles.container}>
-      <ThemedText type="title">This is a modal</ThemedText>
+      <ThemedText type="title">{language === 'en' ? 'This is a modal' : 'Ceci est une fenêtre modale'}</ThemedText>
       <Link href="/" dismissTo style={styles.link}>
-        <ThemedText type="link">Go to home screen</ThemedText>
+        <ThemedText type="link">{language === 'en' ? 'Go to home screen' : "Aller à l'écran d'accueil"}</ThemedText>
       </Link>
     </ThemedView>
   );

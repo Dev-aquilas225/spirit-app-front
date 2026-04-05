@@ -1,4 +1,28 @@
+import { useAuthStore } from '../store/auth.store';
+import type { Language } from '../types/auth.types';
 import { SUBSCRIPTION_PERIOD_DAYS } from './constants';
+
+const LOCALE_BY_LANGUAGE: Record<Language, string> = {
+  fr: 'fr-FR',
+  en: 'en-US',
+  ar: 'ar',
+};
+
+export function getCurrentLanguage(): Language {
+  return useAuthStore.getState().user?.language ?? 'fr';
+}
+
+export function resolveLocale(languageOrLocale?: string): string {
+  if (!languageOrLocale) {
+    return LOCALE_BY_LANGUAGE[getCurrentLanguage()];
+  }
+
+  if (languageOrLocale.includes('-')) {
+    return languageOrLocale;
+  }
+
+  return LOCALE_BY_LANGUAGE[languageOrLocale as Language] ?? LOCALE_BY_LANGUAGE.fr;
+}
 
 export function generateId(): string {
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
@@ -28,23 +52,41 @@ export function getDaysUntilExpiry(expiryDate: string): number {
   return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
 }
 
-export function formatDate(dateString: string, locale = 'fr-FR'): string {
-  return new Date(dateString).toLocaleDateString(locale, {
+export function formatDate(dateString: string, languageOrLocale?: string): string {
+  return new Date(dateString).toLocaleDateString(resolveLocale(languageOrLocale), {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   });
 }
 
-export function formatTime(dateString: string): string {
-  return new Date(dateString).toLocaleTimeString('fr-FR', {
+export function formatTime(dateString: string, languageOrLocale?: string): string {
+  return new Date(dateString).toLocaleTimeString(resolveLocale(languageOrLocale), {
     hour: '2-digit',
     minute: '2-digit',
   });
 }
 
-export function formatCurrency(amount: number, currency = 'FCFA'): string {
-  return `${amount.toLocaleString('fr-FR')} ${currency}`;
+export function formatCurrency(amount: number, currency = 'FCFA', languageOrLocale?: string): string {
+  return `${amount.toLocaleString(resolveLocale(languageOrLocale))} ${currency}`;
+}
+
+export function formatMonthYear(date: Date, languageOrLocale?: string): string {
+  return new Intl.DateTimeFormat(resolveLocale(languageOrLocale), {
+    month: 'long',
+    year: 'numeric',
+  }).format(date);
+}
+
+export function getWeekdayShortNames(languageOrLocale?: string): string[] {
+  const formatter = new Intl.DateTimeFormat(resolveLocale(languageOrLocale), {
+    weekday: 'short',
+  });
+
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(Date.UTC(2024, 0, 1 + index));
+    return formatter.format(date);
+  });
 }
 
 export function getTodayKey(): string {

@@ -30,6 +30,8 @@ export const STORAGE_KEYS = {
   THEME: '@spirit/theme',
   LANGUAGE: '@spirit/language',
   NOTIFICATIONS_ENABLED: '@spirit/notifications_enabled',
+  USER_GENDER: '@spirit/user_gender',
+  PROFILE_COMPLETE: '@spirit/profile_complete',
 };
 
 // Mock payment delay (ms)

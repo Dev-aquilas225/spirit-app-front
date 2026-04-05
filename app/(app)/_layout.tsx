@@ -10,6 +10,7 @@ export default function AppLayout() {
     <AuthGuard>
       <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="complete-profile" />
         <Stack.Screen name="consultation/index" />
         <Stack.Screen name="consultation/form" />
         <Stack.Screen name="consultation/my-consultations" />

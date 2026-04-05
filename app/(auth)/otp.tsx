@@ -12,6 +12,7 @@ import {
 import { AppIcon } from "../../src/components/common/AppIcon";
 import { BackButton } from "../../src/components/common/BackButton";
 import { useAuth } from "../../src/hooks/useAuth";
+import { useI18n } from "../../src/i18n";
 import { AuthService } from "../../src/services/auth.service";
 import { useTheme } from "../../src/theme";
 
@@ -24,12 +25,13 @@ const RESEND_DELAY = 60;
 
 export default function OTPScreen() {
   const { colors } = useTheme();
+  const { t } = useI18n();
   const { phone, mode } = useLocalSearchParams<{
     phone: string;
     mode: "register" | "reset";
   }>();
 
-  const { register, isLoading, clearError } = useAuth();
+  const { isLoading, clearError } = useAuth();
 
   const [otp, setOtp] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -75,7 +77,7 @@ export default function OTPScreen() {
       const result = await AuthService.verifyOtp(phone, code);
       setLoading(false);
       if (result.error || !result.data) {
-        setError(result.error ?? "Code incorrect. Réessayez.");
+        setError(result.error ?? t.auth.otpError);
         triggerShake();
         setTimeout(() => { setOtp(""); setError(null); clearError(); }, 700);
         return;
@@ -201,14 +203,12 @@ export default function OTPScreen() {
 
       {/* Titre */}
       <Text style={[styles.title, { color: colors.text }]}>
-        {isRegister ? "Vérifier votre numéro" : "Code de vérification"}
+        {isRegister ? t.auth.otpTitleRegister : t.auth.otpTitleReset}
       </Text>
 
       {/* Sous-titre */}
       <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-        {isRegister
-          ? "Un code à 4 chiffres a été envoyé par SMS"
-          : "Entrez le code reçu pour réinitialiser\nvotre mot de passe"}
+        {isRegister ? t.auth.otpSubtitleRegister : t.auth.otpSubtitleReset}
       </Text>
 
       {/* Indicateur dots */}
@@ -225,7 +225,7 @@ export default function OTPScreen() {
         <Text style={[styles.hintText, { color: "#EF4444" }]}>{error}</Text>
       ) : (
         <Text style={[styles.hintText, { color: colors.textSecondary }]}>
-          Code OTP à 4 chiffres
+          {t.auth.otpHint}
         </Text>
       )}
 
@@ -251,8 +251,8 @@ export default function OTPScreen() {
           ]}
         >
           {countdown > 0
-            ? `Renvoyer le code dans ${countdown}s`
-            : "Renvoyer le code"}
+            ? t.auth.otpResendTimer(countdown)
+            : t.auth.otpResend}
         </Text>
       </TouchableOpacity>
     </View>

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Linking, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Linking } from 'react-native';
 import { router } from 'expo-router';
-import { Crown, ExternalLink, Lock, RefreshCw } from 'lucide-react-native';
+import { Crown, ExternalLink, Lock } from 'lucide-react-native';
 import { useTheme } from '../../../src/theme';
 import { useSubscription } from '../../../src/hooks/useSubscription';
+import { useI18n } from '../../../src/i18n';
 import { Button } from '../../../src/components/common/Button';
 import { BackButton } from '../../../src/components/common/BackButton';
 import { Card } from '../../../src/components/common/Card';
@@ -14,6 +15,7 @@ type Step = 'select' | 'waiting' | 'verifying';
 
 export default function PaymentScreen() {
   const { colors, spacing } = useTheme();
+  const { t } = useI18n();
   const { initiatePayment, verifyPayment, isProcessingPayment, isLoading, paymentError, clearPaymentError } = useSubscription();
 
   const [step, setStep] = useState<Step>('select');
@@ -29,7 +31,6 @@ export default function PaymentScreen() {
     setAuthUrl(result.authorization_url);
     setStep('waiting');
 
-    // Ouvrir la page Paystack
     await Linking.openURL(result.authorization_url);
   }
 
@@ -58,8 +59,8 @@ export default function PaymentScreen() {
       <View style={[styles.header, { backgroundColor: colors.deepBlue ?? '#1A1A3E', paddingTop: 56 }]}>
         <BackButton variant="dark" style={{ marginBottom: 16, alignSelf: 'flex-start' }} />
         <AppIcon icon={Crown} size={40} color="#C9A84C" strokeWidth={1.8} />
-        <Text style={styles.headerTitle}>Oracle Plus Premium</Text>
-        <Text style={styles.headerSubtitle}>Accès illimité pendant 30 jours</Text>
+        <Text style={styles.headerTitle}>{t.subscription.payTitle}</Text>
+        <Text style={styles.headerSubtitle}>{t.subscription.paySubtitle}</Text>
         <View style={styles.amountBadge}>
           <Text style={styles.amount}>{formatCurrency(5000)}</Text>
         </View>
@@ -74,25 +75,25 @@ export default function PaymentScreen() {
 
         {/* Récapitulatif */}
         <Card>
-          <Text style={{ fontWeight: '700', color: colors.text, marginBottom: 12 }}>Récapitulatif</Text>
+          <Text style={{ fontWeight: '700', color: colors.text, marginBottom: 12 }}>{t.subscription.payRecap}</Text>
           <View style={styles.summaryRow}>
-            <Text style={{ color: colors.textSecondary }}>Abonnement Premium</Text>
-            <Text style={{ color: colors.text, fontWeight: '600' }}>5 000 FCFA</Text>
+            <Text style={{ color: colors.textSecondary }}>{t.subscription.payItem}</Text>
+            <Text style={{ color: colors.text, fontWeight: '600' }}>{t.subscription.price}</Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={{ color: colors.textSecondary }}>Durée</Text>
-            <Text style={{ color: colors.text, fontWeight: '600' }}>30 jours</Text>
+            <Text style={{ color: colors.textSecondary }}>{t.subscription.payDuration}</Text>
+            <Text style={{ color: colors.text, fontWeight: '600' }}>{t.subscription.pay30days}</Text>
           </View>
           <View style={[styles.summaryRow, { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 12, marginTop: 8 }]}>
-            <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16 }}>Total</Text>
-            <Text style={{ color: colors.primary, fontWeight: '800', fontSize: 16 }}>5 000 FCFA</Text>
+            <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16 }}>{t.subscription.payTotal}</Text>
+            <Text style={{ color: colors.primary, fontWeight: '800', fontSize: 16 }}>{t.subscription.price}</Text>
           </View>
         </Card>
 
         {step === 'select' && (
           <>
             <Button
-              label={isProcessingPayment ? 'Initialisation...' : 'Payer avec Paystack'}
+              label={isProcessingPayment ? t.subscription.payInitializing : t.subscription.payWithPaystack}
               variant="gold"
               fullWidth
               size="lg"
@@ -102,7 +103,7 @@ export default function PaymentScreen() {
             <View style={styles.secureRow}>
               <AppIcon icon={Lock} size={14} color={colors.textTertiary} strokeWidth={2.6} />
               <Text style={{ color: colors.textTertiary, fontSize: 11, textAlign: 'center' }}>
-                Paiement sécurisé via Paystack
+                {t.subscription.paySecure}
               </Text>
             </View>
           </>
@@ -113,12 +114,12 @@ export default function PaymentScreen() {
             <View style={[styles.infoBanner, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <AppIcon icon={ExternalLink} size={18} color={colors.primary} strokeWidth={2.2} />
               <Text style={{ color: colors.textSecondary, fontSize: 13, flex: 1, lineHeight: 20 }}>
-                La page de paiement Paystack a été ouverte. Effectuez votre paiement, puis revenez ici pour confirmer.
+                {t.subscription.payOpenedInfo}
               </Text>
             </View>
 
             <Button
-              label={step === 'verifying' ? 'Vérification...' : 'J\'ai effectué le paiement'}
+              label={step === 'verifying' ? t.subscription.payVerifying : t.subscription.payDone}
               variant="gold"
               fullWidth
               size="lg"
@@ -128,12 +129,12 @@ export default function PaymentScreen() {
 
             <TouchableOpacity style={styles.reopenBtn} onPress={handleReopenPaystack} disabled={isWorking}>
               <AppIcon icon={ExternalLink} size={16} color={colors.primary} strokeWidth={2.2} />
-              <Text style={{ color: colors.primary, fontSize: 14 }}>Rouvrir la page Paystack</Text>
+              <Text style={{ color: colors.primary, fontSize: 14 }}>{t.subscription.payReopen}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.cancelBtn} onPress={() => setStep('select')} disabled={isWorking}>
               <Text style={{ color: colors.textTertiary, fontSize: 13, textDecorationLine: 'underline' }}>
-                Annuler et recommencer
+                {t.subscription.payRetry}
               </Text>
             </TouchableOpacity>
           </View>

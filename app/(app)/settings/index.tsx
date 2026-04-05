@@ -2,12 +2,15 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { Check, Moon, Settings, Smartphone, Sun } from 'lucide-react-native';
+import { useI18n } from '../../../src/i18n';
+import { useAuthStore } from '../../../src/store/auth.store';
 import { useTheme } from '../../../src/theme';
 import { useThemeStore, ThemeMode } from '../../../src/store/theme.store';
 import { ScreenWrapper } from '../../../src/components/common/ScreenWrapper';
 import { Card } from '../../../src/components/common/Card';
 import { BackButton } from '../../../src/components/common/BackButton';
 import { AppIcon } from '../../../src/components/common/AppIcon';
+import type { Language } from '../../../src/types/auth.types';
 
 const THEME_OPTIONS: { value: ThemeMode; label: string; icon: LucideIcon }[] = [
   { value: 'light', label: 'Clair', icon: Sun },
@@ -18,6 +21,13 @@ const THEME_OPTIONS: { value: ThemeMode; label: string; icon: LucideIcon }[] = [
 export default function SettingsScreen() {
   const { colors, spacing } = useTheme();
   const { mode, setMode } = useThemeStore();
+  const { t } = useI18n();
+  const currentLanguage = useAuthStore((state) => state.user?.language ?? 'fr');
+  const setLanguage = useAuthStore((state) => state.setLanguage);
+  const languageOptions: { value: Language; label: string }[] = [
+    { value: 'fr', label: t.settings.french },
+    { value: 'en', label: t.settings.english },
+  ];
 
   return (
     <ScreenWrapper scrollable padded>
@@ -25,17 +35,17 @@ export default function SettingsScreen() {
 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 24 }}>
         <AppIcon icon={Settings} size={22} color={colors.text} strokeWidth={2.4} />
-        <Text style={{ fontSize: 22, fontWeight: '800', color: colors.text }}>Paramètres</Text>
+        <Text style={{ fontSize: 22, fontWeight: '800', color: colors.text }}>{t.settings.title}</Text>
       </View>
 
       <View style={{ gap: spacing.lg }}>
 
         {/* ── Apparence ─────────────────────────────────────── */}
         <View>
-          <Text style={[styles.section, { color: colors.textSecondary }]}>APPARENCE</Text>
+          <Text style={[styles.section, { color: colors.textSecondary }]}>{t.settings.appearance}</Text>
           <Card>
             <Text style={[styles.rowLabel, { color: colors.text, marginBottom: 12 }]}>
-              Thème de l’application
+              {t.settings.themeLabel}
             </Text>
 
             {/* Sélecteur 3 chips : Clair / Sombre / Auto */}
@@ -59,7 +69,11 @@ export default function SettingsScreen() {
                       <AppIcon icon={opt.icon} size={20} color={active ? '#fff' : colors.text} strokeWidth={2.4} />
                     </View>
                     <Text style={[styles.themeLabel, { color: active ? '#fff' : colors.text }]}>
-                      {opt.label}
+                      {opt.value === 'light'
+                        ? t.settings.themeLight
+                        : opt.value === 'dark'
+                          ? t.settings.themeDark
+                          : t.settings.themeAuto}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -75,10 +89,10 @@ export default function SettingsScreen() {
               />
               <Text style={[styles.hint, { color: colors.textSecondary, flex: 1 }]}>
                 {mode === 'system'
-                  ? "Suit automatiquement les préférences de votre appareil"
+                  ? t.settings.themeHintAuto
                   : mode === 'dark'
-                  ? 'Mode sombre activé'
-                  : 'Mode clair activé'}
+                    ? t.settings.themeHintDark
+                    : t.settings.themeHintLight}
               </Text>
             </View>
           </Card>
@@ -86,11 +100,12 @@ export default function SettingsScreen() {
 
         {/* ── Langue ────────────────────────────────────────── */}
         <View>
-          <Text style={[styles.section, { color: colors.textSecondary }]}>LANGUE</Text>
+          <Text style={[styles.section, { color: colors.textSecondary }]}>{t.settings.languageSection}</Text>
           <Card>
-            {['Français', 'English', 'العربية'].map((lang, i, arr) => (
+            {languageOptions.map((lang, i, arr) => (
               <TouchableOpacity
-                key={lang}
+                key={lang.value}
+                onPress={() => setLanguage(lang.value)}
                 style={[
                   styles.langRow,
                   {
@@ -99,8 +114,8 @@ export default function SettingsScreen() {
                   },
                 ]}
               >
-                <Text style={{ color: colors.text }}>{lang}</Text>
-                {lang === 'Français' && (
+                <Text style={{ color: colors.text }}>{lang.label}</Text>
+                {currentLanguage === lang.value && (
                   <AppIcon icon={Check} size={16} color={colors.primary} strokeWidth={3} />
                 )}
               </TouchableOpacity>
@@ -110,11 +125,11 @@ export default function SettingsScreen() {
 
         {/* ── Confidentialité ───────────────────────────────── */}
         <View>
-          <Text style={[styles.section, { color: colors.textSecondary }]}>CONFIDENTIALITÉ</Text>
+          <Text style={[styles.section, { color: colors.textSecondary }]}>{t.settings.privacy}</Text>
           <Card>
             <View style={styles.row}>
-              <Text style={{ color: colors.text }}>Protection capture d’écran</Text>
-              <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '600' }}>Activée</Text>
+              <Text style={{ color: colors.text }}>{t.settings.screenProtect}</Text>
+              <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '600' }}>{t.settings.enabled}</Text>
             </View>
           </Card>
         </View>

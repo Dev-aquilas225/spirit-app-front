@@ -26,6 +26,7 @@ import {
 } from "react-native";
 import { AppIcon } from "../../src/components/common/AppIcon";
 import { Button } from "../../src/components/common/Button";
+import { useI18n } from "../../src/i18n";
 import { useTheme } from "../../src/theme";
 import { COUNTRIES } from "../../src/utils/constants";
 
@@ -33,8 +34,20 @@ type Country = (typeof COUNTRIES)[number];
 
 const DEFAULT_COUNTRY = COUNTRIES[0]; // Côte d'Ivoire
 
+function getCountryDisplayName(code: string, fallback: string, language: string) {
+  try {
+    return (
+      new Intl.DisplayNames([language], { type: "region" }).of(code) ??
+      fallback
+    );
+  } catch {
+    return fallback;
+  }
+}
+
 export default function LoginScreen() {
   const { colors, spacing, borderRadius: br } = useTheme();
+  const { t, language } = useI18n();
 
   const [selectedCountry, setSelectedCountry] =
     useState<Country>(DEFAULT_COUNTRY);
@@ -50,14 +63,16 @@ export default function LoginScreen() {
 
   const filteredCountries = COUNTRIES.filter(
     (c) =>
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      getCountryDisplayName(c.code, c.name, language)
+        .toLowerCase()
+        .includes(search.toLowerCase()) ||
       c.dialCode.includes(search),
   );
 
   async function handleContinue() {
     const cleaned = localNumber.replace(/\s/g, "");
     if (!cleaned || cleaned.length < 6) {
-      setPhoneError("Entrez un numéro valide");
+      setPhoneError(t.auth.phoneInvalid);
       return;
     }
     setPhoneError(undefined);
@@ -109,9 +124,9 @@ export default function LoginScreen() {
           </Text>
         </View>
 
-        <Text style={[styles.title, { color: colors.text }]}>Bienvenue</Text>
+        <Text style={[styles.title, { color: colors.text }]}>{t.auth.welcome}</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          Entrez votre numéro pour continuer
+          {t.auth.loginSubtitle}
         </Text>
 
         {/* ── Champ téléphone avec indicatif ── */}
@@ -122,7 +137,7 @@ export default function LoginScreen() {
               { color: colors.textSecondary, marginBottom: spacing.xs },
             ]}
           >
-            Numéro de téléphone
+            {t.auth.phoneLabel}
           </Text>
 
           <View
@@ -157,7 +172,7 @@ export default function LoginScreen() {
             <TextInput
               ref={inputRef}
               style={[styles.numberInput, { color: colors.text }]}
-              placeholder="07 00 00 00 00"
+              placeholder={t.auth.phonePlaceholder}
               placeholderTextColor={colors.textTertiary}
               value={localNumber}
               onChangeText={(v) => {
@@ -196,7 +211,7 @@ export default function LoginScreen() {
         </View>
 
         <Button
-          label="Continuer"
+          label={t.auth.continue}
           variant="gold"
           fullWidth
           size="lg"
@@ -233,8 +248,7 @@ export default function LoginScreen() {
                 { color: colors.textSecondary, flex: 1 },
               ]}
             >
-              Nouveau sur Oracle Plus ? Votre compte sera créé automatiquement
-              lors de la première connexion.
+              {t.auth.loginInfoNew}
             </Text>
           </View>
         </View>
@@ -260,7 +274,7 @@ export default function LoginScreen() {
             style={[styles.sheetHeader, { borderBottomColor: colors.border }]}
           >
             <Text style={[styles.sheetTitle, { color: colors.text }]}>
-              Choisir l’indicatif
+              {t.auth.pickDialCode}
             </Text>
             <TouchableOpacity onPress={() => setPickerVisible(false)}>
               <AppIcon
@@ -287,7 +301,7 @@ export default function LoginScreen() {
             />
             <TextInput
               style={[styles.searchInput, { color: colors.text }]}
-              placeholder="Rechercher un pays..."
+              placeholder={t.auth.searchCountry}
               placeholderTextColor={colors.textTertiary}
               value={search}
               onChangeText={setSearch}
@@ -312,7 +326,7 @@ export default function LoginScreen() {
               >
                 <Text style={styles.countryFlag}>{item.flag}</Text>
                 <Text style={[styles.countryName, { color: colors.text }]}>
-                  {item.name}
+                  {getCountryDisplayName(item.code, item.name, language)}
                 </Text>
                 <Text
                   style={[styles.countryDial, { color: colors.textSecondary }]}

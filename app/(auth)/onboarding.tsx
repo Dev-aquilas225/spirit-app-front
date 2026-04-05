@@ -29,6 +29,7 @@ import {
 } from "react-native";
 import { AppIcon } from "../../src/components/common/AppIcon";
 import { Button } from "../../src/components/common/Button";
+import { useI18n } from "../../src/i18n";
 import { StorageService } from "../../src/services/storage.service";
 import { STORAGE_KEYS } from "../../src/utils/constants";
 
@@ -56,83 +57,6 @@ type ServicesSlide = {
   items: ServiceItem[];
 };
 type Slide = HeroSlide | ServicesSlide;
-
-// ─── Contenu ───────────────────────────────────────────────────────────────────
-const SLIDES: Slide[] = [
-  {
-    kind: "hero",
-    id: "1",
-    icon: MessageCircle,
-    bg: "#1A1A3E",
-    title: "Votre Compagnon Spirituel",
-    subtitle:
-      "Guidance, prières, accompagnements et bien plus — tout en un seul endroit, 24h/24.",
-  },
-  {
-    kind: "services",
-    id: "2",
-    icon: MessageCircle,
-    bg: "#0D1A3E",
-    title: "Guidance & Consultation",
-    subtitle: "Des réponses claires pour votre vie spirituelle",
-    items: [
-      {
-        number: 1,
-        label: "Consultation spirituelle générale",
-        icon: MessageCircle,
-      },
-      { number: 2, label: "Interprétation de rêve", icon: Moon },
-      {
-        number: 3,
-        label: "Éclaircissement sur un sujet précis",
-        icon: Lightbulb,
-      },
-      { number: 4, label: "Conseils personnalisés", icon: BookOpen },
-      { number: 5, label: "Orientation spirituelle", icon: Compass },
-      { number: 6, label: "Prières personnalisées", icon: Heart },
-    ],
-  },
-  {
-    kind: "services",
-    id: "3",
-    icon: Users,
-    bg: "#1A0D2E",
-    title: "Accompagnements de Vie",
-    subtitle: "Un soutien spirituel pour chaque étape",
-    items: [
-      { number: 7, label: "Trouver un mari / une femme", icon: Heart },
-      { number: 8, label: "Trouver un travail", icon: Briefcase },
-      { number: 9, label: "Projet de voyage", icon: Plane },
-      { number: 10, label: "Suivi des enfants", icon: Users },
-      { number: 11, label: "Combat spirituel (addiction…)", icon: Shield },
-    ],
-  },
-  {
-    kind: "services",
-    id: "4",
-    icon: Star,
-    bg: "#1A1400",
-    title: "Réussite & Identité",
-    subtitle: "Se connaître et avancer avec force",
-    items: [
-      { number: 12, label: "Concours / Examens", icon: GraduationCap },
-      { number: 13, label: "Accompagnement professionnel", icon: Target },
-      { number: 14, label: "Connaître mon chiffre spirituel", icon: Hash },
-      { number: 15, label: "Boutique spirituelle", icon: ShoppingBag },
-    ],
-  },
-  {
-    kind: "hero",
-    id: "5",
-    icon: Crown,
-    bg: "#1A1400",
-    title: "Tout ça pour 5 000 FCFA/mois",
-    subtitle:
-      "Accès illimité à tous les services, livres, formations et consultations. Sans engagement.",
-  },
-];
-
-const LAST = SLIDES.length - 1;
 
 // ─── Étoiles ───────────────────────────────────────────────────────────────────
 function Stars() {
@@ -191,12 +115,77 @@ const sr = StyleSheet.create({
 
 // ─── Écran ─────────────────────────────────────────────────────────────────────
 export default function OnboardingScreen() {
+  const { t } = useI18n();
   const [index, setIndex] = useState(0);
   const [slideH, setSlideH] = useState(0);
   const flatListRef = useRef<FlatList>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const dragging = useRef(false);
-  const isLast = index === LAST;
+  const slides: Slide[] = [
+    {
+      kind: "hero",
+      id: "1",
+      icon: MessageCircle,
+      bg: "#1A1A3E",
+      title: t.onboarding.slide1Title,
+      subtitle: t.onboarding.slide1Subtitle,
+    },
+    {
+      kind: "services",
+      id: "2",
+      icon: MessageCircle,
+      bg: "#0D1A3E",
+      title: t.onboarding.slide2Title,
+      subtitle: t.onboarding.slide2Subtitle,
+      items: [
+        { number: 1, label: t.onboarding.services1[0], icon: MessageCircle },
+        { number: 2, label: t.onboarding.services1[1], icon: Moon },
+        { number: 3, label: t.onboarding.services1[2], icon: Lightbulb },
+        { number: 4, label: t.onboarding.services1[3], icon: BookOpen },
+        { number: 5, label: t.onboarding.services1[4], icon: Compass },
+        { number: 6, label: t.onboarding.services1[5], icon: Heart },
+      ],
+    },
+    {
+      kind: "services",
+      id: "3",
+      icon: Users,
+      bg: "#1A0D2E",
+      title: t.onboarding.slide3Title,
+      subtitle: t.onboarding.slide3Subtitle,
+      items: [
+        { number: 7, label: t.onboarding.services2[0], icon: Heart },
+        { number: 8, label: t.onboarding.services2[1], icon: Briefcase },
+        { number: 9, label: t.onboarding.services2[2], icon: Plane },
+        { number: 10, label: t.onboarding.services2[3], icon: Users },
+        { number: 11, label: t.onboarding.services2[4], icon: Shield },
+      ],
+    },
+    {
+      kind: "services",
+      id: "4",
+      icon: Star,
+      bg: "#1A1400",
+      title: t.onboarding.slide4Title,
+      subtitle: t.onboarding.slide4Subtitle,
+      items: [
+        { number: 12, label: t.onboarding.services3[0], icon: GraduationCap },
+        { number: 13, label: t.onboarding.services3[1], icon: Target },
+        { number: 14, label: t.onboarding.services3[2], icon: Hash },
+        { number: 15, label: t.onboarding.services3[3], icon: ShoppingBag },
+      ],
+    },
+    {
+      kind: "hero",
+      id: "5",
+      icon: Crown,
+      bg: "#1A1400",
+      title: t.onboarding.slide5Title,
+      subtitle: t.onboarding.slide5Subtitle,
+    },
+  ];
+  const last = slides.length - 1;
+  const isLast = index === last;
 
   // ─── Timer helpers ─────────────────────────────────────────────────────────
   function clearTimer() {
@@ -208,11 +197,11 @@ export default function OnboardingScreen() {
 
   function startTimer(fromIdx: number) {
     clearTimer();
-    if (fromIdx >= LAST) return;
+    if (fromIdx >= last) return;
     timerRef.current = setInterval(() => {
       if (dragging.current) return;
       setIndex((prev) => {
-        if (prev >= LAST) {
+        if (prev >= last) {
           clearTimer();
           return prev;
         }
@@ -299,7 +288,7 @@ export default function OnboardingScreen() {
         {slideH > 0 && (
           <FlatList
             ref={flatListRef}
-            data={SLIDES}
+            data={slides}
             horizontal
             pagingEnabled
             scrollEnabled
@@ -332,7 +321,7 @@ export default function OnboardingScreen() {
 
       {/* Dots cliquables */}
       <View style={s.dots}>
-        {SLIDES.map((_, i) => (
+        {slides.map((_, i) => (
           <TouchableOpacity
             key={i}
             onPress={() => goTo(i)}
@@ -354,7 +343,7 @@ export default function OnboardingScreen() {
       <View style={s.footer}>
         {isLast ? (
           <Button
-            label="Commencer"
+            label={t.onboarding.start}
             variant="gold"
             fullWidth
             size="lg"
@@ -362,7 +351,7 @@ export default function OnboardingScreen() {
           />
         ) : (
           <TouchableOpacity onPress={handleFinish} style={s.skipBtn}>
-            <Text style={s.skip}>Passer l'introduction</Text>
+            <Text style={s.skip}>{t.onboarding.skip}</Text>
           </TouchableOpacity>
         )}
       </View>

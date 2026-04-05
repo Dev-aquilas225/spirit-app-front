@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, Share, StyleSheet } from 'react-native';
+import { Alert, Platform, Share, StyleSheet, Text, View } from 'react-native';
 import { Gift } from 'lucide-react-native';
+import { useI18n } from '../../../src/i18n';
 import { useTheme } from '../../../src/theme';
 import { useAuth } from '../../../src/hooks/useAuth';
 import { ScreenWrapper } from '../../../src/components/common/ScreenWrapper';
@@ -12,12 +13,27 @@ import { AppIcon } from '../../../src/components/common/AppIcon';
 export default function ReferralScreen() {
   const { colors, spacing } = useTheme();
   const { user } = useAuth();
+  const { t } = useI18n();
 
   async function handleShare() {
     await Share.share({
-      message: `Rejoins Oracle Plus — ta plateforme spirituelle ! Utilise mon code de parrainage ${user?.referralCode} pour bénéficier d'un avantage.`,
+      message: t.referral.shareMsg(user?.referralCode ?? ''),
       url: 'https://spiritapp.com',
     });
+  }
+
+  async function handleCopy() {
+    const code = user?.referralCode ?? '';
+    if (!code) return;
+
+    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
+      await navigator.clipboard.writeText(code);
+      Alert.alert(t.referral.copiedTitle, t.referral.copiedMsg);
+      return;
+    }
+
+    await Share.share({ message: code });
+    Alert.alert(t.referral.copiedTitle, t.referral.copiedMsg);
   }
 
   return (
@@ -29,27 +45,27 @@ export default function ReferralScreen() {
           <AppIcon icon={Gift} size={64} color={colors.primary} strokeWidth={1.8} />
         </View>
         <Text style={{ fontSize: 24, fontWeight: '800', color: colors.text, textAlign: 'center' }}>
-          Programme de parrainage
+          {t.referral.title}
         </Text>
         <Text style={{ color: colors.textSecondary, textAlign: 'center', marginTop: 8, fontSize: 14, lineHeight: 22 }}>
-          Invitez vos proches et bénéficiez d’avantages exclusifs pour chaque abonné parrainé.
+          {t.referral.subtitle}
         </Text>
       </View>
 
       <GoldCard style={{ marginBottom: spacing.lg }}>
         <Text style={{ color: '#C9A84C', fontSize: 12, fontWeight: '700', marginBottom: 8 }}>
-          VOTRE CODE DE PARRAINAGE
+          {t.referral.codeTitle}
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Text style={{ fontSize: 22, fontWeight: '800', color: colors.text, letterSpacing: 2 }}>
             {user?.referralCode}
           </Text>
-          <Button label="Copier" variant="outline" size="sm" onPress={() => {}} />
+          <Button label={t.referral.copy} variant="outline" size="sm" onPress={handleCopy} />
         </View>
       </GoldCard>
 
       <Button
-        label="Partager mon code"
+        label={t.referral.share}
         variant="gold"
         fullWidth
         size="lg"
@@ -57,11 +73,11 @@ export default function ReferralScreen() {
       />
 
       <View style={{ marginTop: 32, gap: spacing.md }}>
-        <Text style={{ fontWeight: '700', color: colors.text, fontSize: 16 }}>Comment ça marche</Text>
+        <Text style={{ fontWeight: '700', color: colors.text, fontSize: 16 }}>{t.referral.howTitle}</Text>
         {[
-          { step: '1', text: 'Partagez votre code unique avec vos proches' },
-          { step: '2', text: 'Ils s\'inscrivent avec votre code' },
-          { step: '3', text: 'Quand ils s\'abonnent, vous gagnez des avantages' },
+          { step: '1', text: t.referral.step1 },
+          { step: '2', text: t.referral.step2 },
+          { step: '3', text: t.referral.step3 },
         ].map((item) => (
           <View key={item.step} style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
             <View style={[styles.stepNum, { backgroundColor: colors.primary }]}>

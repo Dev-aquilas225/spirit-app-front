@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Send } from 'lucide-react-native';
+import { useI18n } from '../../i18n';
 import { useTheme } from '../../theme';
 import { AppIcon } from '../common/AppIcon';
 
@@ -15,10 +16,12 @@ export function ChatInput({
   onSend,
   loading = false,
   disabled = false,
-  placeholder = 'Posez votre question spirituelle...',
+  placeholder,
 }: ChatInputProps) {
   const { colors, spacing, borderRadius: br } = useTheme();
+  const { t } = useI18n();
   const [text, setText] = useState('');
+  const resolvedPlaceholder = placeholder ?? t.ai.inputPlaceholder;
 
   function handleSend() {
     const trimmed = text.trim();
@@ -53,7 +56,7 @@ export function ChatInput({
           style={[styles.input, { color: colors.text }]}
           value={text}
           onChangeText={setText}
-          placeholder={placeholder}
+          placeholder={resolvedPlaceholder}
           placeholderTextColor={colors.textTertiary}
           multiline
           maxLength={500}

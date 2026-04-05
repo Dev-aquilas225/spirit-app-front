@@ -17,6 +17,7 @@ import { BackButton } from "../../../../src/components/common/BackButton";
 import { EmptyState } from "../../../../src/components/common/EmptyState";
 import { LoadingSpinner } from "../../../../src/components/common/LoadingSpinner";
 import { useAIChat } from "../../../../src/hooks/useAIChat";
+import { useI18n } from "../../../../src/i18n";
 import { useTheme } from "../../../../src/theme";
 import { AIConversation } from "../../../../src/types/content.types";
 import { FREE_AI_DAILY_LIMIT } from "../../../../src/utils/constants";
@@ -26,6 +27,7 @@ type AIView = "chat" | "history";
 
 export default function AIScreen() {
   const { colors, spacing } = useTheme();
+  const { t } = useI18n();
   const [view, setView] = useState<AIView>("chat");
 
   const {
@@ -60,12 +62,12 @@ export default function AIScreen() {
   async function handleSend(text: string) {
     if (limitReached) {
       Alert.alert(
-        "Limite atteinte",
-        `Vous avez utilisé vos ${FREE_AI_DAILY_LIMIT} questions gratuites du jour. Abonnez-vous pour un accès illimité.`,
+        t.ai.limitAlertTitle,
+        t.ai.limitAlertMsg(FREE_AI_DAILY_LIMIT),
         [
-          { text: "Annuler", style: "cancel" },
+          { text: t.common.cancel, style: "cancel" },
           {
-            text: "S'abonner",
+            text: t.common.subscribe,
             onPress: () => router.push("/(app)/subscription"),
           },
         ],
@@ -76,10 +78,10 @@ export default function AIScreen() {
   }
 
   function handleDeleteConv(conv: AIConversation) {
-    Alert.alert("Supprimer", "Cette action est irréversible.", [
-      { text: "Annuler", style: "cancel" },
+    Alert.alert(t.ai.deleteTitle, t.ai.deleteMsg, [
+      { text: t.common.cancel, style: "cancel" },
       {
-        text: "Supprimer",
+        text: t.common.delete,
         style: "destructive",
         onPress: () => deleteConversation(conv.id),
       },
@@ -106,11 +108,11 @@ export default function AIScreen() {
               strokeWidth={2.4}
             />
             <Text style={s.headerTitle}>
-              {view === "chat" ? "Le prophète vous écoute" : "Historique"}
+              {view === "chat" ? t.ai.headerChat : t.ai.headerHistory}
             </Text>
           </View>
           <Text style={s.headerSub}>
-            {view === "chat" ? "" : "Vos conversations passées"}
+            {view === "chat" ? "" : t.ai.historySubtitle}
           </Text>
         </View>
         {view === "chat" && (
@@ -162,10 +164,10 @@ export default function AIScreen() {
               }}
             >
               {isPremium
-                ? "Questions illimitées"
+                ? t.ai.badgeUnlimited
                 : remainingQuestions === 0
-                  ? "Limite atteinte aujourd'hui"
-                  : `${remainingQuestions}/${FREE_AI_DAILY_LIMIT} questions restantes`}
+                  ? t.ai.badgeLimitReached
+                  : t.ai.badgeRemaining(remainingQuestions, FREE_AI_DAILY_LIMIT)}
             </Text>
           </View>
         </View>
@@ -188,9 +190,9 @@ export default function AIScreen() {
                 strokeWidth={2}
               />
             }
-            title="Aucune conversation"
-            message="Commencez à discuter avec l'Discuter avec le prophète pour voir votre historique ici."
-            actionLabel="Nouvelle conversation"
+            title={t.ai.emptyHistoryTitle}
+            message={t.ai.emptyHistoryMsg}
+            actionLabel={t.ai.newConversation}
             onAction={() => setView("chat")}
           />
         ) : (
@@ -233,7 +235,7 @@ export default function AIScreen() {
                     >
                       {lastMsg
                         ? truncateText(lastMsg.content, 50)
-                        : "Nouvelle conversation"}
+                        : t.ai.newConversation}
                     </Text>
                     <Text
                       style={{
@@ -242,9 +244,7 @@ export default function AIScreen() {
                         marginTop: 2,
                       }}
                     >
-                      {item.messages.length} message
-                      {item.messages.length > 1 ? "s" : ""} •{" "}
-                      {formatDate(item.updatedAt)}
+                      {t.ai.messagesCount(item.messages.length, formatDate(item.updatedAt))}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -263,7 +263,7 @@ export default function AIScreen() {
       <LimitBanner remaining={remainingQuestions} limitReached={limitReached} />
 
       {isLoading ? (
-        <LoadingSpinner fullScreen message="Chargement..." />
+        <LoadingSpinner fullScreen message={t.common.loading} />
       ) : messages.length === 0 ? (
         <View style={s.emptyChat}>
           <View style={{ marginBottom: 16 }}>
@@ -275,18 +275,13 @@ export default function AIScreen() {
             />
           </View>
           <Text style={[s.emptyTitle, { color: colors.text }]}>
-            Pose ta question au prophète, il te repond a l'instant.
+            {t.ai.emptyChatTitle}
           </Text>
           <Text style={[s.emptySub, { color: colors.textSecondary }]}>
-            Demandez conseil sur votre vie en generale, vos relations, vos
-            affaires ..
+            {t.ai.emptyChatSubtitle}
           </Text>
           <View style={{ marginTop: 24, width: "100%", gap: 8 }}>
-            {[
-              "Prophète, je veux une consultation sur ma vie ?",
-              "J'ai fait un rêve étrange, que signifie-t-il ?",
-              "Je veux un suivie de prière, comment ça se passe ?",
-            ].map((q) => (
+            {t.ai.suggestions.map((q) => (
               <TouchableOpacity
                 key={q}
                 onPress={() => handleSend(q)}
@@ -333,7 +328,7 @@ export default function AIScreen() {
               strokeWidth={2.2}
             />
             <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-              L’assistant répond...
+              {t.ai.typing}
             </Text>
           </View>
         </View>
@@ -345,8 +340,8 @@ export default function AIScreen() {
         disabled={limitReached}
         placeholder={
           limitReached
-            ? "Limite atteinte — Abonnez-vous"
-            : "Posez votre question spirituelle..."
+            ? t.ai.inputLimited
+            : t.ai.inputPlaceholder
         }
       />
     </View>

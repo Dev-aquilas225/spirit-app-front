@@ -7,6 +7,7 @@ import { BackButton } from "../../../src/components/common/BackButton";
 import { Button } from "../../../src/components/common/Button";
 import { Card } from "../../../src/components/common/Card";
 import { getMockAIResponse } from "../../../src/data/messages.data";
+import { useI18n } from "../../../src/i18n";
 import { useTheme } from "../../../src/theme";
 import { formatDate, simulateApiDelay } from "../../../src/utils/helpers";
 
@@ -18,6 +19,7 @@ interface DreamResult {
 
 function DreamsContent() {
   const { colors, spacing } = useTheme();
+  const { t } = useI18n();
   const [dream, setDream] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<DreamResult | null>(null);
@@ -26,7 +28,7 @@ function DreamsContent() {
     if (!dream.trim() || dream.trim().length < 20) return;
     setLoading(true);
     await simulateApiDelay(2000);
-    const interpretation = getMockAIResponse(`rêve: ${dream}`);
+    const interpretation = getMockAIResponse(`dream: ${dream}`);
     setResult({
       description: dream,
       interpretation,
@@ -50,10 +52,10 @@ function DreamsContent() {
         <BackButton variant="dark" style={{ marginBottom: 12 }} />
         <View style={styles.headerTitleRow}>
           <AppIcon icon={CloudMoon} size={20} color="#fff" strokeWidth={2.4} />
-          <Text style={styles.headerTitle}>Interprétation des rêves</Text>
+          <Text style={styles.headerTitle}>{t.dreams.title}</Text>
         </View>
         <Text style={styles.headerSubtitle}>
-          Décryptez les messages divins dans vos rêves
+          {t.dreams.subtitle}
         </Text>
       </View>
 
@@ -70,13 +72,13 @@ function DreamsContent() {
             <Text
               style={{ fontSize: 14, fontWeight: "700", color: colors.text }}
             >
-              Comment ça fonctionne
+              {t.dreams.howTitle}
             </Text>
           </View>
           {[
-            "Décrivez votre rêve en détail (émotions, symboles, personnes...)",
-            "Notre IA analysera les éléments spirituels et symboliques",
-            "Vous recevrez une interprétation guidée par les Écritures",
+            t.dreams.step1,
+            t.dreams.step2,
+            t.dreams.step3,
           ].map((step, i) => (
             <Text
               key={i}
@@ -96,7 +98,7 @@ function DreamsContent() {
           <Text
             style={{ color: colors.text, fontWeight: "600", marginBottom: 8 }}
           >
-            Décrivez votre rêve *
+            {t.dreams.dreamLabel}
           </Text>
           <View
             style={[
@@ -108,7 +110,7 @@ function DreamsContent() {
               style={[styles.textInput, { color: colors.text }]}
               value={dream}
               onChangeText={setDream}
-              placeholder="J'ai rêvé que je marchais sur l'eau, il y avait une lumière brillante..."
+              placeholder={t.dreams.dreamPh}
               placeholderTextColor={colors.textTertiary}
               multiline
               numberOfLines={6}
@@ -118,12 +120,12 @@ function DreamsContent() {
           <Text
             style={{ color: colors.textTertiary, fontSize: 12, marginTop: 4 }}
           >
-            {dream.length}/500 caractères (minimum 20)
+            {t.dreams.charCount(dream.length)}
           </Text>
         </View>
 
         <Button
-          label={loading ? "Analyse en cours..." : "Interpréter ce rêve"}
+          label={loading ? t.dreams.interpreting : t.dreams.interpret}
           variant="gold"
           fullWidth
           loading={loading}
@@ -152,7 +154,7 @@ function DreamsContent() {
               <Text
                 style={{ fontSize: 12, color: "#C9A84C", fontWeight: "700" }}
               >
-                INTERPRÉTATION — {formatDate(result.date)}
+                {t.dreams.resultLabel(formatDate(result.date))}
               </Text>
             </View>
             <Text style={{ color: colors.text, fontSize: 15, lineHeight: 26 }}>
@@ -171,8 +173,7 @@ function DreamsContent() {
                 fontStyle: "italic",
               }}
             >
-              Cette interprétation est une guidance spirituelle. Priez pour une
-              confirmation divine.
+              {t.dreams.disclaimer}
             </Text>
           </View>
         )}
@@ -182,8 +183,9 @@ function DreamsContent() {
 }
 
 export default function DreamsScreen() {
+  const { t } = useI18n();
   return (
-    <PremiumGuard featureName="Interprétation des rêves">
+    <PremiumGuard featureName={t.dreams.featureName}>
       <DreamsContent />
     </PremiumGuard>
   );

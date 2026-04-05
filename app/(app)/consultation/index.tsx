@@ -4,8 +4,8 @@ import {
   Calendar,
   ChevronRight,
   Heart,
+  Lightbulb,
   MessageCircle,
-  WandMessageCircle,
 } from "lucide-react-native";
 import React from "react";
 import { Text, View } from "react-native";
@@ -15,10 +15,12 @@ import { BackButton } from "../../../src/components/common/BackButton";
 import { Button } from "../../../src/components/common/Button";
 import { Card } from "../../../src/components/common/Card";
 import { ScreenWrapper } from "../../../src/components/common/ScreenWrapper";
+import { useI18n } from "../../../src/i18n";
 import { useTheme } from "../../../src/theme";
 
 function ConsultationContent() {
   const { colors, spacing } = useTheme();
+  const { t } = useI18n();
 
   return (
     <ScreenWrapper scrollable padded>
@@ -40,7 +42,7 @@ function ConsultationContent() {
           textAlign: "center",
         }}
       >
-        Consultations
+        {t.consultation.title}
       </Text>
       <Text
         style={{
@@ -50,26 +52,14 @@ function ConsultationContent() {
           marginBottom: 32,
         }}
       >
-        Réservez une consultation avec un membre de notre ministère
+        {t.consultation.subtitle}
       </Text>
 
       {(
         [
-          {
-            icon: Heart,
-            title: "Prière personnalisée",
-            desc: "Session de prière dédiée à votre situation",
-          },
-          {
-            icon: MessageCircle,
-            title: "Conseil spirituel",
-            desc: "Échangez avec un conseiller spirituel expérimenté",
-          },
-          {
-            icon: WandMessageCircle,
-            title: "Lecture prophétique",
-            desc: "Recevez un mot prophétique pour votre vie",
-          },
+          { icon: Heart, ...t.consultation.types[0] },
+          { icon: MessageCircle, ...t.consultation.types[1] },
+          { icon: Lightbulb, ...t.consultation.types[2] },
         ] satisfies { icon: LucideIcon; title: string; desc: string }[]
       ).map((type) => (
         <Card
@@ -109,7 +99,7 @@ function ConsultationContent() {
       ))}
 
       <Button
-        label="Mes consultations"
+        label={t.consultation.myConsults}
         variant="outline"
         fullWidth
         onPress={() => router.push("/(app)/consultation/my-consultations")}
@@ -120,8 +110,9 @@ function ConsultationContent() {
 }
 
 export default function ConsultationScreen() {
+  const { t } = useI18n();
   return (
-    <PremiumGuard featureName="Consultations">
+    <PremiumGuard featureName={t.consultation.featureName}>
       <ConsultationContent />
     </PremiumGuard>
   );

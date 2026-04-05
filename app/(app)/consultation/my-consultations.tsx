@@ -7,22 +7,23 @@ import { useTheme } from '../../../src/theme';
 import { EmptyState } from '../../../src/components/common/EmptyState';
 import { BackButton } from '../../../src/components/common/BackButton';
 import { AppIcon } from '../../../src/components/common/AppIcon';
+import { useI18n } from '../../../src/i18n';
 import { StorageService } from '../../../src/services/storage.service';
 import { useAuth } from '../../../src/hooks/useAuth';
 import { Consultation } from '../../../src/types/content.types';
 import { formatDate } from '../../../src/utils/helpers';
 
-const STATUS_CONFIG: Record<Consultation['status'], { color: string; label: string; icon: LucideIcon }> = {
-  pending: { color: '#F59E0B', label: 'En attente', icon: Hourglass },
-  confirmed: { color: '#3B82F6', label: 'Confirmé', icon: CircleCheck },
-  completed: { color: '#10B981', label: 'Terminé', icon: Check },
-  cancelled: { color: '#EF4444', label: 'Annulé', icon: CircleX },
-};
-
 export default function MyConsultationsScreen() {
   const { colors, spacing } = useTheme();
   const { user } = useAuth();
+  const { t } = useI18n();
   const [consultations, setConsultations] = useState<Consultation[]>([]);
+  const statusConfig: Record<Consultation['status'], { color: string; label: string; icon: LucideIcon }> = {
+    pending: { color: '#F59E0B', label: t.consultation.statuses.pending, icon: Hourglass },
+    confirmed: { color: '#3B82F6', label: t.consultation.statuses.confirmed, icon: CircleCheck },
+    completed: { color: '#10B981', label: t.consultation.statuses.completed, icon: Check },
+    cancelled: { color: '#EF4444', label: t.consultation.statuses.cancelled, icon: CircleX },
+  };
 
   useEffect(() => {
     async function load() {
@@ -36,15 +37,15 @@ export default function MyConsultationsScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <View style={[styles.header, { backgroundColor: colors.deepBlue ?? '#1A1A3E', paddingTop: 56 }]}>
         <BackButton variant="dark" style={{ marginBottom: 12, alignSelf: 'flex-start' }} />
-        <Text style={styles.headerTitle}>Mes consultations</Text>
+        <Text style={styles.headerTitle}>{t.consultation.myConsults}</Text>
       </View>
 
       {consultations.length === 0 ? (
         <EmptyState
           icon={<AppIcon icon={Calendar} size={48} color={colors.primary} strokeWidth={1.9} />}
-          title="Aucune consultation"
-          message="Vous n'avez pas encore fait de demande de consultation."
-          actionLabel="Demander une consultation"
+          title={t.consultation.emptyTitle}
+          message={t.consultation.emptyMsg}
+          actionLabel={t.consultation.emptyCta}
           onAction={() => router.push('/(app)/consultation/form')}
         />
       ) : (
@@ -53,7 +54,7 @@ export default function MyConsultationsScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ padding: spacing.base, gap: 10 }}
           renderItem={({ item }) => {
-            const status = STATUS_CONFIG[item.status];
+            const status = statusConfig[item.status];
             return (
               <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <View style={styles.cardHeader}>
@@ -67,7 +68,7 @@ export default function MyConsultationsScreen() {
                   {item.message}
                 </Text>
                 <Text style={{ color: colors.textTertiary, fontSize: 12, marginTop: 8 }}>
-                  Demandé le {formatDate(item.createdAt)}
+                  {t.consultation.requestedOn(formatDate(item.createdAt))}
                 </Text>
               </View>
             );

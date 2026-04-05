@@ -12,6 +12,7 @@ import {
 import { AppIcon } from "../../src/components/common/AppIcon";
 import { BackButton } from "../../src/components/common/BackButton";
 import { useAuth } from "../../src/hooks/useAuth";
+import { useI18n } from "../../src/i18n";
 import { AuthService } from "../../src/services/auth.service";
 import { useTheme } from "../../src/theme";
 
@@ -21,6 +22,7 @@ type Step = "new" | "confirm";
 
 export default function NewPasswordScreen() {
   const { colors } = useTheme();
+  const { t } = useI18n();
   const { phone, mode, tempToken, otpCode } = useLocalSearchParams<{
     phone: string;
     mode: "setpin" | "reset";
@@ -69,7 +71,7 @@ export default function NewPasswordScreen() {
 
     // Étape confirmation : vérifier que les deux PIN correspondent
     if (pin !== newPin) {
-      setError("Les codes ne correspondent pas");
+      setError(t.auth.pinMismatch);
       triggerShake();
       setTimeout(() => {
         setConfirmPin("");
@@ -97,9 +99,10 @@ export default function NewPasswordScreen() {
       const success = await storePinAndLogin(pin, tempToken ?? "");
       setLoading(false);
       if (success) {
-        router.replace("/(app)/(tabs)/home");
+        // Nouveau compte → toujours diriger vers la complétion du profil
+        router.replace("/(app)/complete-profile");
       } else {
-        setError("Impossible de définir le PIN. Réessayez.");
+        setError(t.auth.pinSetError);
         triggerShake();
         setTimeout(() => { setConfirmPin(""); setError(null); }, 700);
       }
@@ -222,14 +225,12 @@ export default function NewPasswordScreen() {
 
       {/* Titre */}
       <Text style={[styles.title, { color: colors.text }]}>
-        {step === "new" ? "Nouveau mot de passe" : "Confirmer le code"}
+        {step === "new" ? t.auth.newPinTitle : t.auth.confirmPinTitle}
       </Text>
 
       {/* Sous-titre */}
       <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-        {step === "new"
-          ? "Choisissez un nouveau code PIN à 4 chiffres"
-          : "Entrez à nouveau le code pour confirmer"}
+        {step === "new" ? t.auth.newPinSubtitle : t.auth.confirmPinSubtitle}
       </Text>
 
       {/* Dots */}
@@ -246,7 +247,7 @@ export default function NewPasswordScreen() {
         <Text style={[styles.hintText, { color: "#EF4444" }]}>{error}</Text>
       ) : (
         <Text style={[styles.hintText, { color: colors.textSecondary }]}>
-          {step === "new" ? "Code PIN à 4 chiffres" : "Répétez le même code"}
+          {step === "new" ? t.auth.newPinHint : t.auth.confirmPinHint}
         </Text>
       )}
 

@@ -13,6 +13,16 @@ interface ChatBubbleProps {
 export function ChatBubble({ message }: ChatBubbleProps) {
   const { colors, spacing, borderRadius: br } = useTheme();
   const isUser = message.role === "user";
+  const rawContent = message.content as unknown;
+  const safeContent =
+    typeof rawContent === "string"
+      ? rawContent
+      : rawContent &&
+          typeof rawContent === "object" &&
+          "content" in rawContent &&
+          typeof rawContent.content === "string"
+        ? rawContent.content
+        : "";
 
   return (
     <View style={[styles.row, isUser ? styles.rowRight : styles.rowLeft]}>
@@ -51,7 +61,7 @@ export function ChatBubble({ message }: ChatBubbleProps) {
             { color: isUser ? "#fff" : colors.text, lineHeight: 22 },
           ]}
         >
-          {message.content}
+          {safeContent}
         </Text>
         <Text
           style={[

@@ -2,26 +2,21 @@ import React from 'react';
 import { View, Text, Linking } from 'react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { Mail, MessageCircle, Phone } from 'lucide-react-native';
+import { useI18n } from '../../../src/i18n';
 import { useTheme } from '../../../src/theme';
 import { ScreenWrapper } from '../../../src/components/common/ScreenWrapper';
 import { Card } from '../../../src/components/common/Card';
 import { BackButton } from '../../../src/components/common/BackButton';
 import { AppIcon } from '../../../src/components/common/AppIcon';
 
-const SUPPORT_OPTIONS = [
-  { icon: Mail, label: 'Email', value: 'support@spiritapp.com', action: () => Linking.openURL('mailto:support@spiritapp.com') },
-  { icon: Phone, label: 'WhatsApp', value: '+225 07 00 00 00 00', action: () => Linking.openURL('whatsapp://send?phone=22507000000') },
-  { icon: MessageCircle, label: 'Chat en ligne', value: 'Disponible 8h-20h', action: () => {} },
-] satisfies { icon: LucideIcon; label: string; value: string; action: () => void }[];
-
-const FAQ = [
-  { q: 'Comment annuler mon abonnement ?', a: 'Rendez-vous dans Profil > Abonnement > Gérer > Annuler.' },
-  { q: 'Mon paiement a-t-il été débité ?', a: 'Vérifiez votre historique de paiements dans Profil > Historique paiements.' },
-  { q: 'Puis-je utiliser l\'app sans connexion ?', a: 'Les prières et contenus chargés restent accessibles hors ligne.' },
-];
-
 export default function SupportScreen() {
   const { colors, spacing } = useTheme();
+  const { t } = useI18n();
+  const supportOptions = [
+    { icon: Mail, label: t.support.email, value: 'support@spiritapp.com', action: () => Linking.openURL('mailto:support@spiritapp.com') },
+    { icon: Phone, label: t.support.whatsapp, value: '+225 07 00 00 00 00', action: () => Linking.openURL('whatsapp://send?phone=22507000000') },
+    { icon: MessageCircle, label: t.support.liveChat, value: t.support.available, action: () => {} },
+  ] satisfies { icon: LucideIcon; label: string; value: string; action: () => void }[];
 
   return (
     <ScreenWrapper scrollable padded>
@@ -29,14 +24,14 @@ export default function SupportScreen() {
 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 24 }}>
         <AppIcon icon={MessageCircle} size={22} color={colors.text} strokeWidth={2.4} />
-        <Text style={{ fontSize: 22, fontWeight: '800', color: colors.text }}>Support</Text>
+        <Text style={{ fontSize: 22, fontWeight: '800', color: colors.text }}>{t.support.title}</Text>
       </View>
 
       <View style={{ gap: spacing.lg }}>
         {/* Contact options */}
         <View>
-          <Text style={{ fontWeight: '700', color: colors.text, marginBottom: 12 }}>Nous contacter</Text>
-          {SUPPORT_OPTIONS.map((opt) => (
+          <Text style={{ fontWeight: '700', color: colors.text, marginBottom: 12 }}>{t.support.contactUs}</Text>
+          {supportOptions.map((opt) => (
             <Card key={opt.label} onPress={opt.action} style={{ marginBottom: 8 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                 <AppIcon icon={opt.icon} size={22} color={colors.primary} strokeWidth={2.2} />
@@ -51,8 +46,8 @@ export default function SupportScreen() {
 
         {/* FAQ */}
         <View>
-          <Text style={{ fontWeight: '700', color: colors.text, marginBottom: 12 }}>Questions fréquentes</Text>
-          {FAQ.map((item) => (
+          <Text style={{ fontWeight: '700', color: colors.text, marginBottom: 12 }}>{t.support.faqTitle}</Text>
+          {t.support.faq.map((item) => (
             <Card key={item.q} style={{ marginBottom: 8 }}>
               <Text style={{ fontWeight: '600', color: colors.text, marginBottom: 6 }}>{item.q}</Text>
               <Text style={{ color: colors.textSecondary, fontSize: 13, lineHeight: 20 }}>{item.a}</Text>

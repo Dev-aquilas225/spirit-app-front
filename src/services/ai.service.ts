@@ -13,6 +13,101 @@ export interface AIUsageRecord {
   count: number;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function extractMessageText(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+
+  if (Array.isArray(value)) {
+    return value.map(extractMessageText).filter(Boolean).join('\n');
+  }
+
+  if (!isRecord(value)) return '';
+
+  if ('content' in value) {
+    const nestedContent = extractMessageText(value.content);
+    if (nestedContent) return nestedContent;
+  }
+
+  if ('text' in value) {
+    const nestedText = extractMessageText(value.text);
+    if (nestedText) return nestedText;
+  }
+
+  if ('message' in value) {
+    const nestedMessage = extractMessageText(value.message);
+    if (nestedMessage) return nestedMessage;
+  }
+
+  if ('response' in value) {
+    const nestedResponse = extractMessageText(value.response);
+    if (nestedResponse) return nestedResponse;
+  }
+
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return '';
+  }
+}
+
+function normalizeRole(role: unknown, fallback: AIMessage['role'] = 'assistant'): AIMessage['role'] {
+  return role === 'user' ? 'user' : role === 'assistant' ? 'assistant' : fallback;
+}
+
+function normalizeMessage(rawMessage: unknown, fallbackRole: AIMessage['role'] = 'assistant'): AIMessage {
+  const message = isRecord(rawMessage) ? rawMessage : {};
+
+  return {
+    id: typeof message.id === 'string' ? message.id : generateId(),
+    role: normalizeRole(message.role, fallbackRole),
+    content: extractMessageText(message.content ?? message.message ?? message.response ?? rawMessage),
+    timestamp:
+      typeof message.timestamp === 'string'
+        ? message.timestamp
+        : typeof message.createdAt === 'string'
+          ? message.createdAt
+          : new Date().toISOString(),
+  };
+}
+
+function normalizeConversation(rawConversation: unknown, userId: string): AIConversation {
+  const conversation = isRecord(rawConversation) ? rawConversation : {};
+  const messageSource = Array.isArray(conversation.messages)
+    ? conversation.messages
+    : conversation.lastMessage
+      ? [conversation.lastMessage]
+      : 'content' in conversation || 'message' in conversation || 'role' in conversation
+        ? [conversation]
+        : [];
+
+  const createdAt =
+    typeof conversation.createdAt === 'string'
+      ? conversation.createdAt
+      : new Date().toISOString();
+
+  return {
+    id:
+      typeof conversation.id === 'string'
+        ? conversation.id
+        : typeof conversation.conversationId === 'string'
+          ? conversation.conversationId
+          : generateId(),
+    userId,
+    messages: messageSource
+      .map((message) => normalizeMessage(message))
+      .filter((message) => message.content.length > 0),
+    createdAt,
+    updatedAt:
+      typeof conversation.updatedAt === 'string'
+        ? conversation.updatedAt
+        : createdAt,
+  };
+}
+
 export const AIService = {
   async getDailyUsage(): Promise<number> {
     const usage = await StorageService.get<AIUsageRecord>(STORAGE_KEYS.AI_USAGE);
@@ -59,7 +154,7 @@ export const AIService = {
     }
 
     try {
-      const data = await http.post<any>('/ai/chat', {
+      const data = await http.post<unknown>('/ai/chat', {
         message: question,
         chatType: 'prophet',
         conversationId,
@@ -67,14 +162,13 @@ export const AIService = {
 
       if (!isPremium) await AIService.incrementUsage();
 
+      const payload = isRecord(data) ? data : {};
+      const rawMessage = payload.message ?? payload.response ?? data;
+
       return {
-        message: {
-          id: data.messageId ?? generateId(),
-          role: 'assistant',
-          content: data.response ?? data.message ?? '',
-          timestamp: new Date().toISOString(),
-        },
-        conversationId: data.conversationId,
+        message: normalizeMessage(rawMessage, 'assistant'),
+        conversationId:
+          typeof payload.conversationId === 'string' ? payload.conversationId : conversationId,
       };
     } catch (e) {
       const msg = (e as ApiError).message;
@@ -95,15 +189,14 @@ export const AIService = {
 
   async interpretDream(dream: string, conversationId?: string): Promise<{ message: AIMessage; conversationId?: string; error?: string }> {
     try {
-      const data = await http.post<any>('/ai/dreams/interpret', { dream, conversationId });
+      const data = await http.post<unknown>('/ai/dreams/interpret', { dream, conversationId });
+      const payload = isRecord(data) ? data : {};
+      const rawMessage = payload.message ?? payload.interpretation ?? payload.response ?? data;
+
       return {
-        message: {
-          id: data.messageId ?? generateId(),
-          role: 'assistant',
-          content: data.response ?? data.interpretation ?? '',
-          timestamp: new Date().toISOString(),
-        },
-        conversationId: data.conversationId,
+        message: normalizeMessage(rawMessage, 'assistant'),
+        conversationId:
+          typeof payload.conversationId === 'string' ? payload.conversationId : conversationId,
       };
     } catch (e) {
       return {
@@ -120,19 +213,10 @@ export const AIService = {
 
   async getConversations(userId: string): Promise<AIConversation[]> {
     try {
-      const data = await http.get<any[]>('/ai/conversations');
-      return data.map((c) => ({
-        id: c.id,
-        userId,
-        messages: (c.messages ?? []).map((m: any) => ({
-          id: m.id ?? generateId(),
-          role: m.role,
-          content: m.content,
-          timestamp: m.createdAt ?? new Date().toISOString(),
-        })),
-        createdAt: c.createdAt,
-        updatedAt: c.updatedAt,
-      }));
+      const data = await http.get<unknown>('/ai/conversations');
+      const conversations = Array.isArray(data) ? data : [];
+
+      return conversations.map((conversation) => normalizeConversation(conversation, userId));
     } catch {
       return [];
     }
@@ -140,13 +224,16 @@ export const AIService = {
 
   async getConversationHistory(conversationId: string): Promise<AIMessage[]> {
     try {
-      const data = await http.get<any[]>(`/ai/conversations/${conversationId}`);
-      return (Array.isArray(data) ? data : (data as any).messages ?? []).map((m: any) => ({
-        id: m.id ?? generateId(),
-        role: m.role,
-        content: m.content,
-        timestamp: m.createdAt ?? new Date().toISOString(),
-      }));
+      const data = await http.get<unknown>(`/ai/conversations/${conversationId}`);
+      const messages = Array.isArray(data)
+        ? data
+        : isRecord(data) && Array.isArray(data.messages)
+          ? data.messages
+          : [];
+
+      return messages
+        .map((message) => normalizeMessage(message))
+        .filter((message) => message.content.length > 0);
     } catch {
       return [];
     }

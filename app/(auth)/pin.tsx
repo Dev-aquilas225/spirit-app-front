@@ -12,15 +12,18 @@ import {
 import { AppIcon } from "../../src/components/common/AppIcon";
 import { BackButton } from "../../src/components/common/BackButton";
 import { useAuth } from "../../src/hooks/useAuth";
+import { useI18n } from "../../src/i18n";
+import { useAuthStore } from "../../src/store/auth.store";
 import { useTheme } from "../../src/theme";
 
 const PIN_LENGTH = 4;
 
 export default function PinScreen() {
   const { colors } = useTheme();
+  const { t } = useI18n();
   const { phone } = useLocalSearchParams<{ phone: string }>();
   const { login, isLoading, error, clearError } = useAuth();
-  // login(phone, pin) → appel API /auth/login
+  const isProfileComplete = useAuthStore((s) => s.isProfileComplete);
 
   const [pin, setPin] = useState("");
   const [shake, setShake] = useState(false);
@@ -81,7 +84,9 @@ export default function PinScreen() {
     if (!phone) return;
     const success = await login(phone, currentPin);
     if (success) {
-      router.replace("/(app)/(tabs)/home");
+      // Si le profil est incomplet → compléter d'abord
+      const complete = useAuthStore.getState().isProfileComplete;
+      router.replace(complete ? "/(app)/(tabs)/home" : "/(app)/complete-profile");
     }
   }
 
@@ -186,7 +191,7 @@ export default function PinScreen() {
       <Text style={[styles.phoneLabel, { color: colors.textSecondary }]}>
         {phone}
       </Text>
-      <Text style={[styles.title, { color: colors.text }]}>Code PIN</Text>
+      <Text style={[styles.title, { color: colors.text }]}>{t.auth.pinTitle}</Text>
 
       {/* Indicateur de chargement ou points */}
       <View style={styles.dotsContainer}>
@@ -202,7 +207,7 @@ export default function PinScreen() {
         <Text style={[styles.errorText, { color: "#EF4444" }]}>{error}</Text>
       ) : (
         <Text style={[styles.hintText, { color: colors.textSecondary }]}>
-          Entrez votre code PIN à {PIN_LENGTH} chiffres
+          {t.auth.pinHint}
         </Text>
       )}
 
@@ -222,7 +227,7 @@ export default function PinScreen() {
         disabled={isLoading}
       >
         <Text style={[styles.forgotText, { color: colors.primary }]}>
-          Code PIN oublié ?
+          {t.auth.pinForgot}
         </Text>
       </TouchableOpacity>
     </View>

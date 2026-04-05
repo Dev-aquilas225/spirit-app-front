@@ -2,18 +2,13 @@ import React from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { BookOpen, Calendar, GraduationCap } from 'lucide-react-native';
+import { useI18n } from '../../../src/i18n';
 import { useTheme } from '../../../src/theme';
 import { PremiumGuard } from '../../../src/components/auth/PremiumGuard';
-import { FORMATIONS_DATA } from '../../../src/data/formations.data';
+import { getFormationsData } from '../../../src/data/formations.data';
 import { BackButton } from '../../../src/components/common/BackButton';
 import { AppIcon } from '../../../src/components/common/AppIcon';
 import { Formation, FormationLevel } from '../../../src/types/content.types';
-
-const LEVEL_LABELS: Record<FormationLevel, string> = {
-  beginner: 'Débutant',
-  intermediate: 'Intermédiaire',
-  advanced: 'Avancé',
-};
 
 const LEVEL_COLORS: Record<FormationLevel, string> = {
   beginner: '#10B981',
@@ -23,6 +18,12 @@ const LEVEL_COLORS: Record<FormationLevel, string> = {
 
 function FormationCard({ formation }: { formation: Formation }) {
   const { colors, borderRadius: br, shadows } = useTheme();
+  const { t } = useI18n();
+  const levelLabels: Record<FormationLevel, string> = {
+    beginner: t.formations.levels.beginner,
+    intermediate: t.formations.levels.intermediate,
+    advanced: t.formations.levels.advanced,
+  };
   return (
     <TouchableOpacity
       onPress={() => router.push(`/(app)/formations/${formation.id}`)}
@@ -35,7 +36,7 @@ function FormationCard({ formation }: { formation: Formation }) {
         <View style={{ flexDirection: 'row', gap: 6, marginBottom: 6 }}>
           <View style={[styles.tag, { backgroundColor: LEVEL_COLORS[formation.level] + '20', borderColor: LEVEL_COLORS[formation.level] }]}>
             <Text style={{ fontSize: 10, color: LEVEL_COLORS[formation.level], fontWeight: '700' }}>
-              {LEVEL_LABELS[formation.level]}
+              {levelLabels[formation.level]}
             </Text>
           </View>
           <View style={[styles.tag, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}>
@@ -51,7 +52,7 @@ function FormationCard({ formation }: { formation: Formation }) {
           </View>
           <View style={styles.metaRow}>
             <AppIcon icon={BookOpen} size={14} color={colors.textTertiary} strokeWidth={2.4} />
-            <Text style={{ color: colors.textTertiary, fontSize: 12 }}>{formation.lessons.length} leçons</Text>
+            <Text style={{ color: colors.textTertiary, fontSize: 12 }}>{t.formations.lessons(formation.lessons.length)}</Text>
           </View>
         </View>
       </View>
@@ -61,6 +62,8 @@ function FormationCard({ formation }: { formation: Formation }) {
 
 function FormationsContent() {
   const { colors, spacing } = useTheme();
+  const { t, language } = useI18n();
+  const formations = getFormationsData(language);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -68,12 +71,12 @@ function FormationsContent() {
         <BackButton variant="dark" style={{ marginBottom: 12 }} />
         <View style={styles.headerTitleRow}>
           <AppIcon icon={GraduationCap} size={20} color="#fff" strokeWidth={2.4} />
-          <Text style={styles.headerTitle}>Formations</Text>
+          <Text style={styles.headerTitle}>{t.formations.title}</Text>
         </View>
-        <Text style={styles.headerSubtitle}>{FORMATIONS_DATA.length} formations spirituelles</Text>
+        <Text style={styles.headerSubtitle}>{t.formations.subtitle(formations.length)}</Text>
       </View>
       <FlatList
-        data={FORMATIONS_DATA}
+        data={formations}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: spacing.base, gap: 16 }}
         renderItem={({ item }) => <FormationCard formation={item} />}
@@ -83,8 +86,9 @@ function FormationsContent() {
 }
 
 export default function FormationsScreen() {
+  const { t } = useI18n();
   return (
-    <PremiumGuard featureName="Formations">
+    <PremiumGuard featureName={t.formations.featureName}>
       <FormationsContent />
     </PremiumGuard>
   );

@@ -2,8 +2,9 @@ import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { BookOpen, Calendar, GraduationCap, Play } from 'lucide-react-native';
+import { useI18n } from '../../../src/i18n';
 import { useTheme } from '../../../src/theme';
-import { FORMATIONS_DATA } from '../../../src/data/formations.data';
+import { getFormationsData } from '../../../src/data/formations.data';
 import { Button } from '../../../src/components/common/Button';
 import { BackButton } from '../../../src/components/common/BackButton';
 import { AppIcon } from '../../../src/components/common/AppIcon';
@@ -11,7 +12,8 @@ import { AppIcon } from '../../../src/components/common/AppIcon';
 export default function FormationDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors, spacing } = useTheme();
-  const formation = FORMATIONS_DATA.find((f) => f.id === id);
+  const { t, language } = useI18n();
+  const formation = getFormationsData(language).find((f) => f.id === id);
 
   if (!formation) return null;
 
@@ -35,20 +37,20 @@ export default function FormationDetailScreen() {
           <View style={[styles.badge, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
             <View style={styles.badgeRow}>
               <AppIcon icon={BookOpen} size={14} color="rgba(255,255,255,0.7)" strokeWidth={2.4} />
-              <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>{formation.lessons.length} leçons</Text>
+              <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>{t.formations.lessons(formation.lessons.length)}</Text>
             </View>
           </View>
         </View>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: spacing.base }}>
-        <Text style={{ fontSize: 17, fontWeight: '700', color: colors.text, marginBottom: 10 }}>À propos</Text>
+        <Text style={{ fontSize: 17, fontWeight: '700', color: colors.text, marginBottom: 10 }}>{t.formations.about}</Text>
         <Text style={{ color: colors.textSecondary, fontSize: 14, lineHeight: 24, marginBottom: 24 }}>
           {formation.description}
         </Text>
 
         <Text style={{ fontSize: 17, fontWeight: '700', color: colors.text, marginBottom: 12 }}>
-          Programme ({formation.lessons.length} leçons)
+          {t.formations.programme(formation.lessons.length)}
         </Text>
 
         {formation.lessons.map((lesson, idx) => (
@@ -69,7 +71,7 @@ export default function FormationDetailScreen() {
         ))}
 
         <Button
-          label="Commencer la formation"
+          label={t.formations.start}
           variant="gold"
           fullWidth
           size="lg"
