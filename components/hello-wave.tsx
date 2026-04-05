@@ -1,11 +1,15 @@
 import Animated from 'react-native-reanimated';
+import { Hand } from 'lucide-react-native';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Colors } from '@/constants/theme';
 
 export function HelloWave() {
+  const theme = useColorScheme() === 'dark' ? 'dark' : 'light';
+  const color = Colors[theme].text;
+
   return (
-    <Animated.Text
+    <Animated.View
       style={{
-        fontSize: 28,
-        lineHeight: 32,
         marginTop: -6,
         animationName: {
           '50%': { transform: [{ rotate: '25deg' }] },
@@ -13,7 +17,7 @@ export function HelloWave() {
         animationIterationCount: 4,
         animationDuration: '300ms',
       }}>
-      👋
-    </Animated.Text>
+      <Hand size={28} color={color} strokeWidth={2.2} />
+    </Animated.View>
   );
 }
