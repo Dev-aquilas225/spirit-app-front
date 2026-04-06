@@ -35,6 +35,9 @@ yarn-error.*
 .env
 .env*.local
 
+#packages
+package-lock.json
+
 # typescript
 *.tsbuildinfo
 
