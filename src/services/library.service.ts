@@ -1,6 +1,7 @@
 import { http, ApiError } from './http.client';
+import { Env } from '../utils/env';
 
-const API_BASE_URL = (process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:4200') + '/api/v1';
+const apiBaseUrl = () => Env.API_BASE_URL() + '/api/v1';
 
 export type LibraryBookStatus = 'draft' | 'published' | 'archived';
 
@@ -27,7 +28,7 @@ export interface LibraryBook {
 
 export const LibraryService = {
   getFileUrl(bookId: string): string {
-    return `${API_BASE_URL}/library/${bookId}/file`;
+    return `${apiBaseUrl()}/library/${bookId}/file`;
   },
 
   async getAll(category?: string): Promise<LibraryBook[]> {

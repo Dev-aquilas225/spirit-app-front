@@ -24,6 +24,20 @@ const mimeTypes = {
   '.woff2': 'font/woff2',
 };
 
+// Génère le contenu de env-config.js depuis les env vars runtime
+function buildEnvConfig() {
+  const env = {
+    EXPO_PUBLIC_API_BASE_URL: process.env.EXPO_PUBLIC_API_BASE_URL ?? '',
+  };
+  return `window.__ENV__ = ${JSON.stringify(env)};`;
+}
+
+// Injecte <script src="/env-config.js"> dans le HTML avant </head>
+function injectEnvScript(html) {
+  if (html.includes('env-config.js')) return html;
+  return html.replace('</head>', '<script src="/env-config.js"></script></head>');
+}
+
 function getCandidatePaths(requestPath) {
   const trimmedPath = requestPath.replace(/^\/+/, '');
 
@@ -72,9 +86,29 @@ function createServer() {
   return http.createServer((req, res) => {
     const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
     const requestedPath = decodeURIComponent(url.pathname);
+
+    // Route dynamique : variables d'environnement runtime
+    if (requestedPath === '/env-config.js') {
+      const body = buildEnvConfig();
+      res.writeHead(200, {
+        'Content-Type': 'application/javascript; charset=utf-8',
+        'Cache-Control': 'no-store',
+      });
+      res.end(body);
+      return;
+    }
+
     const resolvedFile = resolveFile(requestedPath);
 
     if (resolvedFile) {
+      // Injecter le script dans les fichiers HTML
+      if (resolvedFile.endsWith('.html')) {
+        const html = fs.readFileSync(resolvedFile, 'utf-8');
+        const body = injectEnvScript(html);
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(body);
+        return;
+      }
       serveFile(res, resolvedFile);
       return;
     }
@@ -86,8 +120,12 @@ function createServer() {
       return;
     }
 
+    // SPA fallback — injecter le script dans le HTML
     const fallbackFile = path.join(distDir, 'index.html');
-    serveFile(res, fallbackFile);
+    const html = fs.readFileSync(fallbackFile, 'utf-8');
+    const body = injectEnvScript(html);
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(body);
   });
 }
 

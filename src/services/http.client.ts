@@ -4,8 +4,12 @@
  */
 import { StorageService } from './storage.service';
 import { STORAGE_KEYS } from '../utils/constants';
+import { Env } from '../utils/env';
 
-const BASE_URL = (process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:4200') + '/api/v1';
+// Eval au moment de l'appel (pas au module load) pour que window.__ENV__ soit dispo
+function baseUrl(): string {
+  return Env.API_BASE_URL() + '/api/v1';
+}
 
 export interface ApiError {
   statusCode: number;
@@ -45,7 +49,7 @@ async function tryRefresh(): Promise<string | null> {
   if (!refreshToken) return null;
 
   try {
-    const res = await fetch(`${BASE_URL}/auth/refresh`, {
+    const res = await fetch(`${baseUrl()}/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken }),
@@ -75,7 +79,7 @@ export async function request<T>(
   };
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  const res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
+  const res = await fetch(`${baseUrl()}${path}`, { ...options, headers });
 
   // Token expiré → refresh
   if (res.status === 401) {
