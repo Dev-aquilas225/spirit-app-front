@@ -122,6 +122,7 @@ const fr = {
       consultation: 'Se former spirituellement',
       dreams: 'Interpréter mon rêve',
       prophet: 'Consultation et orientation',
+      accompagnements: 'Accompagnements 7 jours',
     },
   },
 
@@ -166,20 +167,20 @@ const fr = {
     newConversation: 'Nouvelle conversation',
     limitAlertTitle: 'Limite atteinte',
     limitAlertMsg: (limit: number) =>
-      `Vous avez utilisé vos ${limit} messages gratuits du jour avec votre guide spirituel. Revenez demain ou passez Premium pour des échanges illimités.`,
+      `Vous avez atteint votre limite de ${limit} questions par jour. Abonnez-vous ou choisissez un autre service.`,
     deleteTitle: 'Supprimer',
     deleteMsg: 'Cette action est irréversible.',
-    emptyChatTitle: 'Exposez votre situation à votre guide spirituel.',
+    emptyChatTitle: 'Bonjour, comment vas-tu ?',
     emptyChatSubtitle:
-      'Recevez guidance et direction pour votre vie, vos relations, vos projets ou votre parcours spirituel.',
+      'Je suis là pour t\'accueillir et t\'accompagner. Dis-moi comment tu vas et ce que je peux faire pour toi.',
     suggestions: [
-      'Je cherche une direction spirituelle pour ma vie.',
-      "J'ai fait un rêve étrange, quelle direction prendre ?",
-      'Je veux un suivi de prière, comment cela se passe ?',
+      'Je ne vais pas bien en ce moment.',
+      "J'ai une situation difficile à te soumettre.",
+      'Je cherche un accompagnement spirituel.',
     ],
     typing: 'Votre guide spirituel vous répond...',
     inputLimited: 'Limite atteinte — Passez Premium',
-    inputPlaceholder: 'Exposez votre situation...',
+    inputPlaceholder: 'Dis-moi comment tu vas...',
     messagesCount: (count: number, date: string) =>
       `${count} message${count > 1 ? 's' : ''} • ${date}`,
   },
@@ -468,8 +469,8 @@ const fr = {
     step1: 'Partagez votre code unique avec vos proches',
     step2: "Ils s'inscrivent avec votre code",
     step3: "Quand ils s'abonnent, vous gagnez des avantages",
-    shareMsg: (code: string) =>
-      `Rejoins Oracle Plus — ta plateforme spirituelle ! Utilise mon code de parrainage ${code} pour bénéficier d'un avantage.`,
+    shareMsg: (code: string, url?: string) =>
+      `🙏 Rejoins Oracle Plus — ta plateforme spirituelle !\n\nUtilise mon code de parrainage *${code}* pour bénéficier d'un avantage exclusif.\n\n👉 ${url ?? 'https://oracleplus.app'}`,
   },
 
   support: {

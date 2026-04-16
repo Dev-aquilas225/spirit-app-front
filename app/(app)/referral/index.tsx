@@ -15,11 +15,12 @@ export default function ReferralScreen() {
   const { user } = useAuth();
   const { t } = useI18n();
 
+  const appUrl = process.env.EXPO_PUBLIC_APP_URL ?? 'https://oracleplus.app';
+
   async function handleShare() {
-    await Share.share({
-      message: t.referral.shareMsg(user?.referralCode ?? ''),
-      url: 'https://spiritapp.com',
-    });
+    const code = user?.referralCode ?? '';
+    const message = t.referral.shareMsg(code, appUrl);
+    await Share.share({ message });
   }
 
   async function handleCopy() {

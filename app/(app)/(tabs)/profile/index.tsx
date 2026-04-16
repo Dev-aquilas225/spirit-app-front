@@ -1,13 +1,16 @@
 import { router } from "expo-router";
+import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
+import { Image } from 'expo-image';
 import type { LucideIcon } from "lucide-react-native";
 import {
-  Bell, Check, ChevronRight, CreditCard, Crown,
+  Bell, Camera, Check, ChevronRight, CreditCard, Crown,
   FileText, Gift, Globe, LogOut, MessageCircle,
-  Pencil, Settings, ShieldCheck, X,
+  Pencil, Settings, ShieldCheck, Trash2, X,
 } from "lucide-react-native";
 import React, { useState } from "react";
 import {
-  ActivityIndicator, Alert, Modal, Pressable, ScrollView,
+  ActivityIndicator, Alert, Image as RNImage, Modal, Pressable, Platform, ScrollView,
   StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from "react-native";
 import { AppIcon } from "../../../../src/components/common/AppIcon";
@@ -30,27 +33,82 @@ const GENDER_CFG: Record<Gender, GenderCfg> = {
 };
 const DEFAULT_CFG: GenderCfg = { bg: 'rgba(255,255,255,0.15)', fg: '#fff', emoji: '🧑' };
 
-/* ─── Avatar header ─────────────────────────────────────────────────────────── */
+/* ─── Avatar ────────────────────────────────────────────────────────────────── */
 
-function HeaderAvatar({ firstName = '', lastName = '', gender }: { firstName?: string; lastName?: string; gender?: Gender }) {
+function AvatarDisplay({
+  avatarUri, firstName = '', lastName = '', gender, size = 88, onPress,
+}: {
+  avatarUri?: string; firstName?: string; lastName?: string;
+  gender?: Gender; size?: number; onPress?: () => void;
+}) {
   const cfg = gender ? GENDER_CFG[gender] : DEFAULT_CFG;
   const initials = [firstName[0], lastName[0]].filter(Boolean).join('').toUpperCase();
+  const br = size / 2;
 
   return (
-    <View style={{ position: 'relative', marginBottom: 12 }}>
-      <View style={[styles.avatarCircle, { backgroundColor: cfg.bg }]}>
-        {initials ? (
-          <Text style={[styles.avatarInitials, { color: cfg.fg }]}>{initials}</Text>
-        ) : (
-          <Text style={{ fontSize: 34 }}>{cfg.emoji}</Text>
-        )}
-      </View>
-      {gender && (
+    <TouchableOpacity
+      onPress={onPress}
+      disabled={!onPress}
+      style={{ position: 'relative', marginBottom: 12 }}
+      activeOpacity={0.85}
+    >
+      {avatarUri ? (
+        <Image
+          source={{ uri: avatarUri }}
+          style={{ width: size, height: size, borderRadius: br, backgroundColor: cfg.bg }}
+          contentFit="cover"
+        />
+      ) : (
+        <View style={[styles.avatarCircle, { backgroundColor: cfg.bg, width: size, height: size, borderRadius: br }]}>
+          {initials ? (
+            <Text style={[styles.avatarInitials, { color: cfg.fg, fontSize: size * 0.38 }]}>{initials}</Text>
+          ) : (
+            <Text style={{ fontSize: size * 0.38 }}>{cfg.emoji}</Text>
+          )}
+        </View>
+      )}
+
+      {/* Badge appareil photo si cliquable */}
+      {onPress && (
+        <View style={[styles.cameraOverlay, { backgroundColor: 'rgba(0,0,0,0.55)', width: size, height: size, borderRadius: br }]}>
+          <View style={styles.cameraIcon}>
+            <Camera size={size * 0.24} color="#fff" strokeWidth={2} />
+          </View>
+        </View>
+      )}
+
+      {/* Badge genre */}
+      {gender && !onPress && (
         <View style={[styles.avatarBadge, { backgroundColor: cfg.fg }]}>
           <Text style={{ fontSize: 11 }}>{cfg.emoji}</Text>
         </View>
       )}
-    </View>
+    </TouchableOpacity>
+  );
+}
+
+/* ─── ProphetThumb ──────────────────────────────────────────────────────────── */
+
+// Référence à la photo du prophète (à placer dans assets/images/prophet.jpg)
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const PROPHET_IMG = (() => { try { return require('../../../../assets/images/prophet.jpg'); } catch { return null; } })();
+
+function ProphetThumb() {
+  const [error, setError] = useState(false);
+  if (!PROPHET_IMG || error) {
+    return (
+      <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(201,168,76,0.2)', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#C9A84C' }}>
+        <Text style={{ fontSize: 22 }}>🙏</Text>
+      </View>
+    );
+  }
+  return (
+    <RNImage
+      source={PROPHET_IMG}
+      style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: '#2a2a4a' }}
+      resizeMode="cover"
+      onError={() => setError(true)}
+    />
   );
 }
 
@@ -86,17 +144,91 @@ function EditProfileModal({ visible, onClose }: { visible: boolean; onClose: () 
   const { user, updateUser, isLoading, clearError } = useAuth();
   const { t } = useI18n();
 
-  const [firstName, setFirstName] = useState(user?.firstName ?? '');
-  const [lastName,  setLastName]  = useState(user?.lastName  ?? '');
-  const [gender,    setGender]    = useState<Gender | undefined>(user?.gender);
+  const [firstName,  setFirstName]  = useState(user?.firstName ?? '');
+  const [lastName,   setLastName]   = useState(user?.lastName  ?? '');
+  const [gender,     setGender]     = useState<Gender | undefined>(user?.gender);
+  const [avatarUri,  setAvatarUri]  = useState<string | undefined>(user?.avatar);
+  const [uploading,  setUploading]  = useState(false);
+
+  // Resync quand la modal s'ouvre
+  React.useEffect(() => {
+    if (visible) {
+      setFirstName(user?.firstName ?? '');
+      setLastName(user?.lastName ?? '');
+      setGender(user?.gender);
+      setAvatarUri(user?.avatar);
+    }
+  }, [visible]);
+
+  /* ── Sélection / prise de photo ── */
+  async function handlePickImage(source: 'library' | 'camera') {
+    // Demander les permissions
+    if (source === 'camera') {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission refusée', 'Autorisez l\'accès à la caméra dans les paramètres.');
+        return;
+      }
+    } else {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission refusée', 'Autorisez l\'accès à la galerie dans les paramètres.');
+        return;
+      }
+    }
+
+    const picker = source === 'camera'
+      ? ImagePicker.launchCameraAsync
+      : ImagePicker.launchImageLibraryAsync;
+
+    const result = await picker({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.85,
+    });
+
+    if (result.canceled || !result.assets[0]) return;
+
+    setUploading(true);
+    try {
+      // Redimensionner à 400×400 pour économiser la bande passante
+      const manipulated = await ImageManipulator.manipulateAsync(
+        result.assets[0].uri,
+        [{ resize: { width: 400, height: 400 } }],
+        { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG, base64: true },
+      );
+      // Stocker en data URI base64 (ou upload vers backend si disponible)
+      const dataUri = `data:image/jpeg;base64,${manipulated.base64}`;
+      setAvatarUri(dataUri);
+    } catch {
+      Alert.alert('Erreur', 'Impossible de traiter l\'image.');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function handleAvatarPress() {
+    if (Platform.OS === 'web') {
+      handlePickImage('library');
+      return;
+    }
+    Alert.alert('Photo de profil', 'Choisissez une option', [
+      { text: 'Prendre une photo', onPress: () => handlePickImage('camera') },
+      { text: 'Choisir dans la galerie', onPress: () => handlePickImage('library') },
+      { text: 'Supprimer la photo', style: 'destructive', onPress: () => setAvatarUri(undefined) },
+      { text: 'Annuler', style: 'cancel' },
+    ]);
+  }
 
   async function handleSave() {
     clearError();
-    const success = await updateUser({ firstName, lastName, gender });
+    const success = await updateUser({ firstName, lastName, gender, avatar: avatarUri });
     if (success) onClose();
   }
 
   const canSave = firstName.trim().length >= 2 && lastName.trim().length >= 2;
+  const isBusy = isLoading || uploading;
 
   const genderLabels: Record<Gender, string> = {
     male:   t.profile.male,
@@ -119,9 +251,42 @@ function EditProfileModal({ visible, onClose }: { visible: boolean; onClose: () 
         </View>
 
         <ScrollView contentContainerStyle={{ padding: spacing.base, gap: 20 }} keyboardShouldPersistTaps="handled">
-          {/* Aperçu avatar */}
+
+          {/* ── Photo de profil ── */}
           <View style={{ alignItems: 'center', paddingVertical: 8 }}>
-            <HeaderAvatar firstName={firstName} lastName={lastName} gender={gender} />
+            {uploading ? (
+              <View style={[styles.avatarCircle, { backgroundColor: colors.surface, marginBottom: 12, justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator color="#C9A84C" />
+              </View>
+            ) : (
+              <AvatarDisplay
+                avatarUri={avatarUri}
+                firstName={firstName}
+                lastName={lastName}
+                gender={gender}
+                size={88}
+                onPress={handleAvatarPress}
+              />
+            )}
+            <TouchableOpacity
+              onPress={handleAvatarPress}
+              style={[styles.changePhotoBtn, { borderColor: colors.primary }]}
+              disabled={uploading}
+            >
+              <AppIcon icon={Camera} size={14} color={colors.primary} strokeWidth={2.4} />
+              <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '600' }}>
+                {avatarUri ? 'Modifier la photo' : 'Ajouter une photo'}
+              </Text>
+            </TouchableOpacity>
+            {avatarUri && (
+              <TouchableOpacity
+                onPress={() => setAvatarUri(undefined)}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}
+              >
+                <AppIcon icon={Trash2} size={12} color="#EF4444" strokeWidth={2.4} />
+                <Text style={{ color: '#EF4444', fontSize: 12 }}>Supprimer la photo</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Prénom */}
@@ -184,13 +349,13 @@ function EditProfileModal({ visible, onClose }: { visible: boolean; onClose: () 
             </View>
           </View>
 
-          {/* Bouton */}
+          {/* Bouton enregistrer */}
           <TouchableOpacity
             onPress={handleSave}
-            disabled={!canSave || isLoading}
-            style={[styles.saveBtn, { backgroundColor: canSave ? '#C9A84C' : colors.border }]}
+            disabled={!canSave || isBusy}
+            style={[styles.saveBtn, { backgroundColor: canSave && !isBusy ? '#C9A84C' : colors.border }]}
           >
-            {isLoading ? (
+            {isBusy ? (
               <ActivityIndicator color="#fff" />
             ) : (
               <Text style={styles.saveBtnLabel}>{t.common.save}</Text>
@@ -304,7 +469,13 @@ export default function ProfileScreen() {
     <ScrollView style={{ flex: 1, backgroundColor: colors.background }} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.deepBlue ?? '#1A1A3E', paddingTop: 56 }]}>
-        <HeaderAvatar firstName={user?.firstName} lastName={user?.lastName} gender={user?.gender} />
+        <AvatarDisplay
+          avatarUri={user?.avatar}
+          firstName={user?.firstName}
+          lastName={user?.lastName}
+          gender={user?.gender}
+          size={88}
+        />
 
         <Text style={styles.name}>
           {user?.firstName && user?.lastName
@@ -369,6 +540,28 @@ export default function ProfileScreen() {
             <MenuItem icon={CreditCard} label={t.profile.paymentHistory} onPress={() => router.push('/(app)/subscription/history')} />
           </Card>
         </View>
+
+        {/* Découvrir le prophète */}
+        <TouchableOpacity
+          onPress={() => router.push('/(app)/prophet')}
+          style={[styles.prophetCard, { backgroundColor: '#1A1A3E' }]}
+          activeOpacity={0.85}
+        >
+          <View style={styles.prophetLeft}>
+            <View style={styles.prophetImgWrap}>
+              {/* eslint-disable-next-line @typescript-eslint/no-require-imports */}
+              <ProphetThumb />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.prophetLabel}>Découvrir le prophète</Text>
+              <Text style={styles.prophetName}>Georges Tchingankong</Text>
+              <Text style={styles.prophetDesc}>Fondateur · Arche d'Alliance Éternelle</Text>
+            </View>
+          </View>
+          <View style={styles.prophetArrow}>
+            <AppIcon icon={ChevronRight} size={20} color="#C9A84C" strokeWidth={2.4} />
+          </View>
+        </TouchableOpacity>
 
         {/* Communauté */}
         <View>
@@ -458,4 +651,22 @@ const styles = StyleSheet.create({
   langOption: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 14 },
   langLabel: { fontSize: 16, fontWeight: '600', flex: 1 },
   langCheck: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+
+  /* Carte prophète */
+  prophetCard: {
+    borderRadius: 16, padding: 16, flexDirection: 'row',
+    alignItems: 'center', justifyContent: 'space-between',
+    borderWidth: 1, borderColor: '#C9A84C33',
+  },
+  prophetLeft: { flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1 },
+  prophetImgWrap: {},
+  prophetLabel: { fontSize: 11, color: '#C9A84C', fontWeight: '700', letterSpacing: 0.5, marginBottom: 2 },
+  prophetName: { fontSize: 15, fontWeight: '800', color: '#fff' },
+  prophetDesc: { fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 2 },
+  prophetArrow: { paddingLeft: 8 },
+
+  /* Avatar camera overlay */
+  cameraOverlay: { position: 'absolute', top: 0, left: 0, alignItems: 'center', justifyContent: 'center' },
+  cameraIcon: { alignItems: 'center', justifyContent: 'center' },
+  changePhotoBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1.5, marginTop: 4 },
 });

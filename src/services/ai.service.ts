@@ -148,7 +148,7 @@ export const AIService = {
         message: {
           id: generateId(),
           role: 'assistant',
-          content: `Vous avez atteint votre limite de ${FREE_AI_MESSAGE_LIMIT} messages gratuits du jour avec votre guide spirituel. Revenez demain ou passez Premium pour des échanges illimités.`,
+          content: `Vous avez atteint votre limite de ${FREE_AI_MESSAGE_LIMIT} questions par jour. Abonnez-vous ou choisissez un autre service.`,
           timestamp: new Date().toISOString(),
         },
         error: 'limit_reached',
@@ -180,7 +180,7 @@ export const AIService = {
           id: generateId(),
           role: 'assistant',
           content: isLimit
-            ? `Vous avez atteint votre limite de ${FREE_AI_MESSAGE_LIMIT} messages gratuits du jour avec votre guide spirituel. Revenez demain ou passez Premium pour des échanges illimités.`
+            ? `Vous avez atteint votre limite de ${FREE_AI_MESSAGE_LIMIT} questions par jour. Abonnez-vous ou choisissez un autre service.`
             : `Erreur : ${msg}`,
           timestamp: new Date().toISOString(),
         },

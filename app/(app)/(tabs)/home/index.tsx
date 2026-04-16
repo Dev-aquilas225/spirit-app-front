@@ -13,6 +13,7 @@ import {
   MessageCircle,
   Sunrise,
   Sunset,
+  Users,
 } from "lucide-react-native";
 import React from "react";
 import {
@@ -40,6 +41,7 @@ const QUICK_ACTIONS_CONFIG = [
   { icon: Lightbulb,     labelKey: "consultation" as const, route: "/(app)/formations"       as const },
   { icon: CloudMoon,     labelKey: "dreams"       as const, route: "/(app)/dreams"           as const },
   { icon: Calendar,      labelKey: "prophet"      as const, route: "/(app)/consultation"     as const },
+  { icon: Users,         labelKey: "accompagnements" as const, route: "/(app)/accompagnements" as const },
 ];
 
 export default function HomeScreen() {

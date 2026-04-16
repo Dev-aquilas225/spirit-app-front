@@ -7,9 +7,10 @@ export const SUBSCRIPTION_PRICE = 5000;
 export const SUBSCRIPTION_CURRENCY = 'FCFA';
 export const SUBSCRIPTION_PERIOD_DAYS = 30;
 
-// Guide spirituel — limite de messages pour les utilisateurs gratuits (total, pas quotidien)
-export const FREE_AI_DAILY_LIMIT = 15; // conservé pour compatibilité avec les composants existants
-export const FREE_AI_MESSAGE_LIMIT = 15;
+// Guide spirituel — limite de questions par jour pour les utilisateurs gratuits
+// Au-delà : message automatique + invitation à s'abonner
+export const FREE_AI_DAILY_LIMIT = 5;
+export const FREE_AI_MESSAGE_LIMIT = 5;
 export const FREE_PRAYER_LIMIT = 3;
 
 // Notification times (hours in local time)
@@ -31,6 +32,7 @@ export const STORAGE_KEYS = {
   THEME: '@spirit/theme',
   LANGUAGE: '@spirit/language',
   NOTIFICATIONS_ENABLED: '@spirit/notifications_enabled',
+  NOTIFICATIONS_ASKED: '@spirit/notifications_asked',
   USER_GENDER: '@spirit/user_gender',
   PROFILE_COMPLETE: '@spirit/profile_complete',
 };

@@ -42,6 +42,14 @@ export default function Root({ children }: { children: React.ReactNode }) {
         {/* ── Icône navigateur (favicon dans public/) ──────────────────── */}
         <link rel="icon" type="image/png" href="/favicon.png" />
 
+        {/* ── Protection capture d'écran (web) ─────────────────────────── */}
+        {/* Désactive PrintScreen / impression sur les pages de contenu premium */}
+        <style dangerouslySetInnerHTML={{ __html: `
+          @media print {
+            body { display: none !important; }
+          }
+        ` }} />
+
         {/* ── Expo Router reset styles ─────────────────────────────────── */}
         <ScrollViewStyleReset />
 

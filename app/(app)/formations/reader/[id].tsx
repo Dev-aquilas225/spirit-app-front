@@ -6,8 +6,10 @@ import { useI18n } from '../../../../src/i18n';
 import { useTheme } from '../../../../src/theme';
 import { getFormationsData } from '../../../../src/data/formations.data';
 import { AppIcon } from '../../../../src/components/common/AppIcon';
+import { useScreenProtection } from '../../../../src/hooks/useScreenProtection';
 
 export default function FormationReaderScreen() {
+  useScreenProtection(true); // Protège le contenu premium contre les captures
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors, spacing } = useTheme();
   const { t, language } = useI18n();

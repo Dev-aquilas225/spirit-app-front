@@ -230,7 +230,13 @@ export default function OnboardingScreen() {
   // ─── Quitter l'onboarding ──────────────────────────────────────────────────
   async function handleFinish() {
     await StorageService.set(STORAGE_KEYS.ONBOARDING_DONE, true);
-    router.replace("/(auth)/login");
+    // Si les notifications n'ont pas encore été demandées, afficher l'écran dédié
+    const alreadyAsked = await StorageService.get<boolean>(STORAGE_KEYS.NOTIFICATIONS_ASKED);
+    if (alreadyAsked) {
+      router.replace("/(auth)/login");
+    } else {
+      router.replace("/(auth)/enable-notifications");
+    }
   }
 
   // ─── Rendu d'un slide ──────────────────────────────────────────────────────

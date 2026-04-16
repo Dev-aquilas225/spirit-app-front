@@ -14,6 +14,7 @@ export default function AuthLayout() {
       <Stack.Screen name="email-sent" />
       <Stack.Screen name="verify-magic-link" />
       <Stack.Screen name="callback" />
+      <Stack.Screen name="enable-notifications" options={{ gestureEnabled: false }} />
     </Stack>
   );
 }

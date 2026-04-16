@@ -26,6 +26,12 @@ export default function Index() {
       const onboardingDone = await StorageService.get<boolean>(STORAGE_KEYS.ONBOARDING_DONE);
       if (!onboardingDone) {
         router.replace('/(auth)/splash');
+        return;
+      }
+      // Onboarding fait mais notifications jamais demandées (ex: mise à jour de l'app)
+      const notifAsked = await StorageService.get<boolean>(STORAGE_KEYS.NOTIFICATIONS_ASKED);
+      if (!notifAsked) {
+        router.replace('/(auth)/enable-notifications');
       } else {
         router.replace('/(auth)/login');
       }

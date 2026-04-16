@@ -104,9 +104,10 @@ export const AuthService = {
     gender?: import('../types/auth.types').Gender;
   }): Promise<ServiceResult<User>> {
     try {
-      const { gender, ...apiUpdates } = updates;
+      const { gender, ...rest } = updates;
+      const apiUpdates = gender ? { ...rest, gender } : rest;
       const data = await http.patch<any>('/users/me', apiUpdates);
-      const user = mapApiUser(data, gender);
+      const user = mapApiUser(data, gender ?? data.gender);
       await StorageService.set(STORAGE_KEYS.USER, user);
       return { data: user };
     } catch (e) {

@@ -108,6 +108,7 @@ const en: Translations = {
       consultation: 'Spiritual training',
       dreams: 'Interpret my dream',
       prophet: 'Consultation & guidance',
+      accompagnements: '7-day spiritual programs',
     },
   },
 
@@ -153,17 +154,17 @@ const en: Translations = {
       `You have used your ${limit} free messages for today with your spiritual guide. Come back tomorrow or go Premium for unlimited exchanges.`,
     deleteTitle: 'Delete',
     deleteMsg: 'This action cannot be undone.',
-    emptyChatTitle: 'Share your situation with your spiritual guide.',
+    emptyChatTitle: 'Hello, how are you?',
     emptyChatSubtitle:
-      'Receive guidance and direction for your life, relationships, projects or spiritual journey.',
+      'I am here to welcome and guide you. Tell me how you are and what I can do for you.',
     suggestions: [
-      'I am looking for spiritual direction for my life.',
-      'I had a strange dream, what direction should I take?',
-      'I want prayer follow-up, how does it work?',
+      'I am not feeling well right now.',
+      'I have a difficult situation to share.',
+      'I am looking for spiritual support.',
     ],
     typing: 'Your spiritual guide is responding...',
     inputLimited: 'Limit reached — Go Premium',
-    inputPlaceholder: 'Share your situation...',
+    inputPlaceholder: 'Tell me how you are...',
     messagesCount: (count: number, date: string) =>
       `${count} message${count > 1 ? 's' : ''} • ${date}`,
   },
@@ -444,8 +445,8 @@ const en: Translations = {
     step1: 'Share your unique code with your friends',
     step2: 'They sign up with your code',
     step3: 'When they subscribe, you earn benefits',
-    shareMsg: (code: string) =>
-      `Join Oracle Plus — your spiritual platform! Use my referral code ${code} to receive a benefit.`,
+    shareMsg: (code: string, url?: string) =>
+      `🙏 Join Oracle Plus — your spiritual platform!\n\nUse my referral code *${code}* to get an exclusive benefit.\n\n👉 ${url ?? 'https://oracleplus.app'}`,
   },
 
   support: {

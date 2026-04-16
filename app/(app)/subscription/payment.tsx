@@ -13,6 +13,15 @@ import { formatCurrency } from '../../../src/utils/helpers';
 
 type Step = 'select' | 'waiting' | 'verifying';
 
+const PAYMENT_METHODS = [
+  { id: 'paystack', label: 'Carte bancaire / Paystack', emoji: '💳', desc: 'Visa, Mastercard, carte locale' },
+  { id: 'wave',     label: 'Wave',                     emoji: '🌊', desc: 'Paiement instantané Wave' },
+  { id: 'mtn',      label: 'MTN Mobile Money',         emoji: '📱', desc: 'MTN MoMo' },
+  { id: 'orange',   label: 'Orange Money',             emoji: '🟠', desc: 'Orange Money CI, SN, CM...' },
+] as const;
+
+type PaymentMethodId = typeof PAYMENT_METHODS[number]['id'];
+
 export default function PaymentScreen() {
   const { colors, spacing } = useTheme();
   const { t } = useI18n();
@@ -21,9 +30,11 @@ export default function PaymentScreen() {
   const [step, setStep] = useState<Step>('select');
   const [reference, setReference] = useState<string | null>(null);
   const [authUrl, setAuthUrl] = useState<string | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethodId>('paystack');
 
   async function handleInitiate() {
     clearPaymentError();
+    // Tous les modes passent par Paystack (qui gère carte + mobile money)
     const result = await initiatePayment('monthly');
     if (!result) return;
 
@@ -92,8 +103,43 @@ export default function PaymentScreen() {
 
         {step === 'select' && (
           <>
+            {/* Sélection du mode de paiement */}
+            <View>
+              <Text style={{ fontWeight: '700', color: colors.text, marginBottom: 10 }}>
+                Mode de paiement
+              </Text>
+              {PAYMENT_METHODS.map((method) => (
+                <TouchableOpacity
+                  key={method.id}
+                  onPress={() => setSelectedMethod(method.id)}
+                  style={[
+                    styles.methodRow,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: selectedMethod === method.id ? colors.primary : colors.border,
+                      borderWidth: selectedMethod === method.id ? 2 : 1,
+                    },
+                  ]}
+                >
+                  <Text style={{ fontSize: 22 }}>{method.emoji}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: colors.text, fontWeight: '600', fontSize: 14 }}>{method.label}</Text>
+                    <Text style={{ color: colors.textTertiary, fontSize: 11 }}>{method.desc}</Text>
+                  </View>
+                  <View style={[
+                    styles.radioOuter,
+                    { borderColor: selectedMethod === method.id ? colors.primary : colors.border },
+                  ]}>
+                    {selectedMethod === method.id && (
+                      <View style={[styles.radioInner, { backgroundColor: colors.primary }]} />
+                    )}
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+
             <Button
-              label={isProcessingPayment ? t.subscription.payInitializing : t.subscription.payWithPaystack}
+              label={isProcessingPayment ? t.subscription.payInitializing : 'Payer maintenant — 5 000 FCFA'}
               variant="gold"
               fullWidth
               size="lg"
@@ -103,7 +149,7 @@ export default function PaymentScreen() {
             <View style={styles.secureRow}>
               <AppIcon icon={Lock} size={14} color={colors.textTertiary} strokeWidth={2.6} />
               <Text style={{ color: colors.textTertiary, fontSize: 11, textAlign: 'center' }}>
-                {t.subscription.paySecure}
+                Paiement sécurisé · HTTPS · Vos données sont protégées
               </Text>
             </View>
           </>
@@ -157,4 +203,25 @@ const styles = StyleSheet.create({
   secureRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingBottom: 6 },
   reopenBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 10 },
   cancelBtn: { alignItems: 'center', paddingVertical: 8 },
+  methodRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 8,
+    gap: 12,
+  },
+  radioOuter: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
 });
