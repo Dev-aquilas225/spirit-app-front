@@ -36,7 +36,7 @@ export function LimitBanner({ remaining, limitReached }: LimitBannerProps) {
     );
   }
 
-  if (remaining <= FREE_AI_DAILY_LIMIT) {
+  if (remaining <= 5) {
     return (
       <View style={[styles.banner, { backgroundColor: colors.premiumBackground, borderColor: colors.premiumBorder, borderRadius: br.md, margin: spacing.md }]}>
         <AppIcon icon={TriangleAlert} size={20} color={colors.primary} strokeWidth={2.4} />

@@ -3,13 +3,13 @@
  * Branché sur /api/v1/ai/*
  */
 import { AIConversation, AIMessage } from '../types/content.types';
-import { FREE_AI_DAILY_LIMIT, STORAGE_KEYS } from '../utils/constants';
+import { FREE_AI_MESSAGE_LIMIT, STORAGE_KEYS } from '../utils/constants';
 import { generateId, getTodayKey } from '../utils/helpers';
 import { StorageService } from './storage.service';
 import { http, ApiError } from './http.client';
 
 export interface AIUsageRecord {
-  date: string;
+  date: string; // clé du jour (ex: "2026-04-16") — réinitialisé chaque jour
   count: number;
 }
 
@@ -109,6 +109,7 @@ function normalizeConversation(rawConversation: unknown, userId: string): AIConv
 }
 
 export const AIService = {
+  /** Retourne le nombre de messages envoyés aujourd'hui (reset chaque jour) */
   async getDailyUsage(): Promise<number> {
     const usage = await StorageService.get<AIUsageRecord>(STORAGE_KEYS.AI_USAGE);
     const today = getTodayKey();
@@ -116,6 +117,7 @@ export const AIService = {
     return usage.count;
   },
 
+  /** Incrémente le compteur du jour */
   async incrementUsage(): Promise<void> {
     const today = getTodayKey();
     const current = await AIService.getDailyUsage();
@@ -125,13 +127,13 @@ export const AIService = {
   async canAsk(isPremium: boolean): Promise<boolean> {
     if (isPremium) return true;
     const usage = await AIService.getDailyUsage();
-    return usage < FREE_AI_DAILY_LIMIT;
+    return usage < FREE_AI_MESSAGE_LIMIT;
   },
 
   async getRemainingQuestions(isPremium: boolean): Promise<number> {
     if (isPremium) return Infinity;
     const usage = await AIService.getDailyUsage();
-    return Math.max(0, FREE_AI_DAILY_LIMIT - usage);
+    return Math.max(0, FREE_AI_MESSAGE_LIMIT - usage);
   },
 
   async sendMessage(
@@ -146,7 +148,7 @@ export const AIService = {
         message: {
           id: generateId(),
           role: 'assistant',
-          content: `Vous avez atteint votre limite quotidienne de ${FREE_AI_DAILY_LIMIT} questions. Abonnez-vous pour un accès illimité.`,
+          content: `Vous avez atteint votre limite de ${FREE_AI_MESSAGE_LIMIT} messages gratuits du jour avec votre guide spirituel. Revenez demain ou passez Premium pour des échanges illimités.`,
           timestamp: new Date().toISOString(),
         },
         error: 'limit_reached',
@@ -178,7 +180,7 @@ export const AIService = {
           id: generateId(),
           role: 'assistant',
           content: isLimit
-            ? `Vous avez atteint votre limite quotidienne. Abonnez-vous pour un accès illimité.`
+            ? `Vous avez atteint votre limite de ${FREE_AI_MESSAGE_LIMIT} messages gratuits du jour avec votre guide spirituel. Revenez demain ou passez Premium pour des échanges illimités.`
             : `Erreur : ${msg}`,
           timestamp: new Date().toISOString(),
         },

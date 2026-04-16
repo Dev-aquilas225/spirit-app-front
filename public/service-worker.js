@@ -1,129 +1,134 @@
 /**
- * Spirit App — Service Worker
- * Gère le cache offline et les notifications push.
+ * Oracle Plus — Service Worker
+ * Stratégie :
+ *  - HTML / JS / CSS  → Network First  (toujours la version la plus récente)
+ *  - Images / Fonts   → Cache First    (ressources statiques stables)
+ *  - API              → Network Only   (requêtes externes ignorées)
+ *
+ * Mise à jour automatique : dès qu'un nouveau SW s'installe, il prend
+ * immédiatement le contrôle et envoie un message RELOAD à toutes les pages
+ * ouvertes — elles se rechargent automatiquement.
  */
 
-const CACHE_NAME = 'spirit-app-v1';
-const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-];
+const CACHE_VERSION = 'oracle-plus-v3';
+const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 
-// Install — mise en cache des ressources statiques
+// Ressources mises en cache à l'installation (shell minimal)
+const PRECACHE_URLS = ['/manifest.json'];
+
+// ─── Install ──────────────────────────────────────────────────────────────────
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Mise en cache des ressources statiques');
-      return cache.addAll(STATIC_ASSETS);
-    }),
+    caches.open(CACHE_STATIC).then((cache) => cache.addAll(PRECACHE_URLS)),
   );
+  // Prendre le contrôle immédiatement sans attendre la fermeture des onglets
   self.skipWaiting();
 });
 
-// Activate — nettoyage des anciens caches
+// ─── Activate ─────────────────────────────────────────────────────────────────
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) =>
+    caches.keys().then((names) =>
       Promise.all(
-        cacheNames
-          .filter((name) => name !== CACHE_NAME)
-          .map((name) => caches.delete(name)),
+        names
+          .filter((n) => n !== CACHE_STATIC)
+          .map((n) => caches.delete(n)),
       ),
-    ),
+    ).then(() => {
+      // Prendre le contrôle de toutes les pages ouvertes
+      return self.clients.claim();
+    }).then(() => {
+      // Signaler à toutes les pages qu'une nouvelle version est active → reload
+      return self.clients.matchAll({ type: 'window' }).then((clients) => {
+        clients.forEach((client) => client.postMessage({ type: 'SW_UPDATED' }));
+      });
+    }),
   );
-  self.clients.claim();
 });
 
-// Fetch — stratégie Cache First pour les assets, Network First pour l'API
+// ─── Fetch ────────────────────────────────────────────────────────────────────
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Ignorer les requêtes non-GET
+  // Ignorer les requêtes non-GET et les origines externes (API, etc.)
   if (request.method !== 'GET') return;
-
-  // Ignorer les requêtes externes
   if (url.origin !== location.origin) return;
 
-  event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) return cached;
+  const isNavigation = request.mode === 'navigate';
+  const isAppAsset   = /\.(js|css|html)(\?.*)?$/.test(url.pathname);
+  const isStaticFile = /\.(png|jpg|jpeg|svg|gif|webp|ico|woff2?|ttf)(\?.*)?$/.test(url.pathname);
 
-      return fetch(request)
-        .then((response) => {
-          if (!response || response.status !== 200 || response.type !== 'basic') {
-            return response;
-          }
-
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseClone);
-          });
-
-          return response;
-        })
-        .catch(() => {
-          // Retourner la page principale en cas d'erreur réseau
-          if (request.mode === 'navigate') {
-            return caches.match('/');
-          }
-        });
-    }),
-  );
-});
-
-// Push notifications
-self.addEventListener('push', (event) => {
-  const data = event.data?.json() ?? {};
-
-  const options = {
-    body: data.body ?? 'Un nouveau message spirituel vous attend.',
-    icon: '/assets/images/icon.png',
-    badge: '/assets/images/favicon.png',
-    vibrate: [100, 50, 100],
-    data: { url: data.url ?? '/' },
-    actions: [
-      { action: 'open', title: 'Ouvrir', icon: '/assets/images/icon.png' },
-      { action: 'dismiss', title: 'Ignorer' },
-    ],
-  };
-
-  event.waitUntil(
-    self.registration.showNotification(data.title ?? '✨ Spirit App', options),
-  );
-});
-
-// Notification click
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-
-  if (event.action === 'dismiss') return;
-
-  const url = event.notification.data?.url ?? '/';
-
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      for (const client of clientList) {
-        if (client.url === url && 'focus' in client) {
-          return client.focus();
-        }
-      }
-      if (clients.openWindow) {
-        return clients.openWindow(url);
-      }
-    }),
-  );
-});
-
-// Background sync (pour les consultations hors ligne)
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'sync-consultations') {
-    event.waitUntil(syncConsultations());
+  if (isStaticFile) {
+    // Cache First pour les images/fonts (ne changent pas entre déploiements)
+    event.respondWith(cacheFirst(request));
+  } else if (isNavigation || isAppAsset) {
+    // Network First pour HTML et bundles JS/CSS → toujours la dernière version
+    event.respondWith(networkFirst(request));
+  } else {
+    // Network First par défaut
+    event.respondWith(networkFirst(request));
   }
 });
 
-async function syncConsultations() {
-  console.log('[SW] Synchronisation des consultations hors ligne...');
-  // En production : récupérer les données en attente et les envoyer à l'API
+// ─── Stratégies ───────────────────────────────────────────────────────────────
+
+async function networkFirst(request) {
+  try {
+    const response = await fetch(request);
+    if (response && response.status === 200) {
+      const cache = await caches.open(CACHE_STATIC);
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    // Hors ligne : servir depuis le cache si disponible
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    // Fallback sur la page principale pour les navigations
+    if (request.mode === 'navigate') {
+      return caches.match('/') ?? new Response('Hors ligne', { status: 503 });
+    }
+  }
 }
+
+async function cacheFirst(request) {
+  const cached = await caches.match(request);
+  if (cached) return cached;
+  try {
+    const response = await fetch(request);
+    if (response && response.status === 200) {
+      const cache = await caches.open(CACHE_STATIC);
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    return new Response('', { status: 503 });
+  }
+}
+
+// ─── Push notifications ───────────────────────────────────────────────────────
+self.addEventListener('push', (event) => {
+  const data = event.data?.json() ?? {};
+  event.waitUntil(
+    self.registration.showNotification(data.title ?? '✨ Oracle Plus', {
+      body: data.body ?? 'Un nouveau message spirituel vous attend.',
+      icon: '/icon.png',
+      badge: '/favicon.png',
+      vibrate: [100, 50, 100],
+      data: { url: data.url ?? '/' },
+    }),
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      for (const client of list) {
+        if ('focus' in client) return client.focus();
+      }
+      return clients.openWindow('/');
+    }),
+  );
+});

@@ -7,8 +7,9 @@ export const SUBSCRIPTION_PRICE = 5000;
 export const SUBSCRIPTION_CURRENCY = 'FCFA';
 export const SUBSCRIPTION_PERIOD_DAYS = 30;
 
-// AI limits for free users
-export const FREE_AI_DAILY_LIMIT = 2;
+// Guide spirituel — limite de messages pour les utilisateurs gratuits (total, pas quotidien)
+export const FREE_AI_DAILY_LIMIT = 15; // conservé pour compatibilité avec les composants existants
+export const FREE_AI_MESSAGE_LIMIT = 15;
 export const FREE_PRAYER_LIMIT = 3;
 
 // Notification times (hours in local time)

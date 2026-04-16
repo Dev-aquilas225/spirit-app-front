@@ -103,7 +103,7 @@ const en: Translations = {
     quickAccess: 'Quick access',
     actions: {
       prayer: 'Prayer & spiritual guidance',
-      ai: 'Get counsel',
+      ai: 'Spiritual guide',
       library: 'Library & courses',
       consultation: 'Spiritual training',
       dreams: 'Interpret my dream',
@@ -113,7 +113,7 @@ const en: Translations = {
 
   tabs: {
     home: 'Home',
-    consultation: 'Consultation',
+    consultation: 'Guide',
     library: 'Books',
     profile: 'Profile',
   },
@@ -138,32 +138,32 @@ const en: Translations = {
   },
 
   ai: {
-    headerChat: 'Get counsel',
+    headerChat: 'Spiritual guide',
     headerHistory: 'History',
-    historySubtitle: 'Your previous consultations',
-    badgeUnlimited: 'Unlimited consultations',
+    historySubtitle: 'Your previous exchanges',
+    badgeUnlimited: 'Unlimited messages',
     badgeRemaining: (remaining: number, max: number) =>
-      `${remaining}/${max} consultations left`,
-    badgeLimitReached: 'Limit reached today',
+      `${remaining}/${max} free messages left`,
+    badgeLimitReached: "Daily limit reached",
     emptyHistoryTitle: 'No conversations',
-    emptyHistoryMsg: 'Start a consultation to see your history here.',
+    emptyHistoryMsg: 'Start an exchange with your spiritual guide to see your history here.',
     newConversation: 'New conversation',
     limitAlertTitle: 'Limit reached',
     limitAlertMsg: (limit: number) =>
-      `You have used your ${limit} free consultations for today. Subscribe for unlimited access.`,
+      `You have used your ${limit} free messages for today with your spiritual guide. Come back tomorrow or go Premium for unlimited exchanges.`,
     deleteTitle: 'Delete',
     deleteMsg: 'This action cannot be undone.',
-    emptyChatTitle: 'Describe your situation and get an answer right away.',
+    emptyChatTitle: 'Share your situation with your spiritual guide.',
     emptyChatSubtitle:
-      'Ask for guidance about your life, relationships, business or spiritual journey.',
+      'Receive guidance and direction for your life, relationships, projects or spiritual journey.',
     suggestions: [
-      'I would like a consultation about my life.',
+      'I am looking for spiritual direction for my life.',
       'I had a strange dream, what direction should I take?',
       'I want prayer follow-up, how does it work?',
     ],
-    typing: 'The consultation is continuing...',
-    inputLimited: 'Limit reached — Subscribe',
-    inputPlaceholder: 'Describe your situation...',
+    typing: 'Your spiritual guide is responding...',
+    inputLimited: 'Limit reached — Go Premium',
+    inputPlaceholder: 'Share your situation...',
     messagesCount: (count: number, date: string) =>
       `${count} message${count > 1 ? 's' : ''} • ${date}`,
   },
@@ -245,8 +245,8 @@ const en: Translations = {
     perMonth: '/month',
     included: "What's included",
     features: {
-      aiChat: 'Unlimited consultations',
-      aiDesc: 'Share as many situations as you want',
+      aiChat: 'Unlimited spiritual guide',
+      aiDesc: 'Unlimited exchanges with your spiritual guide',
       library: 'Full library',
       libraryDesc: '4+ spiritual books with unlimited reading',
       formations: 'Courses',
@@ -620,7 +620,7 @@ const en: Translations = {
 
   premiumBanner: {
     title: 'Go Premium',
-    subtitle: 'Consultations, Books, Courses & more',
+    subtitle: 'Spiritual guide, Books, Courses & more',
     price1: '5,000',
     price2: 'FCFA/month',
     compact: 'Go Premium — 5,000 FCFA/month',

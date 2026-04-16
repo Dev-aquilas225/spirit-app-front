@@ -117,7 +117,7 @@ const fr = {
     quickAccess: 'Accès rapide',
     actions: {
       prayer: 'Prière et suivi spirituel',
-      ai: 'Se faire consulter',
+      ai: 'Guide spirituel',
       library: 'Bibliothèque et formations',
       consultation: 'Se former spirituellement',
       dreams: 'Interpréter mon rêve',
@@ -127,7 +127,7 @@ const fr = {
 
   tabs: {
     home: 'Accueil',
-    consultation: 'Consultation',
+    consultation: 'Guide',
     library: 'Livres',
     profile: 'Profil',
   },
@@ -153,33 +153,33 @@ const fr = {
   },
 
   ai: {
-    headerChat: 'Se faire consulter',
+    headerChat: 'Guide spirituel',
     headerHistory: 'Historique',
-    historySubtitle: 'Vos consultations précédentes',
-    badgeUnlimited: 'Consultations illimitées',
+    historySubtitle: 'Vos échanges précédents',
+    badgeUnlimited: 'Messages illimités',
     badgeRemaining: (remaining: number, max: number) =>
-      `${remaining}/${max} consultations restantes`,
-    badgeLimitReached: "Limite atteinte aujourd'hui",
+      `${remaining}/${max} messages gratuits restants`,
+    badgeLimitReached: "Limite du jour atteinte",
     emptyHistoryTitle: 'Aucune conversation',
     emptyHistoryMsg:
-      'Commencez une consultation pour retrouver votre historique ici.',
+      'Commencez un échange avec votre guide spirituel pour retrouver votre historique ici.',
     newConversation: 'Nouvelle conversation',
     limitAlertTitle: 'Limite atteinte',
     limitAlertMsg: (limit: number) =>
-      `Vous avez utilisé vos ${limit} consultations gratuites du jour. Abonnez-vous pour un accès illimité.`,
+      `Vous avez utilisé vos ${limit} messages gratuits du jour avec votre guide spirituel. Revenez demain ou passez Premium pour des échanges illimités.`,
     deleteTitle: 'Supprimer',
     deleteMsg: 'Cette action est irréversible.',
-    emptyChatTitle: 'Exposez votre situation, nous vous répondons aussitôt.',
+    emptyChatTitle: 'Exposez votre situation à votre guide spirituel.',
     emptyChatSubtitle:
-      'Demandez conseil sur votre vie, vos relations, vos affaires ou votre parcours spirituel.',
+      'Recevez guidance et direction pour votre vie, vos relations, vos projets ou votre parcours spirituel.',
     suggestions: [
-      'Je veux une consultation sur ma vie.',
+      'Je cherche une direction spirituelle pour ma vie.',
       "J'ai fait un rêve étrange, quelle direction prendre ?",
       'Je veux un suivi de prière, comment cela se passe ?',
     ],
-    typing: 'La consultation se poursuit...',
-    inputLimited: 'Limite atteinte — Abonnez-vous',
-    inputPlaceholder: 'Décrivez votre situation...',
+    typing: 'Votre guide spirituel vous répond...',
+    inputLimited: 'Limite atteinte — Passez Premium',
+    inputPlaceholder: 'Exposez votre situation...',
     messagesCount: (count: number, date: string) =>
       `${count} message${count > 1 ? 's' : ''} • ${date}`,
   },
@@ -262,8 +262,8 @@ const fr = {
     perMonth: '/mois',
     included: 'Ce qui est inclus',
     features: {
-      aiChat: 'Consultations illimitées',
-      aiDesc: 'Présentez autant de situations que vous le souhaitez',
+      aiChat: 'Guide spirituel illimité',
+      aiDesc: 'Échangez sans limite avec votre guide spirituel',
       library: 'Bibliothèque complète',
       libraryDesc: '4+ livres spirituels en lecture illimitée',
       formations: 'Formations',
@@ -646,7 +646,7 @@ const fr = {
 
   premiumBanner: {
     title: 'Passer Premium',
-    subtitle: 'Consultations, Livres, Formations & plus',
+    subtitle: 'Guide spirituel, Livres, Formations & plus',
     price1: '5 000',
     price2: 'FCFA/mois',
     compact: 'Passer Premium — 5 000 FCFA/mois',

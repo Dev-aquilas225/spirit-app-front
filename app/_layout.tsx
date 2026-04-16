@@ -24,7 +24,7 @@ export default function RootLayout() {
     initializeTheme();
   }, []);
 
-  // Enregistrement du Service Worker (fallback JS si +html.tsx n'est pas actif en dev)
+  // Enregistrement du Service Worker + rechargement automatique lors d'une mise à jour
   useEffect(() => {
     if (
       Platform.OS === 'web' &&
@@ -36,6 +36,13 @@ export default function RootLayout() {
         .catch(() => {
           // Silencieux si SW indisponible en développement
         });
+
+      // Recharger automatiquement quand le nouveau SW prend le contrôle
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data?.type === 'SW_UPDATED') {
+          window.location.reload();
+        }
+      });
     }
   }, []);
 

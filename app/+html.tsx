@@ -45,7 +45,7 @@ export default function Root({ children }: { children: React.ReactNode }) {
         {/* ── Expo Router reset styles ─────────────────────────────────── */}
         <ScrollViewStyleReset />
 
-        {/* ── Enregistrement du Service Worker ─────────────────────────── */}
+        {/* ── Enregistrement du Service Worker + mise à jour automatique ── */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -58,6 +58,15 @@ export default function Root({ children }: { children: React.ReactNode }) {
                     .catch(function(err) {
                       console.warn('[SW] Échec :', err);
                     });
+
+                  // Écouter le message SW_UPDATED envoyé par le nouveau Service Worker
+                  // Quand un nouveau déploiement est détecté, recharger la page automatiquement
+                  navigator.serviceWorker.addEventListener('message', function(event) {
+                    if (event.data && event.data.type === 'SW_UPDATED') {
+                      console.log('[SW] Nouvelle version détectée — rechargement...');
+                      window.location.reload();
+                    }
+                  });
                 });
               }
             `,
