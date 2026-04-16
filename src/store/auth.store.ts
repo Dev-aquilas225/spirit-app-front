@@ -21,8 +21,7 @@ interface AuthStore {
   isProfileComplete: boolean;
 
   initialize: () => Promise<void>;
-  login: (phone: string, pin: string) => Promise<boolean>;
-  setPin: (pin: string, tempToken: string) => Promise<boolean>;
+  loginWithTokens: (accessToken: string, refreshToken: string) => Promise<boolean>;
   /** Compléter le profil (nom, prénom, genre) — appelé depuis complete-profile.tsx */
   completeProfile: (firstName: string, lastName: string, gender: Gender) => Promise<boolean>;
   logout: () => Promise<void>;
@@ -72,14 +71,13 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     }
   },
 
-  login: async (phone, pin) => {
+  loginWithTokens: async (accessToken, refreshToken) => {
     set({ isLoading: true, error: null });
-    const result = await AuthService.login(phone, pin);
+    const result = await AuthService.loginWithTokens(accessToken, refreshToken);
     if (result.error || !result.data) {
       set({ isLoading: false, error: result.error ?? 'Connexion échouée' });
       return false;
     }
-    // Récupérer le genre stocké (l'utilisateur a peut-être déjà complété son profil avant)
     const gender = await StorageService.get<Gender>(STORAGE_KEYS.USER_GENDER);
     const user: User = { ...result.data.user, gender: gender ?? undefined };
     set({
@@ -87,25 +85,6 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       token: result.data.accessToken,
       isAuthenticated: true,
       isProfileComplete: isUserProfileComplete(user),
-      isLoading: false,
-      error: null,
-    });
-    return true;
-  },
-
-  setPin: async (pin, tempToken) => {
-    set({ isLoading: true, error: null });
-    const result = await AuthService.setPin(pin, tempToken);
-    if (result.error || !result.data) {
-      set({ isLoading: false, error: result.error ?? 'Erreur PIN' });
-      return false;
-    }
-    const user: User = { ...result.data.user };
-    set({
-      user,
-      token: result.data.accessToken,
-      isAuthenticated: true,
-      isProfileComplete: false, // Nouveau compte → toujours incomplet
       isLoading: false,
       error: null,
     });

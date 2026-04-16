@@ -8,7 +8,7 @@ export interface User {
   firstName?: string;
   lastName?: string;
   gender?: Gender;
-  phone: string;
+  email: string;
   country: string;
   language: Language;
   role: UserRole;
@@ -26,19 +26,5 @@ export interface AuthState {
 }
 
 export interface LoginCredentials {
-  phone: string;
-  pin: string;
-}
-
-export interface RegisterData {
-  name: string;
-  phone: string;
-  country: string;
-  language: Language;
-  pin: string;
-}
-
-export interface OTPData {
-  phone: string;
-  otp: string;
+  email: string;
 }

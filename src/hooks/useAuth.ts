@@ -11,8 +11,7 @@ export function useAuth() {
   const isLoading = useAuthStore((s) => s.isLoading);
   const isInitialized = useAuthStore((s) => s.isInitialized);
   const error = useAuthStore((s) => s.error);
-  const login = useAuthStore((s) => s.login);
-  const setPin = useAuthStore((s) => s.setPin);
+  const loginWithTokens = useAuthStore((s) => s.loginWithTokens);
   const logout = useAuthStore((s) => s.logout);
   const updateUser  = useAuthStore((s) => s.updateUser);
   const setLanguage = useAuthStore((s) => s.setLanguage);
@@ -25,8 +24,7 @@ export function useAuth() {
     isLoading,
     isInitialized,
     error,
-    login,
-    setPin,
+    loginWithTokens,
     logout,
     updateUser,
     setLanguage,

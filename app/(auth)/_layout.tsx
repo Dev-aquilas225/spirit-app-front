@@ -11,6 +11,9 @@ export default function AuthLayout() {
       <Stack.Screen name="forgot-password" />
       <Stack.Screen name="otp" />
       <Stack.Screen name="new-password" />
+      <Stack.Screen name="email-sent" />
+      <Stack.Screen name="verify-magic-link" />
+      <Stack.Screen name="callback" />
     </Stack>
   );
 }

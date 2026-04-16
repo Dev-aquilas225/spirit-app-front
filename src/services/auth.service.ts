@@ -23,8 +23,8 @@ function mapApiUser(u: any, gender?: import('../types/auth.types').Gender): User
     name: [u.firstName, u.lastName].filter(Boolean).join(' ') || 'Utilisateur',
     firstName: u.firstName ?? '',
     lastName: u.lastName ?? '',
-    gender,                 // fourni depuis le store (stockage local)
-    phone: u.phone,
+    gender,
+    email: u.email ?? '',
     country: u.country ?? 'CI',
     language: u.language ?? 'fr',
     role: u.role === 'admin' ? 'free' : (u.subscriptionStatus === 'active' ? 'subscriber' : 'free'),
@@ -35,26 +35,10 @@ function mapApiUser(u: any, gender?: import('../types/auth.types').Gender): User
 }
 
 export const AuthService = {
-  /**
-   * Tente d'inscrire un numéro.
-   * - 201 → nouveau compte, OTP envoyé
-   * - 409 → compte existant
-   */
-  async register(phone: string, firstName?: string, referralCode?: string): Promise<{ isNew: boolean; error?: string }> {
+  /** Envoyer un magic link par email (inscription ou connexion) */
+  async sendMagicLink(email: string): Promise<ServiceResult<boolean>> {
     try {
-      await http.post('/auth/register', { phone, firstName, referralCode });
-      return { isNew: true };
-    } catch (e) {
-      const err = e as ApiError;
-      if (err.statusCode === 409) return { isNew: false };
-      return { isNew: false, error: err.message };
-    }
-  },
-
-  /** Renvoyer un OTP */
-  async sendOtp(phone: string): Promise<ServiceResult<boolean>> {
-    try {
-      await http.post('/auth/send-otp', { phone });
+      await http.post('/auth/send-magic-link', { email });
       return { data: true };
     } catch (e) {
       return { error: (e as ApiError).message };
@@ -62,80 +46,32 @@ export const AuthService = {
   },
 
   /**
-   * Vérifier l'OTP — retourne { setupToken, userId }.
-   * Le setupToken est un JWT temporaire (10 min) utilisé pour set-pin.
+   * Vérifier un magic link token (appelé depuis la page /auth/verify-magic-link).
+   * Le backend valide le token et retourne les tokens JWT.
    */
-  async verifyOtp(phone: string, code: string): Promise<ServiceResult<{ setupToken: string; userId: string }>> {
+  async verifyMagicLink(token: string): Promise<ServiceResult<AuthTokens>> {
     try {
-      const data = await http.post<{ setupToken: string; userId: string }>('/auth/verify-otp', { phone, code });
-      return { data: { setupToken: data.setupToken, userId: data.userId } };
+      const data = await http.get<any>(`/auth/verify-magic-link?token=${encodeURIComponent(token)}`);
+      const user = mapApiUser(data.user);
+      await http.saveTokens(data.accessToken, data.refreshToken);
+      await StorageService.set(STORAGE_KEYS.USER, user);
+      return { data: { accessToken: data.accessToken, refreshToken: data.refreshToken, user } };
     } catch (e) {
       return { error: (e as ApiError).message };
     }
   },
 
   /**
-   * Définir le PIN — Authorization: Bearer <setupToken>
-   * Retourne { accessToken, refreshToken }.
+   * Authentifier l'utilisateur avec les tokens reçus via deep link.
+   * Sauvegarde les tokens et récupère le profil.
    */
-  async setPin(pin: string, setupToken: string): Promise<ServiceResult<AuthTokens>> {
+  async loginWithTokens(accessToken: string, refreshToken: string): Promise<ServiceResult<AuthTokens>> {
     try {
-      const data = await http.post<any>('/auth/set-pin', { pin, confirmPin: pin }, setupToken);
-      const tokens: AuthTokens = {
-        accessToken: data.accessToken,
-        refreshToken: data.refreshToken,
-        user: mapApiUser(data.user ?? data),
-      };
-      await http.saveTokens(tokens.accessToken, tokens.refreshToken);
-      await StorageService.set(STORAGE_KEYS.USER, tokens.user);
-      return { data: tokens };
-    } catch (e) {
-      return { error: (e as ApiError).message };
-    }
-  },
-
-  /** Connexion avec téléphone + PIN */
-  async login(phone: string, pin: string): Promise<ServiceResult<AuthTokens>> {
-    try {
-      const data = await http.post<any>('/auth/login', { phone, pin });
-      const tokens: AuthTokens = {
-        accessToken: data.accessToken,
-        refreshToken: data.refreshToken,
-        user: mapApiUser(data.user ?? data),
-      };
-      await http.saveTokens(tokens.accessToken, tokens.refreshToken);
-      await StorageService.set(STORAGE_KEYS.USER, tokens.user);
-      return { data: tokens };
-    } catch (e) {
-      return { error: (e as ApiError).message };
-    }
-  },
-
-  /** Envoyer OTP de réinitialisation */
-  async forgotPassword(phone: string): Promise<ServiceResult<boolean>> {
-    try {
-      await http.post('/auth/forgot-password', { phone });
-      return { data: true };
-    } catch (e) {
-      return { error: (e as ApiError).message };
-    }
-  },
-
-  /** Réinitialiser le PIN avec OTP */
-  async resetPassword(phone: string, otp: string, newPin: string): Promise<ServiceResult<boolean>> {
-    try {
-      await http.post('/auth/reset-password', { phone, otp, newPin });
-      return { data: true };
-    } catch (e) {
-      return { error: (e as ApiError).message };
-    }
-  },
-
-  /** Changer de PIN (connecté) */
-  async changePin(oldPin: string, newPin: string): Promise<ServiceResult<boolean>> {
-    try {
-      await http.post('/auth/change-pin', { oldPin, newPin });
-      return { data: true };
+      await http.saveTokens(accessToken, refreshToken);
+      const data = await http.get<any>('/users/me');
+      const user = mapApiUser(data);
+      await StorageService.set(STORAGE_KEYS.USER, user);
+      return { data: { accessToken, refreshToken, user } };
     } catch (e) {
       return { error: (e as ApiError).message };
     }
@@ -163,13 +99,11 @@ export const AuthService = {
   async updateProfile(updates: {
     firstName?: string;
     lastName?: string;
-    email?: string;
     country?: string;
     avatar?: string;
     gender?: import('../types/auth.types').Gender;
   }): Promise<ServiceResult<User>> {
     try {
-      // gender n'est pas dans le DTO backend → on l'extrait avant d'envoyer
       const { gender, ...apiUpdates } = updates;
       const data = await http.patch<any>('/users/me', apiUpdates);
       const user = mapApiUser(data, gender);
