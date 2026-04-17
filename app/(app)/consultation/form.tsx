@@ -52,7 +52,7 @@ export default function ConsultationFormScreen() {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.background }} keyboardShouldPersistTaps="handled">
       <View style={{ padding: spacing.base }}>
-        <BackButton style={{ marginBottom: 24, marginTop: 56 }} />
+        <BackButton style={{ marginBottom: 24, marginTop: 56 }} fallback="/(app)/consultation"/>
 
         <Text style={{ fontSize: 22, fontWeight: '800', color: colors.text, marginBottom: 4 }}>
           {t.consultation.formTitle}

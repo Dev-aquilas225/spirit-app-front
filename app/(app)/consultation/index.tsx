@@ -24,7 +24,7 @@ function ConsultationContent() {
 
   return (
     <ScreenWrapper scrollable padded>
-      <BackButton style={{ marginBottom: 24 }} />
+      <BackButton style={{ marginBottom: 24 }} fallback="/(app)/(tabs)/home"/>
 
       <View style={{ alignItems: "center", marginBottom: 16 }}>
         <AppIcon

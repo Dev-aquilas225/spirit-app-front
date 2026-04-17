@@ -1,47 +1,38 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Linking } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { router } from 'expo-router';
-import { Crown, ExternalLink, Lock } from 'lucide-react-native';
+import { CheckCircle, ExternalLink, XCircle } from 'lucide-react-native';
 import { useTheme } from '../../../src/theme';
 import { useSubscription } from '../../../src/hooks/useSubscription';
-import { useI18n } from '../../../src/i18n';
-import { Button } from '../../../src/components/common/Button';
-import { BackButton } from '../../../src/components/common/BackButton';
-import { Card } from '../../../src/components/common/Card';
 import { AppIcon } from '../../../src/components/common/AppIcon';
-import { formatCurrency } from '../../../src/utils/helpers';
+import { Button } from '../../../src/components/common/Button';
 
-type Step = 'select' | 'waiting' | 'verifying';
-
-const PAYMENT_METHODS = [
-  { id: 'paystack', label: 'Carte bancaire / Paystack', emoji: '💳', desc: 'Visa, Mastercard, carte locale' },
-  { id: 'wave',     label: 'Wave',                     emoji: '🌊', desc: 'Paiement instantané Wave' },
-  { id: 'mtn',      label: 'MTN Mobile Money',         emoji: '📱', desc: 'MTN MoMo' },
-  { id: 'orange',   label: 'Orange Money',             emoji: '🟠', desc: 'Orange Money CI, SN, CM...' },
-] as const;
-
-type PaymentMethodId = typeof PAYMENT_METHODS[number]['id'];
+type Step = 'initiating' | 'waiting' | 'verifying' | 'error';
 
 export default function PaymentScreen() {
-  const { colors, spacing } = useTheme();
-  const { t } = useI18n();
-  const { initiatePayment, verifyPayment, isProcessingPayment, isLoading, paymentError, clearPaymentError } = useSubscription();
+  const { colors } = useTheme();
+  const { initiatePayment, verifyPayment, isProcessingPayment, paymentError, clearPaymentError } = useSubscription();
 
-  const [step, setStep] = useState<Step>('select');
+  const [step, setStep]           = useState<Step>('initiating');
   const [reference, setReference] = useState<string | null>(null);
-  const [authUrl, setAuthUrl] = useState<string | null>(null);
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethodId>('paystack');
+  const [authUrl, setAuthUrl]     = useState<string | null>(null);
 
-  async function handleInitiate() {
+  // Lance Paystack automatiquement dès le montage
+  useEffect(() => {
+    launch();
+  }, []);
+
+  async function launch() {
     clearPaymentError();
-    // Tous les modes passent par Paystack (qui gère carte + mobile money)
+    setStep('initiating');
     const result = await initiatePayment('monthly');
-    if (!result) return;
-
+    if (!result) {
+      setStep('error');
+      return;
+    }
     setReference(result.reference);
     setAuthUrl(result.authorization_url);
     setStep('waiting');
-
     await Linking.openURL(result.authorization_url);
   }
 
@@ -56,172 +47,93 @@ export default function PaymentScreen() {
     }
   }
 
-  function handleReopenPaystack() {
-    if (authUrl) {
-      Linking.openURL(authUrl);
-    }
+  // ── Chargement / lancement ────────────────────────────────────────────────
+  if (step === 'initiating') {
+    return (
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color="#C9A84C" />
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+          Connexion à Paystack…
+        </Text>
+      </View>
+    );
   }
 
-  const isWorking = isProcessingPayment || isLoading || step === 'verifying';
+  // ── Erreur ────────────────────────────────────────────────────────────────
+  if (step === 'error') {
+    return (
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+        <AppIcon icon={XCircle} size={56} color="#EF4444" strokeWidth={1.8} />
+        <Text style={[styles.errorTitle, { color: colors.text }]}>Paiement indisponible</Text>
+        <Text style={[styles.errorMsg, { color: colors.textSecondary }]}>
+          {paymentError ?? 'Une erreur est survenue. Réessaie.'}
+        </Text>
+        <Button label="Réessayer" variant="gold" onPress={launch} style={{ marginTop: 24, minWidth: 180 }} />
+        <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 16 }}>
+          <Text style={{ color: colors.textTertiary, fontSize: 13, textDecorationLine: 'underline' }}>Retour</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
+  // ── En attente de paiement / vérification ─────────────────────────────────
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.background }} keyboardShouldPersistTaps="handled">
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.deepBlue ?? '#1A1A3E', paddingTop: 56 }]}>
-        <BackButton variant="dark" style={{ marginBottom: 16, alignSelf: 'flex-start' }} />
-        <AppIcon icon={Crown} size={40} color="#C9A84C" strokeWidth={1.8} />
-        <Text style={styles.headerTitle}>{t.subscription.payTitle}</Text>
-        <Text style={styles.headerSubtitle}>{t.subscription.paySubtitle}</Text>
-        <View style={styles.amountBadge}>
-          <Text style={styles.amount}>{formatCurrency(5000)}</Text>
-        </View>
-      </View>
+    <View style={[styles.centered, { backgroundColor: colors.background, gap: 20 }]}>
 
-      <View style={{ padding: spacing.base, gap: spacing.lg }}>
-        {paymentError && (
-          <View style={[styles.errorBanner, { backgroundColor: '#FEE2E2' }]}>
-            <Text style={styles.errorText}>{paymentError}</Text>
+      {step === 'verifying' ? (
+        <>
+          <ActivityIndicator size="large" color="#C9A84C" />
+          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+            Vérification du paiement…
+          </Text>
+        </>
+      ) : (
+        <>
+          <AppIcon icon={CheckCircle} size={64} color="#C9A84C" strokeWidth={1.6} />
+
+          <View style={{ alignItems: 'center', gap: 6 }}>
+            <Text style={[styles.waitTitle, { color: colors.text }]}>
+              Paystack est ouvert
+            </Text>
+            <Text style={[styles.waitSub, { color: colors.textSecondary }]}>
+              Complète le paiement dans le navigateur,{'\n'}puis reviens ici pour confirmer.
+            </Text>
           </View>
-        )}
 
-        {/* Récapitulatif */}
-        <Card>
-          <Text style={{ fontWeight: '700', color: colors.text, marginBottom: 12 }}>{t.subscription.payRecap}</Text>
-          <View style={styles.summaryRow}>
-            <Text style={{ color: colors.textSecondary }}>{t.subscription.payItem}</Text>
-            <Text style={{ color: colors.text, fontWeight: '600' }}>{t.subscription.price}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={{ color: colors.textSecondary }}>{t.subscription.payDuration}</Text>
-            <Text style={{ color: colors.text, fontWeight: '600' }}>{t.subscription.pay30days}</Text>
-          </View>
-          <View style={[styles.summaryRow, { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 12, marginTop: 8 }]}>
-            <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16 }}>{t.subscription.payTotal}</Text>
-            <Text style={{ color: colors.primary, fontWeight: '800', fontSize: 16 }}>{t.subscription.price}</Text>
-          </View>
-        </Card>
+          <Button
+            label="J'ai payé — Confirmer"
+            variant="gold"
+            fullWidth
+            size="lg"
+            onPress={handleVerify}
+            style={{ maxWidth: 320 }}
+          />
 
-        {step === 'select' && (
-          <>
-            {/* Sélection du mode de paiement */}
-            <View>
-              <Text style={{ fontWeight: '700', color: colors.text, marginBottom: 10 }}>
-                Mode de paiement
-              </Text>
-              {PAYMENT_METHODS.map((method) => (
-                <TouchableOpacity
-                  key={method.id}
-                  onPress={() => setSelectedMethod(method.id)}
-                  style={[
-                    styles.methodRow,
-                    {
-                      backgroundColor: colors.surface,
-                      borderColor: selectedMethod === method.id ? colors.primary : colors.border,
-                      borderWidth: selectedMethod === method.id ? 2 : 1,
-                    },
-                  ]}
-                >
-                  <Text style={{ fontSize: 22 }}>{method.emoji}</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: colors.text, fontWeight: '600', fontSize: 14 }}>{method.label}</Text>
-                    <Text style={{ color: colors.textTertiary, fontSize: 11 }}>{method.desc}</Text>
-                  </View>
-                  <View style={[
-                    styles.radioOuter,
-                    { borderColor: selectedMethod === method.id ? colors.primary : colors.border },
-                  ]}>
-                    {selectedMethod === method.id && (
-                      <View style={[styles.radioInner, { backgroundColor: colors.primary }]} />
-                    )}
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
+          <TouchableOpacity
+            onPress={() => authUrl && Linking.openURL(authUrl)}
+            style={styles.reopenBtn}
+          >
+            <AppIcon icon={ExternalLink} size={16} color={colors.primary} strokeWidth={2.2} />
+            <Text style={{ color: colors.primary, fontSize: 14 }}>Réouvrir Paystack</Text>
+          </TouchableOpacity>
 
-            <Button
-              label={isProcessingPayment ? t.subscription.payInitializing : 'Payer maintenant — 5 000 FCFA'}
-              variant="gold"
-              fullWidth
-              size="lg"
-              loading={isProcessingPayment}
-              onPress={handleInitiate}
-            />
-            <View style={styles.secureRow}>
-              <AppIcon icon={Lock} size={14} color={colors.textTertiary} strokeWidth={2.6} />
-              <Text style={{ color: colors.textTertiary, fontSize: 11, textAlign: 'center' }}>
-                Paiement sécurisé · HTTPS · Vos données sont protégées
-              </Text>
-            </View>
-          </>
-        )}
-
-        {(step === 'waiting' || step === 'verifying') && (
-          <View style={{ gap: spacing.md }}>
-            <View style={[styles.infoBanner, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <AppIcon icon={ExternalLink} size={18} color={colors.primary} strokeWidth={2.2} />
-              <Text style={{ color: colors.textSecondary, fontSize: 13, flex: 1, lineHeight: 20 }}>
-                {t.subscription.payOpenedInfo}
-              </Text>
-            </View>
-
-            <Button
-              label={step === 'verifying' ? t.subscription.payVerifying : t.subscription.payDone}
-              variant="gold"
-              fullWidth
-              size="lg"
-              loading={step === 'verifying'}
-              onPress={handleVerify}
-            />
-
-            <TouchableOpacity style={styles.reopenBtn} onPress={handleReopenPaystack} disabled={isWorking}>
-              <AppIcon icon={ExternalLink} size={16} color={colors.primary} strokeWidth={2.2} />
-              <Text style={{ color: colors.primary, fontSize: 14 }}>{t.subscription.payReopen}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.cancelBtn} onPress={() => setStep('select')} disabled={isWorking}>
-              <Text style={{ color: colors.textTertiary, fontSize: 13, textDecorationLine: 'underline' }}>
-                {t.subscription.payRetry}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
-    </ScrollView>
+          <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 4 }}>
+            <Text style={{ color: colors.textTertiary, fontSize: 12, textDecorationLine: 'underline' }}>
+              Annuler
+            </Text>
+          </TouchableOpacity>
+        </>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  header: { padding: 24, paddingBottom: 32, alignItems: 'center', gap: 8 },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  headerSubtitle: { fontSize: 13, color: 'rgba(255,255,255,0.6)' },
-  amountBadge: { marginTop: 8, backgroundColor: 'rgba(201,168,76,0.2)', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, borderWidth: 1, borderColor: '#C9A84C' },
-  amount: { fontSize: 24, fontWeight: '800', color: '#C9A84C' },
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
-  errorBanner: { padding: 12, borderRadius: 8 },
-  errorText: { color: '#DC2626', fontSize: 13, textAlign: 'center' },
-  infoBanner: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 14, borderRadius: 12, borderWidth: 1 },
-  secureRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingBottom: 6 },
-  reopenBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 10 },
-  cancelBtn: { alignItems: 'center', paddingVertical: 8 },
-  methodRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 8,
-    gap: 12,
-  },
-  radioOuter: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  radioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
+  loadingText: { marginTop: 16, fontSize: 15, textAlign: 'center' },
+  errorTitle: { fontSize: 20, fontWeight: '800', marginTop: 16, textAlign: 'center' },
+  errorMsg: { fontSize: 14, textAlign: 'center', lineHeight: 22, marginTop: 8 },
+  waitTitle: { fontSize: 20, fontWeight: '800', textAlign: 'center' },
+  waitSub: { fontSize: 14, textAlign: 'center', lineHeight: 22 },
+  reopenBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 12 },
 });

@@ -11,6 +11,8 @@ interface BackButtonProps {
   variant?: 'dark' | 'light';
   style?: ViewStyle;
   disabled?: boolean;
+  /** Route de repli si l'historique est vide (ex: après un refresh web) */
+  fallback?: string;
 }
 
 export function BackButton({
@@ -19,6 +21,7 @@ export function BackButton({
   variant = 'light',
   style,
   disabled,
+  fallback = '/(app)/(tabs)/home',
 }: BackButtonProps) {
   const { colors } = useTheme();
   const { t } = useI18n();
@@ -28,9 +31,22 @@ export function BackButton({
   const color = isDark ? '#ffffff' : colors.primary;
   const resolvedLabel = label ?? t.common.back;
 
+  function handleBack() {
+    if (onPress) {
+      onPress();
+      return;
+    }
+    // Après un refresh web, le stack est vide — router.back() ne ferait rien
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace(fallback as any);
+    }
+  }
+
   return (
     <TouchableOpacity
-      onPress={onPress ?? (() => router.back())}
+      onPress={handleBack}
       disabled={disabled}
       activeOpacity={0.75}
       style={[styles.btn, { backgroundColor: bg }, style]}

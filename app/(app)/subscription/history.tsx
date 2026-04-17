@@ -27,7 +27,7 @@ export default function PaymentHistoryScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <View style={[styles.header, { backgroundColor: colors.deepBlue ?? '#1A1A3E', paddingTop: 56 }]}>
-        <BackButton variant="dark" style={{ alignSelf: 'flex-start' }} />
+        <BackButton variant="dark" style={{ alignSelf: 'flex-start' }} fallback="/(app)/subscription"/>
         <Text style={styles.headerTitle}>{t.subscription.history}</Text>
       </View>
 

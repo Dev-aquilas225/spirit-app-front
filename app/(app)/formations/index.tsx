@@ -68,7 +68,7 @@ function FormationsContent() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <View style={[styles.header, { backgroundColor: colors.deepBlue ?? '#1A1A3E', paddingTop: 56 }]}>
-        <BackButton variant="dark" style={{ marginBottom: 12 }} />
+        <BackButton variant="dark" style={{ marginBottom: 12 }} fallback="/(app)/(tabs)/home"/>
         <View style={styles.headerTitleRow}>
           <AppIcon icon={GraduationCap} size={20} color="#fff" strokeWidth={2.4} />
           <Text style={styles.headerTitle}>{t.formations.title}</Text>

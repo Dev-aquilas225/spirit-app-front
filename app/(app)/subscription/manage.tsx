@@ -38,7 +38,7 @@ export default function ManageSubscriptionScreen() {
 
   return (
     <ScreenWrapper scrollable padded>
-      <BackButton style={{ marginBottom: 24 }} />
+      <BackButton style={{ marginBottom: 24 }} fallback="/(app)/subscription"/>
 
       <Text style={{ fontSize: 24, fontWeight: '800', color: colors.text, marginBottom: 24 }}>
         {t.subscription.manage}

@@ -45,7 +45,7 @@ function PrayerDetailModal({
 }: {
   prayer: DailyPrayer | null; visible: boolean; onClose: () => void;
 }) {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, isDark } = useTheme();
   const { t } = useI18n();
   if (!prayer) return null;
 
@@ -82,8 +82,11 @@ function PrayerDetailModal({
           </View>
 
           {/* Verset */}
-          <View style={[styles.section, { backgroundColor: colors.premiumBackground ?? '#FEF9EC', borderColor: '#C9A84C' }]}>
-            <Text style={[styles.verseText, { color: colors.text }]}>« {prayer.verse} »</Text>
+          <View style={[styles.section, {
+            backgroundColor: isDark ? 'rgba(201,168,76,0.10)' : '#FEF9EC',
+            borderColor: '#C9A84C',
+          }]}>
+            <Text style={[styles.verseText, { color: isDark ? '#F5E6C0' : '#5C3D00' }]}>« {prayer.verse} »</Text>
             <Text style={[styles.verseRef, { color: '#C9A84C' }]}>— {prayer.verseReference}</Text>
           </View>
 
@@ -132,17 +135,21 @@ function PrayerDetailModal({
 /* ─── Carte prière ─────────────────────────────────────────────────────────── */
 
 function DailyPrayerCard({ prayer, onPress }: { prayer: DailyPrayer; onPress: () => void }) {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, isDark } = useTheme();
   const { t } = useI18n();
   const periodLabels: Record<'morning' | 'evening', string> = { morning: t.prayers.morning, evening: t.prayers.evening };
   const PeriodIcon = PERIOD_ICONS[prayer.period];
+
+  const iconBgMorning = isDark ? 'rgba(201,168,76,0.18)' : '#FFF7E0';
+  const iconBgEvening = isDark ? 'rgba(124,92,191,0.20)' : '#EDE9FF';
+
   return (
     <Card onPress={onPress} style={{ marginBottom: spacing.sm }}>
       <View style={styles.cardRow}>
-        <View style={[styles.iconWrap, { backgroundColor: prayer.period === 'morning' ? '#FFF7E0' : '#EDE9FF' }]}>
+        <View style={[styles.iconWrap, { backgroundColor: prayer.period === 'morning' ? iconBgMorning : iconBgEvening }]}>
           <AppIcon
             icon={PeriodIcon} size={24}
-            color={prayer.period === 'morning' ? '#C9A84C' : '#7C5CBF'}
+            color={prayer.period === 'morning' ? '#C9A84C' : '#9B7FD4'}
             strokeWidth={2.4}
           />
         </View>

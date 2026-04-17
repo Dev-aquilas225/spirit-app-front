@@ -11,7 +11,7 @@ export default function TermsScreen() {
   return (
       <View style={{ flex: 1, backgroundColor: colors.background }}>
         <View style={{ backgroundColor: colors.surface, paddingTop: 56, paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-          <BackButton style={{ marginBottom: 8 }} />
+          <BackButton style={{ marginBottom: 8 }} fallback="/(app)/(tabs)/profile"/>
           <Text style={{ fontSize: 20, fontWeight: '800', color: colors.text }}>{t.legal.termsTitle}</Text>
         </View>
         <ScrollView contentContainerStyle={{ padding: spacing.base }}>

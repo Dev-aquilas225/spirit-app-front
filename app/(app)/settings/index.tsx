@@ -31,7 +31,7 @@ export default function SettingsScreen() {
 
   return (
     <ScreenWrapper scrollable padded>
-      <BackButton style={{ marginBottom: 24 }} />
+      <BackButton style={{ marginBottom: 24 }} fallback="/(app)/(tabs)/profile"/>
 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 24 }}>
         <AppIcon icon={Settings} size={22} color={colors.text} strokeWidth={2.4} />

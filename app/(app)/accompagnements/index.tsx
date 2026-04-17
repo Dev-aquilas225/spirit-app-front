@@ -97,7 +97,7 @@ export default function AccomppagnementsScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       {/* Header */}
       <View style={[s.header, { backgroundColor: '#1A1A3E' }]}>
-        <BackButton variant="dark" style={{ marginBottom: 12 }} />
+        <BackButton variant="dark" style={{ marginBottom: 12 }} fallback="/(app)/(tabs)/home"/>
         <Text style={s.headerTitle}>Accompagnements spirituels</Text>
         <Text style={s.headerSub}>
           Programmes de 7 jours avec suivi quotidien et 5 questions incluses

@@ -49,7 +49,7 @@ function DreamsContent() {
           { backgroundColor: colors.deepBlue ?? "#1A1A3E", paddingTop: 56 },
         ]}
       >
-        <BackButton variant="dark" style={{ marginBottom: 12 }} />
+        <BackButton variant="dark" style={{ marginBottom: 12 }} fallback="/(app)/(tabs)/home"/>
         <View style={styles.headerTitleRow}>
           <AppIcon icon={CloudMoon} size={20} color="#fff" strokeWidth={2.4} />
           <Text style={styles.headerTitle}>{t.dreams.title}</Text>

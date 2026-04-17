@@ -181,7 +181,7 @@ export default function AccompagnementDetailScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       {/* Header */}
       <View style={[s.header, { backgroundColor: programme.color + 'CC' }]}>
-        <BackButton variant="dark" style={{ marginBottom: 12 }} />
+        <BackButton variant="dark" style={{ marginBottom: 12 }} fallback="/(app)/accompagnements"/>
         <Text style={s.headerTitle}>{programme.title}</Text>
         <Text style={s.headerSub}>Programme spirituel de 7 jours</Text>
 

@@ -124,16 +124,13 @@ export const AIService = {
     await StorageService.set(STORAGE_KEYS.AI_USAGE, { date: today, count: current + 1 });
   },
 
-  async canAsk(isPremium: boolean): Promise<boolean> {
-    if (isPremium) return true;
-    const usage = await AIService.getDailyUsage();
-    return usage < FREE_AI_MESSAGE_LIMIT;
+  // Le guide spirituel n'a pas de restriction de messages — tous les utilisateurs peuvent dialoguer librement
+  async canAsk(_isPremium: boolean): Promise<boolean> {
+    return true;
   },
 
-  async getRemainingQuestions(isPremium: boolean): Promise<number> {
-    if (isPremium) return Infinity;
-    const usage = await AIService.getDailyUsage();
-    return Math.max(0, FREE_AI_MESSAGE_LIMIT - usage);
+  async getRemainingQuestions(_isPremium: boolean): Promise<number> {
+    return Infinity;
   },
 
   async sendMessage(
@@ -141,19 +138,6 @@ export const AIService = {
     question: string,
     isPremium: boolean,
   ): Promise<{ message: AIMessage; conversationId?: string; error?: string }> {
-    const canAsk = await AIService.canAsk(isPremium);
-
-    if (!canAsk) {
-      return {
-        message: {
-          id: generateId(),
-          role: 'assistant',
-          content: `Vous avez atteint votre limite de ${FREE_AI_MESSAGE_LIMIT} questions par jour. Abonnez-vous ou choisissez un autre service.`,
-          timestamp: new Date().toISOString(),
-        },
-        error: 'limit_reached',
-      };
-    }
 
     try {
       const data = await http.post<unknown>('/ai/chat', {
@@ -161,8 +145,6 @@ export const AIService = {
         chatType: 'prophet',
         conversationId,
       });
-
-      if (!isPremium) await AIService.incrementUsage();
 
       const payload = isRecord(data) ? data : {};
       const rawMessage = payload.message ?? payload.response ?? data;
@@ -179,12 +161,10 @@ export const AIService = {
         message: {
           id: generateId(),
           role: 'assistant',
-          content: isLimit
-            ? `Vous avez atteint votre limite de ${FREE_AI_MESSAGE_LIMIT} questions par jour. Abonnez-vous ou choisissez un autre service.`
-            : `Erreur : ${msg}`,
+          content: `Erreur : ${msg}`,
           timestamp: new Date().toISOString(),
         },
-        error: isLimit ? 'limit_reached' : 'api_error',
+        error: 'api_error',
       };
     }
   },

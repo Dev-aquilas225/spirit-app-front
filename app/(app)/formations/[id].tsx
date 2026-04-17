@@ -21,7 +21,7 @@ export default function FormationDetailScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.deepBlue ?? '#1A1A3E', paddingTop: 56 }]}>
-        <BackButton variant="dark" style={{ marginBottom: 16 }} />
+        <BackButton variant="dark" style={{ marginBottom: 16 }} fallback="/(app)/formations"/>
         <View style={styles.thumbnail}>
           <AppIcon icon={GraduationCap} size={56} color="#C9A84C" strokeWidth={1.8} />
         </View>

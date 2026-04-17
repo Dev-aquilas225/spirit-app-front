@@ -73,7 +73,7 @@ export default function ProphetScreen() {
 
         {/* Bouton retour */}
         <View style={styles.backBtnWrap}>
-          <BackButton variant="dark" />
+          <BackButton variant="dark" fallback="/(app)/(tabs)/profile" />
         </View>
 
         {/* Nom sur la photo */}

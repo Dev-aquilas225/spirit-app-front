@@ -45,7 +45,7 @@ const QUICK_ACTIONS_CONFIG = [
 ];
 
 export default function HomeScreen() {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, isDark } = useTheme();
   const { user } = useAuth();
   const { isPremium } = usePremiumAccess();
   const { t } = useI18n();
@@ -180,12 +180,14 @@ export default function HomeScreen() {
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
                   <View style={[
                     styles.prayerIconWrap,
-                    { backgroundColor: prayer.period === "morning" ? "#FFF7E0" : "#EDE9FF" },
+                    { backgroundColor: prayer.period === "morning"
+                        ? (isDark ? "rgba(201,168,76,0.18)" : "#FFF7E0")
+                        : (isDark ? "rgba(124,92,191,0.20)" : "#EDE9FF") },
                   ]}>
                     <AppIcon
                       icon={prayer.period === "morning" ? Sunrise : Sunset}
                       size={20}
-                      color={prayer.period === "morning" ? "#C9A84C" : "#7C5CBF"}
+                      color={prayer.period === "morning" ? "#C9A84C" : "#9B7FD4"}
                       strokeWidth={2.4}
                     />
                   </View>

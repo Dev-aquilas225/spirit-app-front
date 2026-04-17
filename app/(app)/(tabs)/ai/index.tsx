@@ -260,7 +260,7 @@ export default function AIScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       {HeaderBlock}
-      <LimitBanner remaining={remainingQuestions} limitReached={limitReached} />
+      {/* Le guide spirituel est sans limite — LimitBanner désactivé */}
 
       {isLoading ? (
         <LoadingSpinner fullScreen message={t.common.loading} />

@@ -39,7 +39,7 @@ export default function ReferralScreen() {
 
   return (
     <ScreenWrapper scrollable padded>
-      <BackButton style={{ marginBottom: 24 }} />
+      <BackButton style={{ marginBottom: 24 }} fallback="/(app)/(tabs)/profile"/>
 
       <View style={{ alignItems: 'center', marginBottom: 32 }}>
         <View style={{ marginBottom: 16 }}>
