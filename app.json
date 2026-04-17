@@ -30,7 +30,10 @@
       "meta": {
         "description": "Votre compagnon spirituel - Prières, IA, Livres et Formations",
         "author": "Oracle Plus",
-        "themeColor": "#C9A84C"
+        "themeColor": "#C9A84C",
+        "appleMobileWebAppCapable": "yes",
+        "appleMobileWebAppStatusBarStyle": "black-translucent",
+        "appleMobileWebAppTitle": "Oracle Plus"
       }
     },
     "plugins": [

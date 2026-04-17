@@ -214,7 +214,7 @@ export default function AccompagnementDetailScreen() {
             <Text style={[s.dayPrayer, { color: colors.textSecondary }]}>{dayData?.prayer}</Text>
 
             <Button
-              label={`✅ J'ai prié — Passer au jour ${currentDay + 1}`}
+              label={`J'ai prié — Passer au jour ${currentDay + 1}`}
               variant="gold"
               fullWidth
               onPress={() => markDayComplete(currentDay)}
@@ -248,7 +248,7 @@ export default function AccompagnementDetailScreen() {
                   Jour {d.day} — {d.theme}
                 </Text>
               </View>
-              {done && <Text style={{ color: programme.color, fontSize: 11, fontWeight: '700' }}>✓ Fait</Text>}
+              {done && <AppIcon icon={CheckCircle} size={16} color={programme.color} strokeWidth={2.5} />}
               {active && <Text style={{ color: programme.color, fontSize: 11, fontWeight: '700' }}>En cours</Text>}
             </View>
           );

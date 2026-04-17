@@ -283,8 +283,8 @@ const fr = {
       'Sans engagement • Annulable à tout moment • Renouvellement automatique',
     mySubscription: 'MON ABONNEMENT',
     status: 'Statut',
-    statusActive: '● Actif',
-    statusCancelled: '● Annulé',
+    statusActive: 'Actif',
+    statusCancelled: 'Annulé',
     statusSuccess: 'Réussi',
     statusFailed: 'Échoué',
     statusPending: 'En attente',
@@ -470,7 +470,7 @@ const fr = {
     step2: "Ils s'inscrivent avec votre code",
     step3: "Quand ils s'abonnent, vous gagnez des avantages",
     shareMsg: (code: string, url?: string) =>
-      `🙏 Rejoins Oracle Plus — ta plateforme spirituelle !\n\nUtilise mon code de parrainage *${code}* pour bénéficier d'un avantage exclusif.\n\n👉 ${url ?? 'https://oracleplus.app'}`,
+      `Rejoins Oracle Plus — ta plateforme spirituelle !\n\nUtilise mon code de parrainage *${code}* pour bénéficier d'un avantage exclusif.\n\n${url ?? 'https://oracleplus.app'}`,
   },
 
   support: {

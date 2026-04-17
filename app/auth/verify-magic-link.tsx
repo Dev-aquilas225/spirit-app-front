@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
+import { CheckCircle, XCircle } from 'lucide-react-native';
 import { AuthService } from '../../src/services/auth.service';
 import { useAuthStore } from '../../src/store/auth.store';
 
@@ -61,7 +62,7 @@ export default function VerifyMagicLinkScreen() {
   if (status === 'success') {
     return (
       <View style={styles.container}>
-        <Text style={styles.icon}>✅</Text>
+        <CheckCircle size={64} color="#10B981" strokeWidth={1.5} />
         <Text style={styles.title}>Connexion réussie !</Text>
         <Text style={styles.subtitle}>Redirection vers l'application…</Text>
       </View>
@@ -70,7 +71,7 @@ export default function VerifyMagicLinkScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.icon}>❌</Text>
+      <XCircle size={64} color="#EF4444" strokeWidth={1.5} />
       <Text style={styles.title}>Lien invalide</Text>
       <Text style={styles.errorText}>{errorMessage}</Text>
       <TouchableOpacity style={styles.button} onPress={() => router.replace('/(auth)/login')}>

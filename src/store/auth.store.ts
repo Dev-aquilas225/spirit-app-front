@@ -111,9 +111,17 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   },
 
   logout: async () => {
-    set({ user: null, token: null, isAuthenticated: false, isProfileComplete: false, isLoading: false, error: null });
+    // Vider le state Zustand en premier (UI réagit immédiatement)
+    set({
+      user: null,
+      token: null,
+      isAuthenticated: false,
+      isProfileComplete: false,
+      isLoading: false,
+      error: null,
+    });
+    // Puis vider tous les storages et appeler le backend
     await AuthService.logout();
-    await StorageService.remove(STORAGE_KEYS.USER_GENDER);
   },
 
   updateUser: async (updates) => {

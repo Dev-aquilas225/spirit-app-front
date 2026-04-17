@@ -13,7 +13,7 @@ export default function SupportScreen() {
   const { colors, spacing } = useTheme();
   const { t } = useI18n();
   const supportOptions = [
-    { icon: Mail, label: t.support.email, value: 'support@spiritapp.com', action: () => Linking.openURL('mailto:support@spiritapp.com') },
+    { icon: Mail, label: t.support.email, value: 'chingankonggeorges@gmail.com', action: () => Linking.openURL('mailto:chingankonggeorges@gmail.com') },
     { icon: Phone, label: t.support.whatsapp, value: '+225 07 00 00 00 00', action: () => Linking.openURL('whatsapp://send?phone=22507000000') },
     { icon: MessageCircle, label: t.support.liveChat, value: t.support.available, action: () => {} },
   ] satisfies { icon: LucideIcon; label: string; value: string; action: () => void }[];

@@ -7,14 +7,14 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Globe, BookOpen, Mic, Building2, Heart, Church } from 'lucide-react-native';
+import { Globe, BookOpen, Mic, Building2, Heart, Church, User } from 'lucide-react-native';
 import { AppIcon } from '../../../src/components/common/AppIcon';
 import { BackButton } from '../../../src/components/common/BackButton';
 import { useTheme } from '../../../src/theme';
 
 /* ─── Données ────────────────────────────────────────────────────────────────── */
 
-const NATIONS = ['🇨🇲 Cameroun', '🇨🇮 Côte d\'Ivoire', '🇧🇪 Belgique', '🇩🇪 Allemagne', '🇨🇦 Canada', '🇺🇸 États-Unis'];
+const NATIONS = ['Cameroun', 'Côte d\'Ivoire', 'Belgique', 'Allemagne', 'Canada', 'États-Unis'];
 
 const HIGHLIGHTS = [
   { icon: Church,   label: 'Fondateur',    value: 'Arche d\'Alliance Éternelle' },
@@ -65,7 +65,7 @@ export default function ProphetScreen() {
           />
         ) : (
           <View style={[styles.heroImage, { backgroundColor: '#1A1A3E', alignItems: 'center', justifyContent: 'center' }]}>
-            <Text style={{ fontSize: 80 }}>🙏</Text>
+            <AppIcon icon={User} size={100} color="rgba(201,168,76,0.5)" strokeWidth={1} />
           </View>
         )}
         {/* Dégradé en bas de la photo */}

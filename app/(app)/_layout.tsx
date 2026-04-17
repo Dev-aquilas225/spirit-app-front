@@ -63,7 +63,7 @@ async function scheduleExpiryNotification(daysLeft: number) {
   try {
     if (Platform.OS === 'web') {
       if (Notification.permission === 'granted') {
-        new Notification('⚠️ Oracle Plus — Abonnement', {
+        new Notification('Oracle Plus — Abonnement', {
           body: `Votre abonnement Premium expire dans ${daysLeft} jour${daysLeft > 1 ? 's' : ''}. Renouvelez pour ne pas perdre vos accès.`,
           icon: '/icon.png',
         });
@@ -73,7 +73,7 @@ async function scheduleExpiryNotification(daysLeft: number) {
     const Notifications = (await import('expo-notifications')).default;
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: '⚠️ Oracle Plus — Abonnement',
+        title: 'Oracle Plus — Abonnement',
         body: `Votre abonnement Premium expire dans ${daysLeft} jour${daysLeft > 1 ? 's' : ''}. Renouvelez pour ne pas perdre vos accès.`,
         data: { screen: '/(app)/subscription' },
       },

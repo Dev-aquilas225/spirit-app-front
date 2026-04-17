@@ -4,9 +4,9 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import { Image } from 'expo-image';
 import type { LucideIcon } from "lucide-react-native";
 import {
-  Bell, Camera, Check, ChevronRight, CreditCard, Crown,
+  Bell, BookOpen, Camera, Check, ChevronRight, CreditCard, Crown,
   FileText, Gift, Globe, LogOut, MessageCircle,
-  Pencil, Settings, ShieldCheck, Trash2, X,
+  Pencil, Settings, ShieldCheck, Trash2, User, X,
 } from "lucide-react-native";
 import React, { useState } from "react";
 import {
@@ -25,13 +25,13 @@ import { Gender, Language } from "../../../../src/types/auth.types";
 
 /* ─── Config genre (même palette que complete-profile) ─────────────────────── */
 
-interface GenderCfg { bg: string; fg: string; emoji: string }
+interface GenderCfg { bg: string; fg: string }
 const GENDER_CFG: Record<Gender, GenderCfg> = {
-  male:   { bg: '#DBEAFE', fg: '#1D4ED8', emoji: '👨' },
-  female: { bg: '#FCE7F3', fg: '#BE185D', emoji: '👩' },
-  other:  { bg: '#EDE9FE', fg: '#6D28D9', emoji: '🧑' },
+  male:   { bg: '#DBEAFE', fg: '#1D4ED8' },
+  female: { bg: '#FCE7F3', fg: '#BE185D' },
+  other:  { bg: '#EDE9FE', fg: '#6D28D9' },
 };
-const DEFAULT_CFG: GenderCfg = { bg: 'rgba(255,255,255,0.15)', fg: '#fff', emoji: '🧑' };
+const DEFAULT_CFG: GenderCfg = { bg: 'rgba(255,255,255,0.15)', fg: '#fff' };
 
 /* ─── Avatar ────────────────────────────────────────────────────────────────── */
 
@@ -63,7 +63,7 @@ function AvatarDisplay({
           {initials ? (
             <Text style={[styles.avatarInitials, { color: cfg.fg, fontSize: size * 0.38 }]}>{initials}</Text>
           ) : (
-            <Text style={{ fontSize: size * 0.38 }}>{cfg.emoji}</Text>
+            <AppIcon icon={User} size={size * 0.46} color={cfg.fg} strokeWidth={1.8} />
           )}
         </View>
       )}
@@ -80,7 +80,7 @@ function AvatarDisplay({
       {/* Badge genre */}
       {gender && !onPress && (
         <View style={[styles.avatarBadge, { backgroundColor: cfg.fg }]}>
-          <Text style={{ fontSize: 11 }}>{cfg.emoji}</Text>
+          <AppIcon icon={User} size={11} color="#fff" strokeWidth={2.5} />
         </View>
       )}
     </TouchableOpacity>
@@ -448,6 +448,7 @@ export default function ProfileScreen() {
   const [langVisible, setLangVisible] = useState(false);
 
   const langLabel = LANGUAGES.find(l => l.code === user?.language)?.label ?? t.settings.french;
+  const isAdmin = (user?.email ?? '') === (process.env.EXPO_PUBLIC_ADMIN_EMAIL ?? '');
 
   const genderLabels: Record<Gender, string> = {
     male:   t.profile.male,
@@ -455,14 +456,34 @@ export default function ProfileScreen() {
     other:  t.profile.other,
   };
 
-  function handleLogout() {
-    Alert.alert(t.profile.logoutTitle, t.profile.logoutMsg, [
-      { text: t.common.cancel, style: 'cancel' },
-      {
-        text: t.profile.logout, style: 'destructive',
-        onPress: () => { logout(); router.replace('/(auth)/login'); },
-      },
-    ]);
+  async function handleLogout() {
+    // Sur web, Alert.alert est silencieux — on utilise window.confirm
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm(
+        `${t.profile.logoutTitle}\n\n${t.profile.logoutMsg}`,
+      );
+      if (!confirmed) return;
+      await logout();
+      router.replace('/(auth)/login');
+      return;
+    }
+
+    Alert.alert(
+      t.profile.logoutTitle,
+      t.profile.logoutMsg,
+      [
+        { text: t.common.cancel, style: 'cancel' },
+        {
+          text: t.profile.logout,
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+            router.replace('/(auth)/login');
+          },
+        },
+      ],
+      { cancelable: true },
+    );
   }
 
   return (
@@ -485,7 +506,7 @@ export default function ProfileScreen() {
         <Text style={styles.phone}>{user?.phone}</Text>
         {user?.gender && (
           <Text style={styles.genderTag}>
-            {GENDER_CFG[user.gender]?.emoji} {genderLabels[user.gender]}
+            {genderLabels[user.gender]}
           </Text>
         )}
 
@@ -562,6 +583,20 @@ export default function ProfileScreen() {
             <AppIcon icon={ChevronRight} size={20} color="#C9A84C" strokeWidth={2.4} />
           </View>
         </TouchableOpacity>
+
+        {/* Admin — Livres (visible uniquement pour l'admin) */}
+        {isAdmin && (
+          <View>
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>ADMINISTRATION</Text>
+            <Card padding="none">
+              <MenuItem
+                icon={BookOpen}
+                label="Gérer les livres PDF"
+                onPress={() => router.push('/(app)/books/admin')}
+              />
+            </Card>
+          </View>
+        )}
 
         {/* Communauté */}
         <View>

@@ -265,8 +265,8 @@ const en: Translations = {
     disclaimer: 'No commitment • Cancel anytime • Auto-renewal',
     mySubscription: 'MY SUBSCRIPTION',
     status: 'Status',
-    statusActive: '● Active',
-    statusCancelled: '● Cancelled',
+    statusActive: 'Active',
+    statusCancelled: 'Cancelled',
     statusSuccess: 'Successful',
     statusFailed: 'Failed',
     statusPending: 'Pending',
@@ -446,7 +446,7 @@ const en: Translations = {
     step2: 'They sign up with your code',
     step3: 'When they subscribe, you earn benefits',
     shareMsg: (code: string, url?: string) =>
-      `🙏 Join Oracle Plus — your spiritual platform!\n\nUse my referral code *${code}* to get an exclusive benefit.\n\n👉 ${url ?? 'https://oracleplus.app'}`,
+      `Join Oracle Plus — your spiritual platform!\n\nUse my referral code *${code}* to get an exclusive benefit.\n\n${url ?? 'https://oracleplus.app'}`,
   },
 
   support: {

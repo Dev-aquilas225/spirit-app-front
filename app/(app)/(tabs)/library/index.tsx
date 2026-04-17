@@ -143,13 +143,12 @@ function LibraryContent() {
 
       setBooks(nextBooks);
 
-      if (selectedBook) {
-        const refreshedSelectedBook = nextBooks.find((book) => book.id === selectedBook.id) ?? null;
-        setSelectedBook(refreshedSelectedBook);
-        if (!refreshedSelectedBook) {
-          setView((currentView) => (currentView === 'list' ? currentView : 'list'));
-        }
-      }
+      // Refresh the selected book without adding it to deps (avoids infinite loop).
+      // Use functional update so we read the latest selectedBook without depending on it.
+      setSelectedBook((prev) => {
+        if (!prev) return null;
+        return nextBooks.find((book) => book.id === prev.id) ?? null;
+      });
 
       setIsLoading(false);
     }
@@ -159,7 +158,14 @@ function LibraryContent() {
     return () => {
       isCancelled = true;
     };
-  }, [isSubscribed, reloadNonce, selectedBook]);
+  }, [isSubscribed, reloadNonce]);
+
+  // If the selected book disappears (e.g. unpublished), go back to list.
+  useEffect(() => {
+    if (!selectedBook) {
+      setView((currentView) => (currentView === 'list' ? currentView : 'list'));
+    }
+  }, [selectedBook]);
 
   useEffect(() => {
     if (view !== 'reader' || !selectedBook) {
@@ -315,7 +321,11 @@ function LibraryContent() {
           />
         ) : Platform.OS === 'web' ? (
           readerWebUrl ? (
-            <WebView source={{ uri: readerWebUrl }} style={s.readerWebview} />
+            // react-native-webview does not support web — use a plain iframe instead
+            React.createElement('iframe', {
+              src: readerWebUrl,
+              style: { flex: 1, width: '100%', height: '100%', border: 'none' },
+            })
           ) : (
             <LoadingSpinner fullScreen message={t.library.readerPreparing} />
           )

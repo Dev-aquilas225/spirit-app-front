@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import {
-  Briefcase, GraduationCap, Heart, Home, Shield, Star, Users,
+  Briefcase, Calendar, GraduationCap, Heart, Home, Lock, Shield, Sparkles, Star, Users,
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { AppIcon } from '../../../src/components/common/AppIcon';
@@ -109,9 +109,10 @@ export default function AccomppagnementsScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Badge gratuit */}
-        <View style={[s.freeBadge, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={{ color: colors.textSecondary, fontSize: 12, textAlign: 'center', lineHeight: 18 }}>
-            ✨ Les 5 premiers programmes sont accessibles gratuitement · Abonnez-vous pour tout débloquer
+        <View style={[s.freeBadge, { backgroundColor: colors.surface, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 8 }]}>
+          <AppIcon icon={Sparkles} size={14} color={colors.textSecondary} strokeWidth={2} />
+          <Text style={{ color: colors.textSecondary, fontSize: 12, flex: 1, lineHeight: 18 }}>
+            Les 5 premiers programmes sont accessibles gratuitement · Abonnez-vous pour tout débloquer
           </Text>
         </View>
 
@@ -149,14 +150,15 @@ export default function AccomppagnementsScreen() {
                 </View>
                 <Text style={[s.cardDesc, { color: colors.textSecondary }]}>{prog.description}</Text>
                 <View style={s.metaRow}>
-                  <Text style={[s.meta, { color: colors.textTertiary }]}>📅 {prog.days} jours</Text>
-                  <Text style={[s.meta, { color: colors.textTertiary }]}>  ·  5 questions incluses</Text>
+                  <AppIcon icon={Calendar} size={12} color={colors.textTertiary} strokeWidth={2} />
+                  <Text style={[s.meta, { color: colors.textTertiary }]}>{prog.days} jours  ·  5 questions incluses</Text>
                 </View>
               </View>
 
-              <Text style={{ color: colors.textTertiary, fontSize: 18 }}>
-                {locked ? '🔒' : '›'}
-              </Text>
+              {locked
+                ? <AppIcon icon={Lock} size={18} color={colors.textTertiary} strokeWidth={2} />
+                : <Text style={{ color: colors.textTertiary, fontSize: 20, fontWeight: '300' }}>›</Text>
+              }
             </TouchableOpacity>
           );
         })}

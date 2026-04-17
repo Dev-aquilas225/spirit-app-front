@@ -49,7 +49,7 @@ export default function ManageSubscriptionScreen() {
         <View style={styles.row}>
           <Text style={{ color: colors.textSecondary }}>{t.subscription.status}</Text>
           <Text style={{ color: subscription.status === 'active' ? '#10B981' : '#EF4444', fontWeight: '600' }}>
-            {subscription.status === 'active' ? t.subscription.statusActive : '● Annulé'}
+            {subscription.status === 'active' ? t.subscription.statusActive : t.subscription.statusCancelled}
           </Text>
         </View>
         <View style={styles.row}>

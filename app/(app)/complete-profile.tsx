@@ -4,7 +4,7 @@ import {
   StyleSheet, ScrollView, ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
-import { User, Users } from 'lucide-react-native';
+import { Check, User, Users } from 'lucide-react-native';
 import { useTheme } from '../../src/theme';
 import { useAuthStore } from '../../src/store/auth.store';
 import { useI18n } from '../../src/i18n';
@@ -15,17 +15,14 @@ import { AppIcon } from '../../src/components/common/AppIcon';
 
 interface GenderOption {
   value: Gender;
-  emoji: string;
-  /** Couleur de fond de l'avatar */
   bg: string;
-  /** Couleur de l'icône */
   fg: string;
 }
 
 const GENDER_OPTIONS: GenderOption[] = [
-  { value: 'male',   emoji: '👨', bg: '#DBEAFE', fg: '#1D4ED8' },
-  { value: 'female', emoji: '👩', bg: '#FCE7F3', fg: '#BE185D' },
-  { value: 'other',  emoji: '🧑', bg: '#EDE9FE', fg: '#6D28D9' },
+  { value: 'male',   bg: '#DBEAFE', fg: '#1D4ED8' },
+  { value: 'female', bg: '#FCE7F3', fg: '#BE185D' },
+  { value: 'other',  bg: '#EDE9FE', fg: '#6D28D9' },
 ];
 
 function getGenderOption(gender: Gender | null): GenderOption {
@@ -56,13 +53,13 @@ function AvatarPreview({
         {initials !== '?' ? (
           <Text style={[styles.avatarInitials, { color: opt.fg }]}>{initials}</Text>
         ) : (
-          <Text style={styles.avatarEmoji}>{opt.emoji}</Text>
+          <AppIcon icon={User} size={40} color={opt.fg} strokeWidth={1.8} />
         )}
       </View>
       {/* Badge genre */}
       {gender && (
         <View style={[styles.avatarBadge, { backgroundColor: opt.fg }]}>
-          <Text style={{ fontSize: 12 }}>{opt.emoji}</Text>
+          <AppIcon icon={User} size={12} color="#fff" strokeWidth={2.5} />
         </View>
       )}
     </View>
@@ -176,7 +173,7 @@ export default function CompleteProfileScreen() {
                   ]}
                   activeOpacity={0.75}
                 >
-                  <Text style={styles.genderEmoji}>{opt.emoji}</Text>
+                  <AppIcon icon={User} size={28} color={selected ? opt.fg : '#9CA3AF'} strokeWidth={1.8} />
                   <Text style={[
                     styles.genderLabel,
                     { color: selected ? opt.fg : colors.textSecondary },
@@ -185,7 +182,7 @@ export default function CompleteProfileScreen() {
                   </Text>
                   {selected && (
                     <View style={[styles.genderCheck, { backgroundColor: opt.fg }]}>
-                      <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>✓</Text>
+                      <AppIcon icon={Check} size={10} color="#fff" strokeWidth={3} />
                     </View>
                   )}
                 </TouchableOpacity>

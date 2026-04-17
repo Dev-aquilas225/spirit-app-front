@@ -15,7 +15,7 @@ export const FREE_PRAYER_LIMIT = 3;
 
 // Notification times (hours in local time)
 export const NOTIFICATION_TIMES = [
-  { hour: 8, minute: 0, label: 'Prière du matin' },
+  { hour: 6, minute: 0, label: 'Prière du matin' },
   { hour: 13, minute: 0, label: 'Message de midi' },
   { hour: 21, minute: 0, label: 'Prière du soir' },
 ];
@@ -42,16 +42,16 @@ export const PAYMENT_PROCESSING_DELAY = 3000;
 
 // Countries (subset)
 export const COUNTRIES = [
-  { code: 'CI', name: 'Côte d\'Ivoire', flag: '🇨🇮', dialCode: '+225' },
-  { code: 'SN', name: 'Sénégal',        flag: '🇸🇳', dialCode: '+221' },
-  { code: 'CM', name: 'Cameroun',       flag: '🇨🇲', dialCode: '+237' },
-  { code: 'BJ', name: 'Bénin',          flag: '🇧🇯', dialCode: '+229' },
-  { code: 'TG', name: 'Togo',           flag: '🇹🇬', dialCode: '+228' },
-  { code: 'BF', name: 'Burkina Faso',   flag: '🇧🇫', dialCode: '+226' },
-  { code: 'ML', name: 'Mali',           flag: '🇲🇱', dialCode: '+223' },
-  { code: 'GN', name: 'Guinée',         flag: '🇬🇳', dialCode: '+224' },
-  { code: 'CD', name: 'RD Congo',       flag: '🇨🇩', dialCode: '+243' },
-  { code: 'FR', name: 'France',         flag: '🇫🇷', dialCode: '+33'  },
+  { code: 'CI', name: 'Côte d\'Ivoire', dialCode: '+225' },
+  { code: 'SN', name: 'Sénégal',        dialCode: '+221' },
+  { code: 'CM', name: 'Cameroun',       dialCode: '+237' },
+  { code: 'BJ', name: 'Bénin',          dialCode: '+229' },
+  { code: 'TG', name: 'Togo',           dialCode: '+228' },
+  { code: 'BF', name: 'Burkina Faso',   dialCode: '+226' },
+  { code: 'ML', name: 'Mali',           dialCode: '+223' },
+  { code: 'GN', name: 'Guinée',         dialCode: '+224' },
+  { code: 'CD', name: 'RD Congo',       dialCode: '+243' },
+  { code: 'FR', name: 'France',         dialCode: '+33'  },
 ];
 
 // Languages

@@ -77,10 +77,20 @@ export const AuthService = {
     }
   },
 
-  /** Déconnexion */
+  /** Déconnexion — vide tous les tokens et données locales */
   async logout(): Promise<void> {
     try { await http.post('/auth/logout'); } catch {}
-    await StorageService.multiRemove([STORAGE_KEYS.AUTH_TOKEN, 'refresh_token', STORAGE_KEYS.USER]);
+    await StorageService.multiRemove([
+      STORAGE_KEYS.AUTH_TOKEN,
+      'refresh_token',
+      STORAGE_KEYS.USER,
+      STORAGE_KEYS.USER_GENDER,
+      STORAGE_KEYS.SUBSCRIPTION,
+      STORAGE_KEYS.AI_USAGE,
+      STORAGE_KEYS.AI_CONVERSATIONS,
+      STORAGE_KEYS.PAYMENTS,
+      STORAGE_KEYS.PROFILE_COMPLETE,
+    ]);
   },
 
   /** Récupérer le profil utilisateur */

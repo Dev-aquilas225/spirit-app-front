@@ -29,7 +29,10 @@ export default function Root({ children }: { children: React.ReactNode }) {
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Oracle Plus" />
         {/* Icônes dans public/ — servis à la racine, pas via Metro asset pipeline */}
-        <link rel="apple-touch-icon" href="/icon.png" />
+        {/* apple-touch-icon.png = 180x180, taille recommandée pour iPhone/iPad */}
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png" />
+        <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png" />
         <link rel="apple-touch-startup-image" href="/splash-icon.png" />
 
         {/* ── SEO / Open Graph ─────────────────────────────────────────── */}
