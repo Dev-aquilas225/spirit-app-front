@@ -35,7 +35,13 @@ export default function AuthCallbackScreen() {
 
       const success = await loginWithTokens(accessToken, refreshToken);
       if (success) {
-        router.replace("/(tabs)");
+        // Lire isProfileComplete depuis le store : il a déjà fusionné le genre local
+        const profileComplete = useAuthStore.getState().isProfileComplete;
+        if (!profileComplete) {
+          router.replace("/(app)/complete-profile");
+        } else {
+          router.replace("/(app)/(tabs)/home");
+        }
       } else {
         setErrorMsg("Connexion échouée. Veuillez redemander un lien de connexion.");
         setStatus("error");

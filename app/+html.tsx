@@ -45,6 +45,10 @@ export default function Root({ children }: { children: React.ReactNode }) {
         {/* ── Icône navigateur (favicon dans public/) ──────────────────── */}
         <link rel="icon" type="image/png" href="/favicon.png" />
 
+        {/* ── Google Identity Services (GIS) ───────────────────────────── */}
+        {/* Chargé en async — ne bloque pas le rendu. Utilisé par login.tsx sur web. */}
+        <script src="https://accounts.google.com/gsi/client" async defer />
+
         {/* ── Protection capture d'écran (web) ─────────────────────────── */}
         {/* Désactive PrintScreen / impression sur les pages de contenu premium */}
         <style dangerouslySetInnerHTML={{ __html: `
