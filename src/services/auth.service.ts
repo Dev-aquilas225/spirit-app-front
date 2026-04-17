@@ -35,6 +35,22 @@ function mapApiUser(u: any, gender?: import('../types/auth.types').Gender): User
 }
 
 export const AuthService = {
+  /**
+   * Connexion / inscription via Google OAuth.
+   * Envoie l'idToken Google au backend qui le vérifie et retourne les JWT Oracle Plus.
+   */
+  async googleSignIn(idToken: string): Promise<ServiceResult<AuthTokens>> {
+    try {
+      const data = await http.post<any>('/auth/google', { idToken });
+      const user = mapApiUser(data.user);
+      await http.saveTokens(data.accessToken, data.refreshToken);
+      await StorageService.set(STORAGE_KEYS.USER, user);
+      return { data: { accessToken: data.accessToken, refreshToken: data.refreshToken, user } };
+    } catch (e) {
+      return { error: (e as ApiError).message };
+    }
+  },
+
   /** Envoyer un magic link par email (inscription ou connexion) */
   async sendMagicLink(email: string): Promise<ServiceResult<boolean>> {
     try {
