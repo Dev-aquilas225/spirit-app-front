@@ -81,16 +81,19 @@ export const PaymentService = {
 
   async getMySubscription(): Promise<Subscription | null> {
     try {
-      const result = await http.get<Partial<Subscription>>('/subscriptions/me');
-      if (!result?.id) return null;
+      // Le backend retourne { isActive: boolean, subscription: {...} | null }
+      const result = await http.get<{ isActive: boolean; subscription: any }>('/subscriptions/me');
+      const sub = result?.subscription;
+      if (!sub?.id) return null;
       return {
-        id: result.id,
-        plan: result.plan ?? 'monthly',
-        status: result.status ?? 'active',
-        startDate: result.startDate ?? new Date().toISOString(),
-        expiryDate: result.expiryDate ?? new Date().toISOString(),
-        autoRenew: result.autoRenew ?? false,
-        amount: result.amount ?? 5000,
+        id: sub.id,
+        plan: sub.plan ?? 'monthly',
+        status: sub.status ?? 'active',
+        startDate: sub.startDate ?? new Date().toISOString(),
+        // Le backend utilise "endDate", le frontend "expiryDate"
+        expiryDate: sub.endDate ?? sub.expiryDate ?? new Date().toISOString(),
+        autoRenew: sub.autoRenew ?? false,
+        amount: sub.amount ?? 5000,
         currency: 'FCFA',
       };
     } catch {
