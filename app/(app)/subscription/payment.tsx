@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { router } from 'expo-router';
 import { CheckCircle, ExternalLink, XCircle } from 'lucide-react-native';
 import { useTheme } from '../../../src/theme';
@@ -8,6 +8,20 @@ import { AppIcon } from '../../../src/components/common/AppIcon';
 import { Button } from '../../../src/components/common/Button';
 
 type Step = 'initiating' | 'waiting' | 'verifying' | 'error';
+
+/**
+ * Ouvre l'URL de paiement Paystack.
+ * - Sur web/PWA : window.open(_blank) pour ne pas détruire l'app
+ * - Sur mobile natif : Linking.openURL (ouvre le navigateur système)
+ */
+async function openPaystackUrl(url: string) {
+  if (Platform.OS === 'web') {
+    window.open(url, '_blank', 'noopener,noreferrer');
+    return;
+  }
+  const { Linking } = await import('react-native');
+  await Linking.openURL(url);
+}
 
 export default function PaymentScreen() {
   const { colors } = useTheme();
@@ -33,7 +47,7 @@ export default function PaymentScreen() {
     setReference(result.reference);
     setAuthUrl(result.authorization_url);
     setStep('waiting');
-    await Linking.openURL(result.authorization_url);
+    await openPaystackUrl(result.authorization_url);
   }
 
   async function handleVerify() {
@@ -96,7 +110,9 @@ export default function PaymentScreen() {
               Paystack est ouvert
             </Text>
             <Text style={[styles.waitSub, { color: colors.textSecondary }]}>
-              Complète le paiement dans le navigateur,{'\n'}puis reviens ici pour confirmer.
+              {Platform.OS === 'web'
+                ? 'Complète le paiement dans le nouvel onglet,\npuis reviens ici pour confirmer.'
+                : 'Complète le paiement dans le navigateur,\npuis reviens ici pour confirmer.'}
             </Text>
           </View>
 
@@ -110,7 +126,7 @@ export default function PaymentScreen() {
           />
 
           <TouchableOpacity
-            onPress={() => authUrl && Linking.openURL(authUrl)}
+            onPress={() => authUrl && openPaystackUrl(authUrl)}
             style={styles.reopenBtn}
           >
             <AppIcon icon={ExternalLink} size={16} color={colors.primary} strokeWidth={2.2} />
