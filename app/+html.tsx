@@ -74,12 +74,6 @@ export default function Root({ children }: { children: React.ReactNode }) {
             overflow: hidden;
             overscroll-behavior: none;
             background-color: #1A1A3E;
-            /* Couvre les safe areas (notch, barre de navigation) */
-            padding-top: env(safe-area-inset-top);
-            padding-bottom: env(safe-area-inset-bottom);
-            padding-left: env(safe-area-inset-left);
-            padding-right: env(safe-area-inset-right);
-            box-sizing: border-box;
           }
           #root {
             height: 100%;

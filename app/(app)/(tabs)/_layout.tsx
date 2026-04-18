@@ -8,12 +8,14 @@ import {
 } from "lucide-react-native";
 import React from "react";
 import { Platform, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useI18n } from "../../../src/i18n";
 import { useTheme } from "../../../src/theme";
 
 export default function TabsLayout() {
   const { colors, isDark } = useTheme();
   const { t } = useI18n();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tabs
@@ -27,8 +29,16 @@ export default function TabsLayout() {
           backgroundColor: colors.tabBar,
           borderTopColor: colors.tabBarBorder,
           borderTopWidth: StyleSheet.hairlineWidth,
-          height: Platform.select({ ios: 88, android: 72, default: 64 }),
-          paddingBottom: Platform.select({ ios: 26, android: 10, default: 8 }),
+          height: Platform.select({
+            ios: 88,
+            android: 72,
+            default: 64 + insets.bottom,
+          }),
+          paddingBottom: Platform.select({
+            ios: 26,
+            android: 10,
+            default: 8 + insets.bottom,
+          }),
           paddingTop: 6,
           // Cross-platform shadow (shadow* deprecated sur web en RN 0.83)
           ...Platform.select({
