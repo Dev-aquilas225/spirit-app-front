@@ -86,6 +86,21 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         });
         // Restaurer les notifications si l'utilisateur les avait activées
         restoreNotificationsIfNeeded();
+        // Rafraîchir le profil depuis le backend en arrière-plan
+        // pour s'assurer que le rôle et subscriptionStatus sont à jour
+        AuthService.getProfile().then((result) => {
+          if (result.data) {
+            const refreshed: User = {
+              ...result.data,
+              ...(storedGender ? { gender: storedGender } : {}),
+              language: language ?? result.data.language,
+            };
+            set({
+              user: refreshed,
+              isProfileComplete: isUserProfileComplete(refreshed),
+            });
+          }
+        }).catch(() => { /* silencieux si pas de réseau */ });
       } else {
         set({ isInitialized: true, isLoading: false });
       }
