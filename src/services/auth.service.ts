@@ -23,7 +23,7 @@ function mapApiUser(u: any, gender?: import('../types/auth.types').Gender): User
     name: [u.firstName, u.lastName].filter(Boolean).join(' ') || 'Utilisateur',
     firstName: u.firstName ?? '',
     lastName: u.lastName ?? '',
-    gender,
+    gender: gender ?? u.gender,   // priorité au param local, sinon valeur backend
     email: u.email ?? '',
     country: u.country ?? 'CI',
     language: u.language ?? 'fr',
@@ -100,7 +100,8 @@ export const AuthService = {
       STORAGE_KEYS.AUTH_TOKEN,
       'refresh_token',
       STORAGE_KEYS.USER,
-      STORAGE_KEYS.USER_GENDER,
+      // USER_GENDER intentionnellement conservé : permet de ne plus afficher
+      // complete-profile quand l'utilisateur se reconnecte sur le même appareil.
       STORAGE_KEYS.SUBSCRIPTION,
       STORAGE_KEYS.AI_USAGE,
       STORAGE_KEYS.AI_CONVERSATIONS,

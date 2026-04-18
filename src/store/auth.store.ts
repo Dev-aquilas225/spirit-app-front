@@ -67,11 +67,13 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       const session = await AuthService.restoreSession();
       if (session) {
         // Lire le genre et la langue stockés localement
-        const gender   = await StorageService.get<Gender>(STORAGE_KEYS.USER_GENDER);
-        const language = await StorageService.get<import('../types/auth.types').Language>(STORAGE_KEYS.LANGUAGE);
+        const storedGender = await StorageService.get<Gender>(STORAGE_KEYS.USER_GENDER);
+        const language     = await StorageService.get<import('../types/auth.types').Language>(STORAGE_KEYS.LANGUAGE);
         const user: User = {
           ...session.user,
-          gender: gender ?? undefined,
+          // Genre local prioritaire ; si absent, conserve celui éventuellement
+          // retourné par le backend (déjà dans session.user via mapApiUser)
+          ...(storedGender ? { gender: storedGender } : {}),
           language: language ?? session.user.language,
         };
         set({
@@ -99,8 +101,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       set({ isLoading: false, error: result.error ?? 'Connexion échouée' });
       return false;
     }
-    const gender = await StorageService.get<Gender>(STORAGE_KEYS.USER_GENDER);
-    const user: User = { ...result.data.user, gender: gender ?? undefined };
+    const storedGender = await StorageService.get<Gender>(STORAGE_KEYS.USER_GENDER);
+    // Priorité : genre local > genre backend (mapApiUser l'a déjà lu via u.gender)
+    const user: User = { ...result.data.user, ...(storedGender ? { gender: storedGender } : {}) };
     set({
       user,
       token: result.data.accessToken,
