@@ -121,6 +121,21 @@ export const PaymentService = {
     }
   },
 
+  /**
+   * Polling : vérifie le statut d'un paiement par sa référence.
+   * Appelé toutes les 4 secondes par payment.tsx jusqu'à active|failed.
+   */
+  async getStatus(reference: string): Promise<{
+    status: 'pending' | 'active' | 'failed' | 'cancelled' | 'expired';
+    subscription?: Subscription;
+  }> {
+    try {
+      return await http.get(`/subscriptions/status/${reference}`);
+    } catch {
+      return { status: 'pending' }; // réseau → on réessaie au prochain tick
+    }
+  },
+
   async cancel(): Promise<{ error?: string }> {
     try {
       await http.delete('/subscriptions/me/cancel');
