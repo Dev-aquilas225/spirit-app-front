@@ -27,7 +27,7 @@ function mapApiUser(u: any, gender?: import('../types/auth.types').Gender): User
     email: u.email ?? '',
     country: u.country ?? 'CI',
     language: u.language ?? 'fr',
-    role: u.role === 'admin' ? 'free' : (u.subscriptionStatus === 'active' ? 'subscriber' : 'free'),
+    role: u.role === 'admin' ? 'admin' : (u.subscriptionStatus === 'active' ? 'subscriber' : 'free'),
     avatar: u.avatar,
     createdAt: u.createdAt,
     referralCode: u.referralCode ?? '',

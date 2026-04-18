@@ -1,4 +1,4 @@
-export type UserRole = 'free' | 'subscriber';
+export type UserRole = 'free' | 'subscriber' | 'admin' | 'user';
 export type Language = 'fr' | 'en' | 'ar';
 export type Gender = 'male' | 'female' | 'other';
 

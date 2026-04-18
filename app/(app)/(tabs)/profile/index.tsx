@@ -448,7 +448,13 @@ export default function ProfileScreen() {
   const [langVisible, setLangVisible] = useState(false);
 
   const langLabel = LANGUAGES.find(l => l.code === user?.language)?.label ?? t.settings.french;
-  const isAdmin = (user?.email ?? '') === (process.env.EXPO_PUBLIC_ADMIN_EMAIL ?? '');
+  // Admin détecté via le rôle JWT (mis par le backend depuis ADMIN_EMAILS)
+  // Fallback : vérification email côté client si le rôle n'est pas encore synchronisé
+  const adminEmails = (process.env.EXPO_PUBLIC_ADMIN_EMAIL ?? '')
+    .split(',').map((e) => e.trim()).filter(Boolean);
+  const isAdmin =
+    user?.role === 'admin' ||
+    adminEmails.includes(user?.email ?? '');
 
   const genderLabels: Record<Gender, string> = {
     male:   t.profile.male,
