@@ -584,7 +584,7 @@ export default function ProfileScreen() {
           </View>
         </TouchableOpacity>
 
-        {/* Admin — Livres (visible uniquement pour l'admin) */}
+        {/* Admin — visible uniquement pour les admins */}
         {isAdmin && (
           <View>
             <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>ADMINISTRATION</Text>
@@ -593,6 +593,11 @@ export default function ProfileScreen() {
                 icon={BookOpen}
                 label="Gérer les livres PDF"
                 onPress={() => router.push('/(app)/books/admin')}
+              />
+              <MenuItem
+                icon={CreditCard}
+                label="Gérer les abonnements"
+                onPress={() => router.push('/(app)/subscription/admin')}
               />
             </Card>
           </View>

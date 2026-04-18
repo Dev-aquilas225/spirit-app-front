@@ -39,6 +39,27 @@ export interface PaymentRecord {
   description: string;
 }
 
+export interface AdminSubscription {
+  id: string;
+  plan: SubscriptionPlan;
+  status: SubscriptionStatus;
+  amount: number;
+  currency: string;
+  startDate: string | null;
+  endDate: string | null;
+  paymentReference: string | null;
+  paymentProvider: string | null;
+  createdAt: string;
+  updatedAt: string;
+  user: {
+    id: string;
+    firstName: string | null;
+    lastName: string | null;
+    email: string | null;
+    phone: string | null;
+  };
+}
+
 export interface InitiateResult {
   subscriptionId: string;
   reference: string;
@@ -133,6 +154,25 @@ export const PaymentService = {
       return await http.get(`/subscriptions/status/${reference}`);
     } catch {
       return { status: 'pending' }; // réseau → on réessaie au prochain tick
+    }
+  },
+
+  // ─── Admin ─────────────────────────────────────────────────────────────
+
+  async adminGetAll(): Promise<AdminSubscription[]> {
+    try {
+      return await http.get<AdminSubscription[]>('/subscriptions/admin/all');
+    } catch {
+      return [];
+    }
+  },
+
+  async adminActivate(subscriptionId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      await http.post(`/subscriptions/admin/activate/${subscriptionId}`, {});
+      return { success: true };
+    } catch (e) {
+      return { success: false, error: (e as ApiError).message };
     }
   },
 
