@@ -56,9 +56,39 @@ export default function Root({ children }: { children: React.ReactNode }) {
         {/* Chargé en async — ne bloque pas le rendu. Utilisé par login.tsx sur web. */}
         <script src="https://accounts.google.com/gsi/client" async defer />
 
-        {/* ── Protection capture d'écran (web) ─────────────────────────── */}
-        {/* Désactive PrintScreen / impression sur les pages de contenu premium */}
+        {/* ── Plein écran PWA + safe areas ─────────────────────────────── */}
+        {/* Empêche l'espace blanc en bas quand l'app est installée en PWA     */}
         <style dangerouslySetInnerHTML={{ __html: `
+          html {
+            height: 100%;
+            height: 100dvh;
+            overflow: hidden;
+            overscroll-behavior: none;
+            background-color: #1A1A3E;
+          }
+          body {
+            height: 100%;
+            height: 100dvh;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            overscroll-behavior: none;
+            background-color: #1A1A3E;
+            /* Couvre les safe areas (notch, barre de navigation) */
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+            padding-left: env(safe-area-inset-left);
+            padding-right: env(safe-area-inset-right);
+            box-sizing: border-box;
+          }
+          #root {
+            height: 100%;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+          }
+          /* Désactive le pull-to-refresh natif sur Android PWA */
+          body { touch-action: pan-x pan-y; }
           @media print {
             body { display: none !important; }
           }
