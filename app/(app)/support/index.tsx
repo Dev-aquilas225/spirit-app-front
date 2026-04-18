@@ -14,7 +14,7 @@ export default function SupportScreen() {
   const { t } = useI18n();
   const supportOptions = [
     { icon: Mail, label: t.support.email, value: 'chingankonggeorges@gmail.com', action: () => Linking.openURL('mailto:chingankonggeorges@gmail.com') },
-    { icon: Phone, label: t.support.whatsapp, value: '+225 07 00 00 00 00', action: () => Linking.openURL('whatsapp://send?phone=22507000000') },
+    { icon: Phone, label: t.support.whatsapp, value: '+225 05 04 67 38 29' , action: () => Linking.openURL('whatsapp://send?phone=22507000000') },
     { icon: MessageCircle, label: t.support.liveChat, value: t.support.available, action: () => {} },
   ] satisfies { icon: LucideIcon; label: string; value: string; action: () => void }[];
 

@@ -117,7 +117,7 @@ export default function AccompagnementDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors, spacing } = useTheme();
   const user = useAuthStore((s) => s.user);
-  const isPremium = user?.role === 'subscriber';
+  const isPremium = user?.role === 'subscriber' || user?.role === 'admin';
 
   const programme = PROGRAMME_DATA[id ?? ''];
   const storageKey = `${STORAGE_KEY_PREFIX}${id}`;

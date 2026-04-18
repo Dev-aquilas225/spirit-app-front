@@ -8,7 +8,7 @@ import { useAuthStore } from '../store/auth.store';
  */
 export function useAIChat() {
   const user = useAuthStore((s) => s.user);
-  const isPremium = user?.role === 'subscriber';
+  const isPremium = user?.role === 'subscriber' || user?.role === 'admin';
 
   const conversations = useAIStore((s) => s.conversations);
   const currentConversation = useAIStore((s) => s.currentConversation);

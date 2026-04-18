@@ -91,7 +91,7 @@ const PROGRAMMES: Programme[] = [
 export default function AccomppagnementsScreen() {
   const { colors, spacing } = useTheme();
   const user = useAuthStore((s) => s.user);
-  const isPremium = user?.role === 'subscriber';
+  const isPremium = user?.role === 'subscriber' || user?.role === 'admin';
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>

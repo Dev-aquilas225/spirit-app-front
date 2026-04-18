@@ -82,7 +82,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
     const user = useAuthStore.getState().user;
     if (!user) return;
 
-    const isPremium = user.role === 'subscriber';
+    const isPremium = user.role === 'subscriber' || user.role === 'admin';
 
     // Créer la conversation si elle n'existe pas
     let conv = currentConversation;
@@ -158,7 +158,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
 
   refreshUsage: async () => {
     const user = useAuthStore.getState().user;
-    const isPremium = user?.role === 'subscriber';
+    const isPremium = user?.role === 'subscriber' || user?.role === 'admin';
     const usage = await AIService.getDailyUsage();
     const remaining = await AIService.getRemainingQuestions(isPremium);
     set({

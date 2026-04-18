@@ -12,7 +12,8 @@ export function usePremiumAccess() {
   const user = useAuthStore((s) => s.user);
   const isActive = useSubscriptionStore((s) => s.isActive);
 
-  const isPremium = user?.role === 'subscriber' && isActive;
+  // Admin = toujours premium ; subscriber = premium si abonnement actif
+  const isPremium = user?.role === 'admin' || (user?.role === 'subscriber' && isActive);
   const isFree = !isPremium;
 
   /**
