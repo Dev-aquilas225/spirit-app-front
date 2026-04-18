@@ -18,7 +18,9 @@ import { EmptyState } from "../../../../src/components/common/EmptyState";
 import { LoadingSpinner } from "../../../../src/components/common/LoadingSpinner";
 import { useAIChat } from "../../../../src/hooks/useAIChat";
 import { useI18n } from "../../../../src/i18n";
+import { useAuthStore } from "../../../../src/store/auth.store";
 import { useTheme } from "../../../../src/theme";
+import { FadeInView } from "../../../../src/components/common/FadeInView";
 import { AIConversation } from "../../../../src/types/content.types";
 import { FREE_AI_DAILY_LIMIT } from "../../../../src/utils/constants";
 import { formatDate, truncateText } from "../../../../src/utils/helpers";
@@ -28,6 +30,8 @@ type AIView = "chat" | "history";
 export default function AIScreen() {
   const { colors, spacing } = useTheme();
   const { t } = useI18n();
+  const user = useAuthStore((s) => s.user);
+  const firstName = user?.firstName?.trim() || user?.name?.split(" ")[0] || "";
   const [view, setView] = useState<AIView>("chat");
 
   const {
@@ -178,7 +182,7 @@ export default function AIScreen() {
   // ─── Vue Historique ───────────────────────────────────────────────────────
   if (view === "history") {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <FadeInView style={{ backgroundColor: colors.background }}>
         {HeaderBlock}
         {conversations.length === 0 ? (
           <EmptyState
@@ -201,7 +205,11 @@ export default function AIScreen() {
             keyExtractor={(item) => item.id}
             contentContainerStyle={{ padding: spacing.base }}
             renderItem={({ item }) => {
-              const lastMsg = item.messages[item.messages.length - 1];
+              // Titre = premier message de l'utilisateur (champ title envoyé par le backend)
+              const preview =
+                (item as any).title?.trim() ||
+                item.messages.find((m) => m.role === "user")?.content?.trim() ||
+                item.messages[0]?.content?.trim();
               return (
                 <TouchableOpacity
                   onPress={() => {
@@ -233,8 +241,8 @@ export default function AIScreen() {
                         fontSize: 14,
                       }}
                     >
-                      {lastMsg
-                        ? truncateText(lastMsg.content, 50)
+                      {preview
+                        ? truncateText(preview, 50)
                         : t.ai.newConversation}
                     </Text>
                     <Text
@@ -252,13 +260,13 @@ export default function AIScreen() {
             }}
           />
         )}
-      </View>
+      </FadeInView>
     );
   }
 
   // ─── Vue Chat ─────────────────────────────────────────────────────────────
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <FadeInView style={{ backgroundColor: colors.background }}>
       {HeaderBlock}
       {/* Le guide spirituel est sans limite — LimitBanner désactivé */}
 
@@ -275,7 +283,7 @@ export default function AIScreen() {
             />
           </View>
           <Text style={[s.emptyTitle, { color: colors.text }]}>
-            {t.ai.emptyChatTitle}
+            {firstName ? `Bonjour ${firstName}, comment vas-tu ?` : t.ai.emptyChatTitle}
           </Text>
           <Text style={[s.emptySub, { color: colors.textSecondary }]}>
             {t.ai.emptyChatSubtitle}
@@ -344,7 +352,7 @@ export default function AIScreen() {
             : t.ai.inputPlaceholder
         }
       />
-    </View>
+    </FadeInView>
   );
 }
 

@@ -652,6 +652,35 @@ const fr = {
     price2: 'FCFA/mois',
     compact: 'Passer Premium — 5 000 FCFA/mois',
   },
+
+  prophetPage: {
+    badge: 'Fondateur · Oracle Plus',
+    cardLabel: 'Découvrir le prophète',
+    cardDesc: "Fondateur · Arche d'Alliance Éternelle",
+    sectionPresence: 'Présence internationale',
+    sectionBio: 'Biographie',
+    readMore: 'Lire la biographie complète',
+    readLess: 'Voir moins',
+    highlights: [
+      { label: 'Fondateur',          value: "Arche d'Alliance Éternelle" },
+      { label: 'Présence',           value: '6 nations' },
+      { label: 'Conférencier',       value: 'International' },
+      { label: 'Auteur',             value: 'Ouvrages spirituels' },
+      { label: "Chef d'entreprise",  value: 'Plusieurs structures' },
+      { label: 'Famille',            value: 'Époux & père dévoué' },
+    ],
+    nations: ['Cameroun', "Côte d'Ivoire", 'Belgique', 'Allemagne', 'Canada', 'États-Unis'],
+    bio: [
+      `Le Prophète Georges Tchingankong est une figure spirituelle influente, reconnue pour la profondeur de son ministère et la portée internationale de son œuvre. Fondateur des Églises Arche d'Alliance Éternelle, il porte une vision divine qui s'étend aujourd'hui à plusieurs nations, notamment le Cameroun, la Côte d'Ivoire, la Belgique, l'Allemagne, le Canada et les États-Unis.`,
+      `Homme de révélation et de discernement, il consacre sa vie à l'enseignement des mystères spirituels, à la restauration des âmes et à l'accompagnement prophétique des destinées. Son ministère est marqué par une dimension d'impact, de transformation et de puissance, attirant des hommes et des femmes en quête de vérité, de délivrance et d'élévation spirituelle.`,
+      `En parallèle de son appel spirituel, le Prophète Georges Tchingankong est également un conférencier international, intervenant sur des thématiques liées à la spiritualité, au leadership et au développement personnel. Sa parole, à la fois profonde et accessible, inspire et éveille les consciences dans divers contextes.`,
+      `Auteur engagé, il a écrit plusieurs ouvrages spirituels destinés à équiper, libérer et fortifier ceux qui aspirent à une vie de victoire et de révélation. À travers ses écrits, il transmet des clés pratiques et des enseignements puissants, issus de son expérience et de sa marche avec Dieu.`,
+      `Chef d'entreprise accompli, il est également à la tête de plusieurs structures, alliant vision spirituelle et intelligence stratégique dans le monde des affaires. Il incarne ainsi un modèle d'équilibre entre foi et réussite, ministère et leadership.`,
+      `Sur le plan personnel, il est un homme de famille, époux engagé et père dévoué. Il accorde une importance particulière aux valeurs familiales, qu'il considère comme le fondement d'une destinée stable et accomplie.`,
+      `Le Prophète Georges Tchingankong se distingue par une mission claire : élever une génération consciente de son identité spirituelle, capable de manifester la puissance de Dieu et d'impacter le monde avec sagesse, autorité et intégrité.`,
+    ],
+    quote: `Élever une génération consciente de son identité spirituelle, capable de manifester la puissance de Dieu et d'impacter le monde avec sagesse, autorité et intégrité.`,
+  },
 } as const;
 
 export default fr;

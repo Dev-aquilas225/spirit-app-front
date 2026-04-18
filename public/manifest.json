@@ -1,7 +1,7 @@
 {
   "name": "Oracle Plus",
   "short_name": "Oracle+",
-  "description": "Votre compagnon spirituel — Prières, IA, Livres et Formations",
+  "description": "Votre compagnon spirituel — Prières, Livres et Formations",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -47,8 +47,8 @@
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Guide spirituel IA",
-      "short_name": "Guide IA",
+      "name": "Guide spirituel",
+      "short_name": "Guide",
       "description": "Poser une question spirituelle",
       "url": "/",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]

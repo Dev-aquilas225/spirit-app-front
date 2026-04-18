@@ -1,8 +1,27 @@
 import { create } from 'zustand';
+import { Platform } from 'react-native';
 import { User, Gender } from '../types/auth.types';
 import { AuthService } from '../services/auth.service';
 import { StorageService } from '../services/storage.service';
 import { STORAGE_KEYS } from '../utils/constants';
+
+/** Re-planifie les notifications si l'utilisateur les avait activées */
+async function restoreNotificationsIfNeeded(): Promise<void> {
+  try {
+    const enabled = await StorageService.get<boolean>(STORAGE_KEYS.NOTIFICATIONS_ENABLED);
+    if (!enabled) return;
+    // Import dynamique pour éviter les problèmes SSR / web
+    if (Platform.OS === 'web') {
+      const { NotificationService } = await import('../services/notification.service.web');
+      await NotificationService.scheduleDailyNotifications();
+    } else {
+      const { NotificationService } = await import('../services/notification.service');
+      await NotificationService.scheduleDailyNotifications();
+    }
+  } catch {
+    // Silencieux — les notifications ne bloquent pas la session
+  }
+}
 
 /** Profil considéré complet si firstName + lastName + genre sont renseignés */
 export function isUserProfileComplete(user: User | null): boolean {
@@ -63,6 +82,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           isInitialized: true,
           isLoading: false,
         });
+        // Restaurer les notifications si l'utilisateur les avait activées
+        restoreNotificationsIfNeeded();
       } else {
         set({ isInitialized: true, isLoading: false });
       }

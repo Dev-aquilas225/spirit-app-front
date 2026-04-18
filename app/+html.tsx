@@ -36,11 +36,18 @@ export default function Root({ children }: { children: React.ReactNode }) {
         <link rel="apple-touch-startup-image" href="/splash-icon.png" />
 
         {/* ── SEO / Open Graph ─────────────────────────────────────────── */}
-        <meta name="description" content="Votre compagnon spirituel — Prières, IA, Livres et Formations" />
+        <meta name="description" content="Votre compagnon spirituel — Prières, Livres et Formations" />
         <meta property="og:title" content="Oracle Plus" />
-        <meta property="og:description" content="Votre compagnon spirituel — Prières, IA, Livres et Formations" />
-        <meta property="og:image" content="/icon.png" />
+        <meta property="og:description" content="Votre compagnon spirituel — Prières, Livres et Formations" />
+        <meta property="og:image" content="/og-image.png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
         <meta property="og:type" content="website" />
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Oracle Plus" />
+        <meta name="twitter:description" content="Votre compagnon spirituel — Prières, Livres et Formations" />
+        <meta name="twitter:image" content="/og-image.png" />
 
         {/* ── Icône navigateur (favicon dans public/) ──────────────────── */}
         <link rel="icon" type="image/png" href="/favicon.png" />

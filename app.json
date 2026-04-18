@@ -28,7 +28,7 @@
       "favicon": "./assets/images/favicon.png",
       "bundler": "metro",
       "meta": {
-        "description": "Votre compagnon spirituel - Prières, IA, Livres et Formations",
+        "description": "Votre compagnon spirituel — Prières, Livres et Formations",
         "author": "Oracle Plus",
         "themeColor": "#C9A84C",
         "appleMobileWebAppCapable": "yes",

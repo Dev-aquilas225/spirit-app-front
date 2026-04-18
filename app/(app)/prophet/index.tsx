@@ -11,29 +11,9 @@ import { Globe, BookOpen, Mic, Building2, Heart, Church, User } from 'lucide-rea
 import { AppIcon } from '../../../src/components/common/AppIcon';
 import { BackButton } from '../../../src/components/common/BackButton';
 import { useTheme } from '../../../src/theme';
+import { useI18n } from '../../../src/i18n';
 
-/* ─── Données ────────────────────────────────────────────────────────────────── */
-
-const NATIONS = ['Cameroun', 'Côte d\'Ivoire', 'Belgique', 'Allemagne', 'Canada', 'États-Unis'];
-
-const HIGHLIGHTS = [
-  { icon: Church,   label: 'Fondateur',    value: 'Arche d\'Alliance Éternelle' },
-  { icon: Globe,    label: 'Présence',     value: '6 nations' },
-  { icon: Mic,      label: 'Conférencier', value: 'International' },
-  { icon: BookOpen, label: 'Auteur',       value: 'Ouvrages spirituels' },
-  { icon: Building2,label: 'Chef d\'entreprise', value: 'Plusieurs structures' },
-  { icon: Heart,    label: 'Famille',      value: 'Époux & père dévoué' },
-];
-
-const BIO_PARAGRAPHS = [
-  `Le Prophète Georges Tchingankong est une figure spirituelle influente, reconnue pour la profondeur de son ministère et la portée internationale de son œuvre. Fondateur des Églises Arche d'Alliance Éternelle, il porte une vision divine qui s'étend aujourd'hui à plusieurs nations, notamment le Cameroun, la Côte d'Ivoire, la Belgique, l'Allemagne, le Canada et les États-Unis.`,
-  `Homme de révélation et de discernement, il consacre sa vie à l'enseignement des mystères spirituels, à la restauration des âmes et à l'accompagnement prophétique des destinées. Son ministère est marqué par une dimension d'impact, de transformation et de puissance, attirant des hommes et des femmes en quête de vérité, de délivrance et d'élévation spirituelle.`,
-  `En parallèle de son appel spirituel, le Prophète Georges Tchingankong est également un conférencier international, intervenant sur des thématiques liées à la spiritualité, au leadership et au développement personnel. Sa parole, à la fois profonde et accessible, inspire et éveille les consciences dans divers contextes.`,
-  `Auteur engagé, il a écrit plusieurs ouvrages spirituels destinés à équiper, libérer et fortifier ceux qui aspirent à une vie de victoire et de révélation. À travers ses écrits, il transmet des clés pratiques et des enseignements puissants, issus de son expérience et de sa marche avec Dieu.`,
-  `Chef d'entreprise accompli, il est également à la tête de plusieurs structures, alliant vision spirituelle et intelligence stratégique dans le monde des affaires. Il incarne ainsi un modèle d'équilibre entre foi et réussite, ministère et leadership.`,
-  `Sur le plan personnel, il est un homme de famille, époux engagé et père dévoué. Il accorde une importance particulière aux valeurs familiales, qu'il considère comme le fondement d'une destinée stable et accomplie.`,
-  `Le Prophète Georges Tchingankong se distingue par une mission claire : élever une génération consciente de son identité spirituelle, capable de manifester la puissance de Dieu et d'impacter le monde avec sagesse, autorité et intégrité.`,
-];
+const HIGHLIGHT_ICONS = [Church, Globe, Mic, BookOpen, Building2, Heart];
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const PROPHET_IMG = (() => { try { return require('../../../assets/images/prophet.jpg'); } catch { return null; } })();
@@ -42,11 +22,12 @@ const PROPHET_IMG = (() => { try { return require('../../../assets/images/prophe
 
 export default function ProphetScreen() {
   const { colors, spacing } = useTheme();
+  const { t } = useI18n();
   const [expanded, setExpanded] = useState(false);
   const [imgError, setImgError] = useState(false);
 
-  // Afficher les 2 premiers paragraphes par défaut, tout si expanded
-  const visibleParagraphs = expanded ? BIO_PARAGRAPHS : BIO_PARAGRAPHS.slice(0, 2);
+  const bioParagraphs: string[] = t.prophetPage.bio;
+  const visibleParagraphs = expanded ? bioParagraphs : bioParagraphs.slice(0, 2);
 
   return (
     <ScrollView
@@ -81,7 +62,7 @@ export default function ProphetScreen() {
           <Text style={styles.heroTitle}>Prophète Georges</Text>
           <Text style={styles.heroSubtitle}>Tchingankong</Text>
           <View style={styles.heroBadge}>
-            <Text style={styles.heroBadgeText}>Fondateur · Oracle Plus</Text>
+            <Text style={styles.heroBadgeText}>{t.prophetPage.badge}</Text>
           </View>
         </View>
       </View>
@@ -90,12 +71,12 @@ export default function ProphetScreen() {
 
         {/* ── Highlights ── */}
         <View style={styles.highlightsGrid}>
-          {HIGHLIGHTS.map((h) => (
+          {t.prophetPage.highlights.map((h, i) => (
             <View
               key={h.label}
               style={[styles.highlightCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
             >
-              <AppIcon icon={h.icon} size={20} color="#C9A84C" strokeWidth={2} />
+              <AppIcon icon={HIGHLIGHT_ICONS[i]} size={20} color="#C9A84C" strokeWidth={2} />
               <Text style={[styles.highlightValue, { color: colors.text }]}>{h.value}</Text>
               <Text style={[styles.highlightLabel, { color: colors.textSecondary }]}>{h.label}</Text>
             </View>
@@ -104,9 +85,9 @@ export default function ProphetScreen() {
 
         {/* ── Nations ── */}
         <View>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Présence internationale</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t.prophetPage.sectionPresence}</Text>
           <View style={styles.nationsRow}>
-            {NATIONS.map((n) => (
+            {t.prophetPage.nations.map((n) => (
               <View
                 key={n}
                 style={[styles.nationChip, { backgroundColor: colors.surface, borderColor: colors.border }]}
@@ -119,7 +100,7 @@ export default function ProphetScreen() {
 
         {/* ── Biographie ── */}
         <View>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Biographie</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t.prophetPage.sectionBio}</Text>
           <View style={{ gap: 14 }}>
             {visibleParagraphs.map((para, i) => (
               <Text key={i} style={[styles.bioText, { color: colors.textSecondary }]}>
@@ -133,7 +114,7 @@ export default function ProphetScreen() {
             style={[styles.readMoreBtn, { borderColor: '#C9A84C' }]}
           >
             <Text style={{ color: '#C9A84C', fontWeight: '700', fontSize: 14 }}>
-              {expanded ? 'Voir moins' : 'Lire la biographie complète'}
+              {expanded ? t.prophetPage.readLess : t.prophetPage.readMore}
             </Text>
           </TouchableOpacity>
         </View>
@@ -141,9 +122,7 @@ export default function ProphetScreen() {
         {/* ── Citation ── */}
         <View style={[styles.quoteCard, { backgroundColor: '#1A1A3E' }]}>
           <Text style={styles.quoteIcon}>"</Text>
-          <Text style={styles.quoteText}>
-            Élever une génération consciente de son identité spirituelle, capable de manifester la puissance de Dieu et d'impacter le monde avec sagesse, autorité et intégrité.
-          </Text>
+          <Text style={styles.quoteText}>{t.prophetPage.quote}</Text>
           <Text style={styles.quoteAuthor}>— Prophète Georges Tchingankong</Text>
         </View>
 

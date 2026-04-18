@@ -574,9 +574,9 @@ export default function ProfileScreen() {
               <ProphetThumb />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.prophetLabel}>Découvrir le prophète</Text>
+              <Text style={styles.prophetLabel}>{t.prophetPage.cardLabel}</Text>
               <Text style={styles.prophetName}>Georges Tchingankong</Text>
-              <Text style={styles.prophetDesc}>Fondateur · Arche d'Alliance Éternelle</Text>
+              <Text style={styles.prophetDesc}>{t.prophetPage.cardDesc}</Text>
             </View>
           </View>
           <View style={styles.prophetArrow}>

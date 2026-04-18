@@ -626,6 +626,35 @@ const en: Translations = {
     price2: 'FCFA/month',
     compact: 'Go Premium — 5,000 FCFA/month',
   },
+
+  prophetPage: {
+    badge: 'Founder · Oracle Plus',
+    cardLabel: 'Discover the prophet',
+    cardDesc: 'Founder · Ark of Eternal Covenant',
+    sectionPresence: 'International Presence',
+    sectionBio: 'Biography',
+    readMore: 'Read full biography',
+    readLess: 'Show less',
+    highlights: [
+      { label: 'Founder',       value: 'Ark of Eternal Covenant' },
+      { label: 'Presence',      value: '6 nations' },
+      { label: 'Speaker',       value: 'International' },
+      { label: 'Author',        value: 'Spiritual works' },
+      { label: 'Entrepreneur',  value: 'Multiple ventures' },
+      { label: 'Family',        value: 'Devoted husband & father' },
+    ],
+    nations: ['Cameroon', "Côte d'Ivoire", 'Belgium', 'Germany', 'Canada', 'United States'],
+    bio: [
+      `Prophet Georges Tchingankong is an influential spiritual figure, recognized for the depth of his ministry and the international reach of his work. Founder of the Ark of Eternal Covenant Churches, he carries a divine vision that now spans several nations, including Cameroon, Côte d'Ivoire, Belgium, Germany, Canada and the United States.`,
+      `A man of revelation and discernment, he devotes his life to teaching spiritual mysteries, restoring souls and providing prophetic guidance for destinies. His ministry is marked by a dimension of impact, transformation and power, drawing men and women in search of truth, deliverance and spiritual elevation.`,
+      `Alongside his spiritual calling, Prophet Georges Tchingankong is also an international speaker, addressing themes related to spirituality, leadership and personal development. His word, both profound and accessible, inspires and awakens consciousness in various contexts.`,
+      `A committed author, he has written several spiritual works designed to equip, liberate and strengthen those who aspire to a life of victory and revelation. Through his writings, he transmits practical keys and powerful teachings drawn from his experience and walk with God.`,
+      `An accomplished entrepreneur, he also leads several organizations, combining spiritual vision and strategic intelligence in the business world. He embodies a model of balance between faith and success, ministry and leadership.`,
+      `On a personal level, he is a family man, a devoted husband and father. He places great importance on family values, which he considers the foundation of a stable and fulfilled destiny.`,
+      `Prophet Georges Tchingankong is distinguished by a clear mission: to raise a generation conscious of its spiritual identity, capable of manifesting God's power and impacting the world with wisdom, authority and integrity.`,
+    ],
+    quote: `Raising a generation conscious of its spiritual identity, capable of manifesting God's power and impacting the world with wisdom, authority and integrity.`,
+  },
 };
 
 export default en;

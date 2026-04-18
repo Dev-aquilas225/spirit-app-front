@@ -71,6 +71,7 @@ export interface AIMessage {
 export interface AIConversation {
   id: string;
   userId: string;
+  title?: string;       // premier message utilisateur — sert de titre dans l'historique
   messages: AIMessage[];
   createdAt: string;
   updatedAt: string;

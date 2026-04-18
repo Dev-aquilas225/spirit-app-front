@@ -47,11 +47,8 @@ function extractMessageText(value: unknown): string {
     if (nestedResponse) return nestedResponse;
   }
 
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return '';
-  }
+  // Dernier recours : ne pas afficher de JSON brut à l'utilisateur
+  return '';
 }
 
 function normalizeRole(role: unknown, fallback: AIMessage['role'] = 'assistant'): AIMessage['role'] {
@@ -97,6 +94,7 @@ function normalizeConversation(rawConversation: unknown, userId: string): AIConv
           ? conversation.conversationId
           : generateId(),
     userId,
+    title: typeof conversation.title === 'string' ? conversation.title : undefined,
     messages: messageSource
       .map((message) => normalizeMessage(message))
       .filter((message) => message.content.length > 0),
