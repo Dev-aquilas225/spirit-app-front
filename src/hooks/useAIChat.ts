@@ -2,11 +2,13 @@ import { useEffect } from 'react';
 import { useAIStore } from '../store/ai.store';
 import { useAuthStore } from '../store/auth.store';
 
+export type AIChatType = 'prophet' | 'consultation' | 'accompagnement' | 'dream';
+
 /**
  * Hook pour le chat IA.
- * Gère les conversations et la limite d'usage.
+ * @param chatType — service utilisé : 'prophet' (conseil), 'consultation', 'accompagnement', 'dream'
  */
-export function useAIChat() {
+export function useAIChat(chatType: AIChatType = 'prophet') {
   const user = useAuthStore((s) => s.user);
   const isPremium = user?.role === 'subscriber' || user?.role === 'admin';
 
@@ -21,7 +23,9 @@ export function useAIChat() {
   const loadConversations = useAIStore((s) => s.loadConversations);
   const startNewConversation = useAIStore((s) => s.startNewConversation);
   const loadConversation = useAIStore((s) => s.loadConversation);
-  const sendMessage = useAIStore((s) => s.sendMessage);
+  const _sendMessage = useAIStore((s) => s.sendMessage);
+  // Wrapper qui injecte le chatType du service courant
+  const sendMessage = (content: string) => _sendMessage(content, chatType);
   const deleteConversation = useAIStore((s) => s.deleteConversation);
   const refreshUsage = useAIStore((s) => s.refreshUsage);
 

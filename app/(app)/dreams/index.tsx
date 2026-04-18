@@ -6,10 +6,10 @@ import { AppIcon } from "../../../src/components/common/AppIcon";
 import { BackButton } from "../../../src/components/common/BackButton";
 import { Button } from "../../../src/components/common/Button";
 import { Card } from "../../../src/components/common/Card";
-import { getMockAIResponse } from "../../../src/data/messages.data";
+import { AIService } from "../../../src/services/ai.service";
 import { useI18n } from "../../../src/i18n";
 import { useTheme } from "../../../src/theme";
-import { formatDate, simulateApiDelay } from "../../../src/utils/helpers";
+import { formatDate } from "../../../src/utils/helpers";
 
 interface DreamResult {
   description: string;
@@ -27,11 +27,10 @@ function DreamsContent() {
   async function handleInterpret() {
     if (!dream.trim() || dream.trim().length < 20) return;
     setLoading(true);
-    await simulateApiDelay(2000);
-    const interpretation = getMockAIResponse(`dream: ${dream}`);
+    const { message } = await AIService.interpretDream(dream.trim());
     setResult({
       description: dream,
-      interpretation,
+      interpretation: message.content || "Une erreur s'est produite. Réessaie.",
       date: new Date().toISOString(),
     });
     setLoading(false);

@@ -4,20 +4,24 @@ import { router } from 'expo-router';
 import { useTheme } from '../../../src/theme';
 import { Button } from '../../../src/components/common/Button';
 import { BackButton } from '../../../src/components/common/BackButton';
-import { simulateApiDelay, generateId } from '../../../src/utils/helpers';
-import { StorageService } from '../../../src/services/storage.service';
+import { useAIStore } from '../../../src/store/ai.store';
 import { useAuth } from '../../../src/hooks/useAuth';
 import { useI18n } from '../../../src/i18n';
-import { Consultation } from '../../../src/types/content.types';
+import { AIService } from '../../../src/services/ai.service';
 
 export default function ConsultationFormScreen() {
   const { colors, spacing } = useTheme();
   const { user } = useAuth();
   const { t } = useI18n();
   const [topic, setTopic] = useState('');
+  const [name, setName] = useState('');
+  const [birthDate, setBirthDate] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const topics = [...t.consultation.topics];
+
+  const startNewConversation = useAIStore((s) => s.startNewConversation);
+  const sendMessage = useAIStore((s) => s.sendMessage);
 
   async function handleSubmit() {
     if (!topic || !message.trim()) {
@@ -26,27 +30,21 @@ export default function ConsultationFormScreen() {
     }
 
     setLoading(true);
-    await simulateApiDelay(1500);
 
-    const consultation: Consultation = {
-      id: generateId(),
-      userId: user?.id ?? '',
-      topic,
-      message: message.trim(),
-      preferredDate: new Date().toISOString(),
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-    };
+    // Préparer le premier message avec toutes les infos
+    const parts = [`Sujet : ${topic}`];
+    if (name.trim()) parts.push(`Mon nom : ${name.trim()}`);
+    if (birthDate.trim()) parts.push(`Ma date de naissance : ${birthDate.trim()}`);
+    parts.push(`Ma situation : ${message.trim()}`);
+    const firstMessage = parts.join('\n');
 
-    const existing = await StorageService.get<Consultation[]>('consultations') ?? [];
-    await StorageService.set('consultations', [...existing, consultation]);
+    // Démarrer une nouvelle conversation puis envoyer avec le bon chatType
+    await startNewConversation();
+    await sendMessage(firstMessage, 'consultation');
 
     setLoading(false);
-    Alert.alert(
-      t.consultation.sentTitle,
-      t.consultation.sentMsg,
-      [{ text: t.common.ok, onPress: () => router.replace('/(app)/consultation/my-consultations') }],
-    );
+    // Naviguer vers le chat IA pour continuer la consultation
+    router.replace('/(app)/(tabs)/ai');
   }
 
   return (

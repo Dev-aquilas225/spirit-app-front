@@ -135,12 +135,13 @@ export const AIService = {
     conversationId: string | undefined,
     question: string,
     isPremium: boolean,
+    chatType: 'prophet' | 'consultation' | 'accompagnement' | 'dream' = 'prophet',
   ): Promise<{ message: AIMessage; conversationId?: string; error?: string }> {
 
     try {
       const data = await http.post<unknown>('/ai/chat', {
         message: question,
-        chatType: 'prophet',
+        chatType,
         conversationId,
       });
 

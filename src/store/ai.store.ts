@@ -17,7 +17,7 @@ interface AIStore {
   loadConversations: () => Promise<void>;
   startNewConversation: () => Promise<void>;
   loadConversation: (id: string) => Promise<void>;
-  sendMessage: (content: string) => Promise<void>;
+  sendMessage: (content: string, chatType?: 'prophet' | 'consultation' | 'accompagnement' | 'dream') => Promise<void>;
   deleteConversation: (id: string) => Promise<void>;
   refreshUsage: () => Promise<void>;
 }
@@ -77,7 +77,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
     }));
   },
 
-  sendMessage: async (content) => {
+  sendMessage: async (content, chatType = 'prophet') => {
     const { currentConversation } = get();
     const user = useAuthStore.getState().user;
     if (!user) return;
@@ -118,7 +118,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
       message: aiMessage,
       conversationId: resolvedConversationId,
       error,
-    } = await AIService.sendMessage(conv.id, content, isPremium);
+    } = await AIService.sendMessage(conv.id, content, isPremium, chatType);
 
     // Ajouter la réponse IA
     const finalConv: AIConversation = {
