@@ -33,6 +33,7 @@ import { LoadingSpinner } from '../../../../src/components/common/LoadingSpinner
 import { LibraryService, type LibraryBook } from '../../../../src/services/library.service';
 import { StorageService } from '../../../../src/services/storage.service';
 import { STORAGE_KEYS } from '../../../../src/utils/constants';
+import { PdfViewer } from '../../../../src/components/pdf/PdfViewer';
 
 type LibraryView = 'list' | 'detail' | 'reader';
 
@@ -116,7 +117,8 @@ function LibraryContent() {
   const [readerLoading, setReaderLoading] = useState(false);
   const [readerError, setReaderError] = useState<string | null>(null);
   const [readerToken, setReaderToken] = useState<string | null>(null);
-  const [readerWebUrl, setReaderWebUrl] = useState<string | null>(null);
+  // Web PWA : ArrayBuffer du PDF (rendu par PdfViewer, pas de download possible)
+  const [readerPdfBuffer, setReaderPdfBuffer] = useState<ArrayBuffer | null>(null);
   const [readerAttempt, setReaderAttempt] = useState(0);
   const [reloadNonce, setReloadNonce] = useState(0);
 
@@ -201,22 +203,10 @@ function LibraryContent() {
             throw new Error(`Erreur ${response.status}`);
           }
 
-          const blob = await response.blob();
-          // Forcer le type application/pdf pour Android Chrome
-          const pdfBlob = new Blob([blob], { type: 'application/pdf' });
-          const nextUrl = URL.createObjectURL(pdfBlob);
-
-          if (isCancelled) {
-            URL.revokeObjectURL(nextUrl);
-            return;
-          }
-
-          setReaderWebUrl((previousUrl) => {
-            if (previousUrl) {
-              URL.revokeObjectURL(previousUrl);
-            }
-            return nextUrl;
-          });
+          // ArrayBuffer → rendu canvas via PdfViewer (aucun bouton de téléchargement)
+          const buffer = await response.arrayBuffer();
+          if (isCancelled) return;
+          setReaderPdfBuffer(buffer);
         } catch (error) {
           if (!isCancelled) {
             setReaderError(
@@ -247,14 +237,6 @@ function LibraryContent() {
     };
   }, [language, readerAttempt, t.library.pdfLoadError, t.library.sessionExpired, view, selectedBook]);
 
-  useEffect(() => {
-    return () => {
-      if (readerWebUrl) {
-        URL.revokeObjectURL(readerWebUrl);
-      }
-    };
-  }, [readerWebUrl]);
-
   function openDetail(book: LibraryBook) {
     setSelectedBook(book);
     setView('detail');
@@ -264,12 +246,7 @@ function LibraryContent() {
     setReaderToken(null);
     setReaderError(null);
     setReaderLoading(false);
-    setReaderWebUrl((previousUrl) => {
-      if (previousUrl) {
-        URL.revokeObjectURL(previousUrl);
-      }
-      return null;
-    });
+    setReaderPdfBuffer(null);
     setView('detail');
   }
 
@@ -323,37 +300,12 @@ function LibraryContent() {
             onAction={() => setReaderAttempt((currentAttempt) => currentAttempt + 1)}
           />
         ) : Platform.OS === 'web' ? (
-          readerWebUrl ? (
-            // Sur web/PWA : embed + lien fallback pour Android Chrome
+          readerPdfBuffer ? (
+            // PWA : rendu canvas via PDF.js — aucun bouton de téléchargement
             React.createElement(
               'div',
-              { style: { flex: 1, display: 'flex', flexDirection: 'column', width: '100%', height: '100%' } },
-              React.createElement('embed', {
-                src: readerWebUrl,
-                type: 'application/pdf',
-                style: { flex: 1, width: '100%', height: '100%', border: 'none' },
-              }),
-              // Lien de secours visible sur Android Chrome qui n'affiche pas les PDF en embed/iframe
-              React.createElement(
-                'a',
-                {
-                  href: readerWebUrl,
-                  target: '_blank',
-                  rel: 'noopener noreferrer',
-                  download: `${selectedBook.title}.pdf`,
-                  style: {
-                    display: 'block',
-                    textAlign: 'center',
-                    padding: '10px',
-                    background: '#7C3AED',
-                    color: '#fff',
-                    fontWeight: '600',
-                    fontSize: 14,
-                    textDecoration: 'none',
-                  },
-                },
-                '📖 Ouvrir / Télécharger le PDF'
-              )
+              { style: { flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' } },
+              React.createElement(PdfViewer, { pdfData: readerPdfBuffer }),
             )
           ) : (
             <LoadingSpinner fullScreen message={t.library.readerPreparing} />

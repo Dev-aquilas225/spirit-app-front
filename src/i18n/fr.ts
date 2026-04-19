@@ -352,7 +352,7 @@ const fr = {
     featureName: 'Consultations',
     formTitle: 'Demande de consultation',
     formSubtitle:
-      'Remplissez ce formulaire et nous vous recontactons dans les 24h',
+      'Remplissez ce formulaire et nous vous repondrons tout de suite',
     topicLabel: 'Sujet de consultation *',
     needLabel: 'Décrivez votre besoin *',
     needPh: 'Décrivez votre situation en détail...',

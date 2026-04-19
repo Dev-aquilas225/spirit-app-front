@@ -38,6 +38,7 @@ import { LoadingSpinner } from '../../../src/components/common/LoadingSpinner';
 import { FormationsService, type Formation, type Lesson } from '../../../src/services/formations.service';
 import { StorageService } from '../../../src/services/storage.service';
 import { STORAGE_KEYS } from '../../../src/utils/constants';
+import { PdfViewer } from '../../../src/components/pdf/PdfViewer';
 
 type FormationsView = 'list' | 'detail' | 'reader';
 
@@ -329,6 +330,8 @@ function FormationsContent() {
   const [readerLoading, setReaderLoading] = useState(false);
   const [readerError, setReaderError] = useState<string | null>(null);
   const [readerToken, setReaderToken] = useState<string | null>(null);
+  // Web PWA : PDF → ArrayBuffer (canvas, pas de téléchargement) ; image/vidéo → blob URL
+  const [readerPdfBuffer, setReaderPdfBuffer] = useState<ArrayBuffer | null>(null);
   const [readerWebUrl, setReaderWebUrl] = useState<string | null>(null);
   const [readerAttempt, setReaderAttempt] = useState(0);
 
@@ -398,7 +401,7 @@ function FormationsContent() {
 
       const fileType = lesson.fileType;
 
-      // Sur WEB : fetch le fichier → blob URL
+      // Sur WEB : PDF → ArrayBuffer (PdfViewer canvas) ; image/vidéo → blob URL
       if (Platform.OS === 'web' && fileType && fileType !== 'text') {
         try {
           const fileUrl = FormationsService.getLessonFileUrl(formation.id, lesson.id);
@@ -407,20 +410,20 @@ function FormationsContent() {
           });
           if (!response.ok) throw new Error(`Erreur ${response.status}`);
 
-          const blob = await response.blob();
-          const mimeType = lesson.mimeType ?? getMimeFromFileType(fileType);
-          const typedBlob = new Blob([blob], { type: mimeType });
-          const url = URL.createObjectURL(typedBlob);
-
-          if (isCancelled) {
-            URL.revokeObjectURL(url);
-            return;
+          if (fileType === 'pdf') {
+            // PDF : ArrayBuffer → PdfViewer (canvas, aucun bouton téléchargement)
+            const buffer = await response.arrayBuffer();
+            if (isCancelled) return;
+            setReaderPdfBuffer(buffer);
+          } else {
+            // Image / Vidéo : blob URL
+            const blob = await response.blob();
+            const mimeType = lesson.mimeType ?? getMimeFromFileType(fileType);
+            const typedBlob = new Blob([blob], { type: mimeType });
+            const url = URL.createObjectURL(typedBlob);
+            if (isCancelled) { URL.revokeObjectURL(url); return; }
+            setReaderWebUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return url; });
           }
-
-          setReaderWebUrl((prev) => {
-            if (prev) URL.revokeObjectURL(prev);
-            return url;
-          });
         } catch (err) {
           if (!isCancelled) {
             setReaderError(err instanceof Error ? err.message : 'Erreur de chargement du fichier');
@@ -445,11 +448,9 @@ function FormationsContent() {
     };
   }, [language, readerAttempt, view, selectedLesson, selectedFormation]);
 
-  // Révoquer les blob URLs à la désinstallation
+  // Révoquer les blob URLs (images/vidéos) à la désinstallation
   useEffect(() => {
-    return () => {
-      if (readerWebUrl) URL.revokeObjectURL(readerWebUrl);
-    };
+    return () => { if (readerWebUrl) URL.revokeObjectURL(readerWebUrl); };
   }, [readerWebUrl]);
 
   function openDetail(formation: Formation) {
@@ -472,10 +473,8 @@ function FormationsContent() {
     setReaderToken(null);
     setReaderError(null);
     setReaderLoading(false);
-    setReaderWebUrl((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return null;
-    });
+    setReaderPdfBuffer(null);
+    setReaderWebUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return null; });
     setView('detail');
   }
 
@@ -524,8 +523,15 @@ function FormationsContent() {
             </Text>
           </ScrollView>
         ) : Platform.OS === 'web' ? (
-          // WEB : blob URL chargée
-          readerWebUrl ? (
+          // PWA — PDF : canvas PdfViewer | image/vidéo : blob URL
+          fileType === 'pdf' ? (
+            readerPdfBuffer
+              ? React.createElement('div',
+                  { style: { flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' } },
+                  React.createElement(PdfViewer, { pdfData: readerPdfBuffer }),
+                )
+              : <LoadingSpinner fullScreen message="Préparation du document..." />
+          ) : readerWebUrl ? (
             renderWebReader(readerWebUrl, lesson, fileType)
           ) : (
             <LoadingSpinner fullScreen message="Préparation du contenu..." />
@@ -737,45 +743,7 @@ function renderWebReader(
   lesson: Lesson,
   fileType?: string | null,
 ) {
-  if (fileType === 'pdf') {
-    return React.createElement(
-      'div',
-      {
-        style: {
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          width: '100%',
-          height: '100%',
-        },
-      },
-      React.createElement('embed', {
-        src: blobUrl,
-        type: 'application/pdf',
-        style: { flex: 1, width: '100%', height: '100%', border: 'none' },
-      }),
-      React.createElement(
-        'a',
-        {
-          href: blobUrl,
-          target: '_blank',
-          rel: 'noopener noreferrer',
-          download: `${lesson.title}.pdf`,
-          style: {
-            display: 'block',
-            textAlign: 'center',
-            padding: '10px',
-            background: '#7C3AED',
-            color: '#fff',
-            fontWeight: '600',
-            fontSize: 14,
-            textDecoration: 'none',
-          },
-        },
-        '📄 Ouvrir / Télécharger le PDF',
-      ),
-    );
-  }
+  // PDF géré en amont via PdfViewer — cette branche ne s'exécute plus pour les PDFs
 
   if (fileType === 'image') {
     return React.createElement(

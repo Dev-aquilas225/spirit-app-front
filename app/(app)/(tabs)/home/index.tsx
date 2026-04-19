@@ -10,6 +10,7 @@ import {
   Hand,
   Heart,
   Lightbulb,
+  Lock,
   MessageCircle,
   Sunrise,
   Sunset,
@@ -34,14 +35,19 @@ import { useI18n } from "../../../../src/i18n";
 import { useTheme } from "../../../../src/theme";
 import { formatDate } from "../../../../src/utils/helpers";
 
-const QUICK_ACTIONS_CONFIG = [
-  { icon: Heart,         labelKey: "prayer"       as const, route: "/(app)/prayer-program"  as const },
-  { icon: MessageCircle, labelKey: "ai"           as const, route: "/(app)/(tabs)/ai"        as const },
-  { icon: BookOpen,      labelKey: "library"      as const, route: "/(app)/(tabs)/library"   as const },
-  { icon: Lightbulb,     labelKey: "consultation" as const, route: "/(app)/formations"       as const },
-  { icon: CloudMoon,     labelKey: "dreams"       as const, route: "/(app)/dreams"           as const },
-  { icon: Calendar,      labelKey: "prophet"      as const, route: "/(app)/consultation"     as const },
-  { icon: Users,         labelKey: "accompagnements" as const, route: "/(app)/accompagnements" as const },
+const QUICK_ACTIONS_CONFIG: Array<{
+  icon: LucideIcon;
+  labelKey: "prayer" | "ai" | "library" | "consultation" | "dreams" | "prophet" | "accompagnements";
+  route: Href;
+  premium?: boolean;
+}> = [
+  { icon: Heart,         labelKey: "prayer",          route: "/(app)/prayer-program",   premium: true  },
+  { icon: MessageCircle, labelKey: "ai",              route: "/(app)/(tabs)/ai"                        },
+  { icon: BookOpen,      labelKey: "library",         route: "/(app)/(tabs)/library"                   },
+  { icon: Lightbulb,     labelKey: "consultation",    route: "/(app)/formations"                       },
+  { icon: CloudMoon,     labelKey: "dreams",          route: "/(app)/dreams"                           },
+  { icon: Calendar,      labelKey: "prophet",         route: "/(app)/consultation"                     },
+  { icon: Users,         labelKey: "accompagnements", route: "/(app)/accompagnements",  premium: true  },
 ];
 
 export default function HomeScreen() {
@@ -160,22 +166,36 @@ export default function HomeScreen() {
           </GoldCard>
         )}
 
-        {/* Prière du jour */}
+        {/* Prière du jour — réservée aux abonnés */}
         {todayPrayers.length > 0 && (
           <View>
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                {t.home.dailyPrayers}
-              </Text>
-              <TouchableOpacity onPress={() => router.push("/(app)/(tabs)/prayers")}>
-                <Text style={{ color: colors.primary, fontSize: 13 }}>{t.common.seeAll}</Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                  {t.home.dailyPrayers}
+                </Text>
+                {!isPremium && (
+                  <View style={[styles.premiumTag, { backgroundColor: "rgba(201,168,76,0.15)", borderColor: "#C9A84C" }]}>
+                    <AppIcon icon={Crown} size={11} color="#C9A84C" strokeWidth={2.4} />
+                    <Text style={{ color: "#C9A84C", fontSize: 10, fontWeight: "700" }}>Premium</Text>
+                  </View>
+                )}
+              </View>
+              {isPremium && (
+                <TouchableOpacity onPress={() => router.push("/(app)/(tabs)/prayers")}>
+                  <Text style={{ color: colors.primary, fontSize: 13 }}>{t.common.seeAll}</Text>
+                </TouchableOpacity>
+              )}
             </View>
             {todayPrayers.map((prayer) => (
               <Card
                 key={prayer.id}
-                onPress={() => router.push("/(app)/(tabs)/prayers")}
-                style={{ marginBottom: 8 }}
+                onPress={() =>
+                  isPremium
+                    ? router.push("/(app)/(tabs)/prayers")
+                    : router.push("/(app)/subscription")
+                }
+                style={{ marginBottom: 8, opacity: isPremium ? 1 : 0.75 }}
               >
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
                   <View style={[
@@ -199,9 +219,15 @@ export default function HomeScreen() {
                       {prayer.verseReference}
                     </Text>
                   </View>
-                  <View style={[styles.readHint, { backgroundColor: colors.primary + "1A" }]}>
-                    <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "600" }}>{t.common.read}</Text>
-                  </View>
+                  {isPremium ? (
+                    <View style={[styles.readHint, { backgroundColor: colors.primary + "1A" }]}>
+                      <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "600" }}>{t.common.read}</Text>
+                    </View>
+                  ) : (
+                    <View style={[styles.readHint, { backgroundColor: "rgba(201,168,76,0.15)" }]}>
+                      <AppIcon icon={Lock} size={13} color="#C9A84C" strokeWidth={2.6} />
+                    </View>
+                  )}
                 </View>
               </Card>
             ))}
@@ -219,38 +245,51 @@ export default function HomeScreen() {
             {t.home.quickAccess}
           </Text>
           <View style={styles.grid}>
-            {QUICK_ACTIONS_CONFIG.map((action) => (
-              <TouchableOpacity
-                key={action.labelKey}
-                onPress={() => router.push(action.route)}
-                style={[
-                  styles.actionBtn,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <View style={{ marginBottom: 6 }}>
-                  <AppIcon
-                    icon={action.icon}
-                    size={26}
-                    color={colors.primary}
-                    strokeWidth={2.2}
-                  />
-                </View>
-                <Text
-                  style={{
-                    fontSize: 11,
-                    fontWeight: "600",
-                    color: colors.textSecondary,
-                    textAlign: "center",
-                  }}
+            {QUICK_ACTIONS_CONFIG.map((action) => {
+              const isLocked = action.premium && !isPremium;
+              const handlePress = isLocked
+                ? () => router.push("/(app)/subscription")
+                : () => router.push(action.route);
+              return (
+                <TouchableOpacity
+                  key={action.labelKey}
+                  onPress={handlePress}
+                  style={[
+                    styles.actionBtn,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: isLocked ? "#C9A84C" : colors.border,
+                    },
+                  ]}
                 >
-                  {t.home.actions[action.labelKey]}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                  {/* Icône principale */}
+                  <View style={{ marginBottom: 6 }}>
+                    <AppIcon
+                      icon={action.icon}
+                      size={26}
+                      color={isLocked ? "#C9A84C" : colors.primary}
+                      strokeWidth={2.2}
+                    />
+                  </View>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      fontWeight: "600",
+                      color: isLocked ? "#C9A84C" : colors.textSecondary,
+                      textAlign: "center",
+                    }}
+                  >
+                    {t.home.actions[action.labelKey]}
+                  </Text>
+                  {/* Badge cadenas pour les abonnés seulement */}
+                  {isLocked && (
+                    <View style={styles.lockBadge}>
+                      <AppIcon icon={Lock} size={10} color="#fff" strokeWidth={2.8} />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
@@ -304,5 +343,26 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
+    position: "relative",
+  },
+  lockBadge: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "#C9A84C",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  premiumTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 20,
+    borderWidth: 1,
   },
 });
