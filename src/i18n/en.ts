@@ -369,6 +369,7 @@ const en: Translations = {
       'Work',
       'Deliverance',
       'Prophecy',
+      'Other',
     ],
     statuses: {
       pending: 'Pending',

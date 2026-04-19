@@ -390,6 +390,7 @@ const fr = {
       'Travail',
       'Délivrance',
       'Prophétie',
+      'Autre',
     ],
     statuses: {
       pending: 'En attente',
