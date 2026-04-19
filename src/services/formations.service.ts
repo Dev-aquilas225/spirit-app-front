@@ -78,6 +78,15 @@ export const FormationsService = {
     }
   },
 
+  /** [Admin] Toutes les formations actives + inactives */
+  async adminGetAll(): Promise<Formation[]> {
+    try {
+      return await http.get<Formation[]>('/formations/admin/all');
+    } catch {
+      return [];
+    }
+  },
+
   async getOne(id: string): Promise<{ data?: Formation; error?: string }> {
     try {
       const data = await http.get<Formation>(`/formations/${id}`);
@@ -121,7 +130,7 @@ export const FormationsService = {
   ): Promise<{ data?: Formation; error?: string }> {
     try {
       const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
-      const data = await http.post<Formation>('/formations', payload, token ?? undefined);
+      const data = await http.post<Formation>('/formations/admin/formations', payload, token ?? undefined);
       return { data };
     } catch (e) {
       return { error: (e as ApiError)?.message ?? 'Erreur réseau' };
@@ -137,6 +146,7 @@ export const FormationsService = {
     try {
       const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
       const baseUrl = apiBaseUrl();
+      const lessonUrl = `${baseUrl}/formations/admin/formations/${formationId}/lessons`;
 
       if (file || payload.file) {
         const selectedFile = file ?? payload.file;
@@ -154,7 +164,7 @@ export const FormationsService = {
           }
         }
 
-        const res = await fetch(`${baseUrl}/formations/${formationId}/lessons`, {
+        const res = await fetch(lessonUrl, {
           method: 'POST',
           headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
           body: form,
@@ -171,7 +181,7 @@ export const FormationsService = {
 
       // Sans fichier — JSON
       const data = await http.post<Lesson>(
-        `/formations/${formationId}/lessons`,
+        `/formations/admin/formations/${formationId}/lessons`,
         payload,
         token ?? undefined,
       );
@@ -188,18 +198,29 @@ export const FormationsService = {
   ): Promise<{ data?: Formation; error?: string }> {
     try {
       const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
-      const data = await http.patch<Formation>(`/formations/${id}`, payload, token ?? undefined);
+      const data = await http.patch<Formation>(`/formations/admin/formations/${id}`, payload, token ?? undefined);
       return { data };
     } catch (e) {
       return { error: (e as ApiError)?.message ?? 'Erreur réseau' };
     }
   },
 
-  /** [Admin] Supprimer une formation */
+  /** [Admin] Désactiver une formation (soft delete) */
   async adminDeleteFormation(id: string): Promise<{ error?: string }> {
     try {
       const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
-      await http.delete(`/formations/${id}`, token ?? undefined);
+      await http.delete(`/formations/admin/formations/${id}`, token ?? undefined);
+      return {};
+    } catch (e) {
+      return { error: (e as ApiError)?.message ?? 'Erreur réseau' };
+    }
+  },
+
+  /** [Admin] Réactiver une formation désactivée */
+  async adminActivateFormation(id: string): Promise<{ error?: string }> {
+    try {
+      const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
+      await http.post(`/formations/admin/formations/${id}/activate`, {}, token ?? undefined);
       return {};
     } catch (e) {
       return { error: (e as ApiError)?.message ?? 'Erreur réseau' };

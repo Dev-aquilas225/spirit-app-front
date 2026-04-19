@@ -601,6 +601,11 @@ export default function ProfileScreen() {
                 onPress={() => router.push('/(app)/books/admin')}
               />
               <MenuItem
+                icon={BookOpen}
+                label="Gérer les formations"
+                onPress={() => router.push('/(app)/formations/admin')}
+              />
+              <MenuItem
                 icon={CreditCard}
                 label="Gérer les abonnements"
                 onPress={() => router.push('/(app)/subscription/admin')}
