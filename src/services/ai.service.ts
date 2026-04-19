@@ -135,7 +135,7 @@ export const AIService = {
     conversationId: string | undefined,
     question: string,
     isPremium: boolean,
-    chatType: 'prophet' | 'consultation' | 'accompagnement' | 'dream' = 'prophet',
+    chatType: 'prophet' | 'consultation' | 'accompagnement' | 'dream' | 'prayer' = 'prophet',
   ): Promise<{ message: AIMessage; conversationId?: string; error?: string }> {
 
     try {
