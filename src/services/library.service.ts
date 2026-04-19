@@ -48,6 +48,17 @@ export const LibraryService = {
     return `${apiBaseUrl()}/library/${bookId}/file`;
   },
 
+  /** Construit l'URL complète d'une couverture.
+   *  - Si coverImage est déjà une URL absolue (http…) → retourne telle quelle
+   *  - Si c'est un chemin relatif (/api/v1/…) → préfixe avec l'API base URL
+   *  - Si absent → null
+   */
+  getCoverUrl(coverImage?: string | null): string | null {
+    if (!coverImage) return null;
+    if (coverImage.startsWith('http')) return coverImage;
+    return `${Env.API_BASE_URL()}${coverImage}`;
+  },
+
   async getAll(category?: string): Promise<LibraryBook[]> {
     const query = category ? `?category=${encodeURIComponent(category)}` : '';
     try {

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+  Image,
   Platform,
   StyleSheet,
   Text,
@@ -40,14 +41,23 @@ type LibraryView = 'list' | 'detail' | 'reader';
 function BookCard({ book, onPress }: { book: LibraryBook; onPress: () => void }) {
   const { colors, shadows, borderRadius: br } = useTheme();
   const { t } = useI18n();
+  const coverUrl = LibraryService.getCoverUrl(book.coverImage);
 
   return (
     <TouchableOpacity
       onPress={onPress}
       style={[s.card, { backgroundColor: colors.surface, borderColor: colors.border, ...shadows.md }]}
     >
-      <View style={[s.cover, { backgroundColor: colors.surfaceSecondary, borderRadius: br.md }]}>
-        <AppIcon icon={BookOpen} size={40} color={colors.primary} strokeWidth={1.8} />
+      <View style={[s.cover, { backgroundColor: colors.surfaceSecondary, borderRadius: br.md, overflow: 'hidden' }]}>
+        {coverUrl ? (
+          <Image
+            source={{ uri: coverUrl }}
+            style={{ width: '100%', height: '100%' }}
+            resizeMode="cover"
+          />
+        ) : (
+          <AppIcon icon={BookOpen} size={40} color={colors.primary} strokeWidth={1.8} />
+        )}
         <View
           style={[
             s.lockBadge,
@@ -337,14 +347,30 @@ function LibraryContent() {
             style={{ marginBottom: 16 }}
           />
           <View style={{ alignItems: 'center', paddingBottom: 24 }}>
-            <View>
-              <AppIcon icon={BookOpen} size={64} color="#C9A84C" strokeWidth={1.6} />
-              {selectedBook.isLocked ? (
-                <View style={[s.detailLockBadge, { backgroundColor: colors.primary }]}>
-                  <AppIcon icon={Lock} size={16} color="#fff" strokeWidth={2.6} />
+            {/* Couverture uploadée ou icône fallback */}
+            {(() => {
+              const coverUrl = LibraryService.getCoverUrl(selectedBook.coverImage);
+              return (
+                <View style={{ position: 'relative' }}>
+                  {coverUrl ? (
+                    <Image
+                      source={{ uri: coverUrl }}
+                      style={s.detailCover}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={s.detailCoverPlaceholder}>
+                      <AppIcon icon={BookOpen} size={56} color="#C9A84C" strokeWidth={1.6} />
+                    </View>
+                  )}
+                  {selectedBook.isLocked ? (
+                    <View style={[s.detailLockBadge, { backgroundColor: colors.primary }]}>
+                      <AppIcon icon={Lock} size={16} color="#fff" strokeWidth={2.6} />
+                    </View>
+                  ) : null}
                 </View>
-              ) : null}
-            </View>
+              );
+            })()}
             <Text style={[s.detailTitle, { color: '#fff' }]}>{selectedBook.title}</Text>
             <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, marginTop: 4 }}>
               {selectedBook.author || t.library.defaultAuthor}
@@ -580,11 +606,25 @@ const s = StyleSheet.create({
   author: { fontSize: 12, marginBottom: 8 },
   metaRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
   metaTag: { fontSize: 11, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  detailTitle: { fontSize: 22, fontWeight: '800', textAlign: 'center' },
+  detailTitle: { fontSize: 22, fontWeight: '800', textAlign: 'center', marginTop: 12 },
+  detailCover: {
+    width: 110,
+    height: 150,
+    borderRadius: 10,
+    backgroundColor: '#2a2a5a',
+  },
+  detailCoverPlaceholder: {
+    width: 110,
+    height: 150,
+    borderRadius: 10,
+    backgroundColor: 'rgba(201,168,76,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   detailLockBadge: {
     position: 'absolute',
-    top: 0,
-    right: -8,
+    top: -6,
+    right: -6,
     width: 28,
     height: 28,
     borderRadius: 14,
