@@ -132,6 +132,58 @@ export const LibraryService = {
     }
   },
 
+  /** [Admin] Modifier un livre (métadonnées + optionnellement PDF et/ou couverture) */
+  async updateBook(
+    id: string,
+    payload: {
+      title?: string; author?: string; description?: string;
+      category?: string; pages?: number; isFree?: boolean;
+      /** Nouvelle image de couverture */
+      coverFile?: File;
+      /** Nouveau fichier PDF */
+      pdfFile?: File;
+    },
+  ): Promise<{ data?: LibraryBook; error?: string }> {
+    try {
+      const hasCoverFile = payload.coverFile instanceof File;
+      const hasPdfFile   = payload.pdfFile instanceof File;
+
+      if (hasCoverFile || hasPdfFile) {
+        // Envoi multipart/form-data pour inclure les fichiers
+        const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
+        const baseUrl = Env.API_BASE_URL() + '/api/v1';
+        const form = new FormData();
+        if (payload.title       !== undefined) form.append('title',       payload.title);
+        if (payload.author      !== undefined) form.append('author',      payload.author);
+        if (payload.description !== undefined) form.append('description', payload.description);
+        if (payload.category    !== undefined) form.append('category',    payload.category);
+        if (payload.pages       !== undefined) form.append('pages',       String(payload.pages));
+        if (payload.isFree      !== undefined) form.append('isFree',      String(payload.isFree));
+        if (hasCoverFile) form.append('cover', payload.coverFile!, payload.coverFile!.name);
+        if (hasPdfFile)   form.append('file',  payload.pdfFile!,  payload.pdfFile!.name);
+
+        const res = await fetch(`${baseUrl}/library/admin/books/${id}`, {
+          method: 'PATCH',
+          headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          body: form,
+        });
+
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          return { error: body?.message ?? `Erreur ${res.status}` };
+        }
+        const data = await res.json();
+        return { data };
+      }
+
+      // Pas de fichiers → simple JSON PATCH
+      const data = await http.patch<LibraryBook>(`/library/admin/books/${id}`, payload);
+      return { data };
+    } catch (e) {
+      return { error: (e as ApiError)?.message ?? 'Erreur réseau' };
+    }
+  },
+
   /** [Admin] Changer le statut d'un livre */
   async updateStatus(id: string, status: 'draft' | 'published' | 'archived'): Promise<{ data?: LibraryBook; error?: string }> {
     try {

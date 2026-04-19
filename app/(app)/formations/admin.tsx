@@ -18,6 +18,7 @@ import {
   CheckCircle,
   ChevronDown,
   ChevronRight,
+  Edit2,
   FilePlus,
   FolderPlus,
   Layers,
@@ -232,6 +233,197 @@ function AddFormationModal({ visible, onClose, onCreated }: AddFormationModalPro
   );
 }
 
+/* ─── Modal — Modifier une formation ────────────────────────────────────── */
+
+interface EditFormationModalProps {
+  visible: boolean;
+  formation: Formation | null;
+  onClose: () => void;
+  onSaved: () => void;
+}
+
+function EditFormationModal({ visible, formation, onClose, onSaved }: EditFormationModalProps) {
+  const { colors, spacing } = useTheme();
+
+  const [title,       setTitle]       = useState('');
+  const [description, setDescription] = useState('');
+  const [category,    setCategory]    = useState('');
+  const [instructor,  setInstructor]  = useState('');
+  const [level,       setLevel]       = useState<'beginner' | 'intermediate' | 'advanced'>('beginner');
+  const [isPremium,   setIsPremium]   = useState(true);
+  const [saving,      setSaving]      = useState(false);
+
+  // Pré-remplir quand la formation change
+  useEffect(() => {
+    if (formation) {
+      setTitle(formation.title ?? '');
+      setDescription(formation.description ?? '');
+      setCategory(formation.category ?? '');
+      setInstructor(formation.instructor ?? '');
+      setLevel((formation.level as 'beginner' | 'intermediate' | 'advanced') ?? 'beginner');
+      setIsPremium(formation.isPremium ?? true);
+    }
+  }, [formation]);
+
+  function handleClose() { onClose(); }
+
+  async function handleSave() {
+    if (!formation) return;
+    if (!title.trim()) {
+      Alert.alert('Champ requis', 'Le titre est obligatoire.');
+      return;
+    }
+    setSaving(true);
+    const payload: Partial<CreateFormationPayload> = {
+      title:       title.trim(),
+      description: description.trim() || undefined,
+      category:    category.trim()    || undefined,
+      instructor:  instructor.trim()  || undefined,
+      level,
+      isPremium,
+    };
+    const { error } = await FormationsService.adminUpdateFormation(formation.id, payload);
+    setSaving(false);
+    if (error) { Alert.alert('Erreur', error); return; }
+    onSaved();
+  }
+
+  const fieldStyle = [styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }];
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
+      <Pressable style={styles.backdrop} onPress={handleClose} />
+      <View style={[styles.sheet, { backgroundColor: colors.background }]}>
+        <View style={[styles.handle, { backgroundColor: colors.border }]} />
+
+        <View style={[styles.sheetHeader, { borderBottomColor: colors.border }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.sheetTitle, { color: colors.text }]}>Modifier la formation</Text>
+            {formation && (
+              <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2 }} numberOfLines={1}>
+                {formation.title}
+              </Text>
+            )}
+          </View>
+          <TouchableOpacity onPress={handleClose}>
+            <AppIcon icon={X} size={22} color={colors.text} strokeWidth={2.4} />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView
+          contentContainerStyle={{ padding: spacing.base, gap: 14 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Titre */}
+          <View style={{ gap: 4 }}>
+            <Text style={[styles.label, { color: colors.text }]}>
+              Titre <Text style={{ color: '#EF4444' }}>*</Text>
+            </Text>
+            <TextInput
+              style={fieldStyle}
+              value={title}
+              onChangeText={setTitle}
+              placeholder="Ex : Prophétie & Intercession"
+              placeholderTextColor={colors.textSecondary}
+            />
+          </View>
+
+          {/* Formateur */}
+          <View style={{ gap: 4 }}>
+            <Text style={[styles.label, { color: colors.text }]}>Formateur</Text>
+            <TextInput
+              style={fieldStyle}
+              value={instructor}
+              onChangeText={setInstructor}
+              placeholder="Ex : Prophète Georges Tchingankong"
+              placeholderTextColor={colors.textSecondary}
+            />
+          </View>
+
+          {/* Catégorie */}
+          <View style={{ gap: 4 }}>
+            <Text style={[styles.label, { color: colors.text }]}>Catégorie</Text>
+            <TextInput
+              style={fieldStyle}
+              value={category}
+              onChangeText={setCategory}
+              placeholder="Ex : Prière, Prophétie, Foi…"
+              placeholderTextColor={colors.textSecondary}
+            />
+          </View>
+
+          {/* Description */}
+          <View style={{ gap: 4 }}>
+            <Text style={[styles.label, { color: colors.text }]}>Description</Text>
+            <TextInput
+              style={[fieldStyle, { height: 90, textAlignVertical: 'top', paddingTop: 12 }]}
+              value={description}
+              onChangeText={setDescription}
+              placeholder="Présentation de la formation…"
+              placeholderTextColor={colors.textSecondary}
+              multiline
+            />
+          </View>
+
+          {/* Niveau */}
+          <View style={{ gap: 8 }}>
+            <Text style={[styles.label, { color: colors.text }]}>Niveau</Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {(['beginner', 'intermediate', 'advanced'] as const).map((l) => {
+                const cfg = LEVEL_CFG[l];
+                const active = level === l;
+                return (
+                  <TouchableOpacity
+                    key={l}
+                    onPress={() => setLevel(l)}
+                    style={[
+                      styles.levelBtn,
+                      {
+                        backgroundColor: active ? cfg.bg : colors.surface,
+                        borderColor: active ? cfg.color : colors.border,
+                      },
+                    ]}
+                  >
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: active ? cfg.color : colors.textSecondary }}>
+                      {cfg.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Premium toggle */}
+          <TouchableOpacity
+            onPress={() => setIsPremium(!isPremium)}
+            style={[styles.toggleRow, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text }}>Réservé aux abonnés</Text>
+              <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2 }}>
+                {isPremium ? 'Formation premium (abonnés uniquement)' : 'Formation gratuite (tous les utilisateurs)'}
+              </Text>
+            </View>
+            <View style={[styles.toggle, { backgroundColor: isPremium ? '#C9A84C' : colors.border }]}>
+              <View style={[styles.toggleThumb, { transform: [{ translateX: isPremium ? 18 : 2 }] }]} />
+            </View>
+          </TouchableOpacity>
+
+          <Button
+            label={saving ? 'Enregistrement…' : 'Enregistrer les modifications'}
+            variant="gold"
+            fullWidth
+            onPress={handleSave}
+            style={{ marginTop: 8 }}
+          />
+          <View style={{ height: 32 }} />
+        </ScrollView>
+      </View>
+    </Modal>
+  );
+}
+
 /* ─── Modal — Ajouter une leçon ─────────────────────────────────────────── */
 
 interface AddLessonModalProps {
@@ -415,9 +607,10 @@ interface FormationCardProps {
   formation: Formation;
   onAddLesson: (formation: Formation) => void;
   onToggleActive: (formation: Formation) => void;
+  onEdit: (formation: Formation) => void;
 }
 
-function FormationCard({ formation, onAddLesson, onToggleActive }: FormationCardProps) {
+function FormationCard({ formation, onAddLesson, onToggleActive, onEdit }: FormationCardProps) {
   const { colors } = useTheme();
   const [expanded, setExpanded] = useState(false);
   const [loading,  setLoading]  = useState(false);
@@ -528,6 +721,14 @@ function FormationCard({ formation, onAddLesson, onToggleActive }: FormationCard
                   <Text style={[styles.actionBtnText, { color: '#10B981' }]}>Activer</Text>
                 </TouchableOpacity>
               )}
+              {/* Modifier */}
+              <TouchableOpacity
+                onPress={() => onEdit(formation)}
+                style={[styles.actionBtn, { backgroundColor: 'rgba(139,92,246,0.12)', borderColor: '#8B5CF6' }]}
+              >
+                <AppIcon icon={Edit2} size={13} color="#8B5CF6" strokeWidth={2.5} />
+                <Text style={[styles.actionBtnText, { color: '#8B5CF6' }]}>Modifier</Text>
+              </TouchableOpacity>
               {/* Ajouter une leçon */}
               <TouchableOpacity
                 onPress={() => onAddLesson(formation)}
@@ -604,11 +805,12 @@ function LessonRow({ lesson, index, colors }: { lesson: Lesson; index: number; c
 export default function AdminFormationsScreen() {
   const { colors, spacing } = useTheme();
 
-  const [formations,     setFormations]     = useState<Formation[]>([]);
-  const [loading,        setLoading]        = useState(true);
-  const [addFormModal,   setAddFormModal]   = useState(false);
-  const [addLessonModal, setAddLessonModal] = useState(false);
+  const [formations,      setFormations]      = useState<Formation[]>([]);
+  const [loading,         setLoading]         = useState(true);
+  const [addFormModal,    setAddFormModal]    = useState(false);
+  const [addLessonModal,  setAddLessonModal]  = useState(false);
   const [targetFormation, setTargetFormation] = useState<Formation | null>(null);
+  const [editFormation,   setEditFormation]   = useState<Formation | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -639,6 +841,15 @@ export default function AdminFormationsScreen() {
   function handleAddLesson(formation: Formation) {
     setTargetFormation(formation);
     setAddLessonModal(true);
+  }
+
+  function handleEdit(formation: Formation) {
+    setEditFormation(formation);
+  }
+
+  function handleFormationSaved() {
+    setEditFormation(null);
+    load();
   }
 
   const active   = formations.filter((f) => f.isActive !== false);
@@ -693,6 +904,7 @@ export default function AdminFormationsScreen() {
                     formation={f}
                     onAddLesson={handleAddLesson}
                     onToggleActive={handleToggleActive}
+                    onEdit={handleEdit}
                   />
                 ))}
               </View>
@@ -710,6 +922,7 @@ export default function AdminFormationsScreen() {
                     formation={f}
                     onAddLesson={handleAddLesson}
                     onToggleActive={handleToggleActive}
+                    onEdit={handleEdit}
                   />
                 ))}
               </View>
@@ -747,6 +960,12 @@ export default function AdminFormationsScreen() {
           setTargetFormation(null);
           load();
         }}
+      />
+      <EditFormationModal
+        visible={editFormation !== null}
+        formation={editFormation}
+        onClose={() => setEditFormation(null)}
+        onSaved={handleFormationSaved}
       />
     </View>
   );

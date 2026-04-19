@@ -16,7 +16,7 @@ import {
 import { router } from 'expo-router';
 import {
   Archive, BookOpen, Camera, CheckCircle, Clock,
-  Eye, FilePlus, RefreshCw, Upload, X,
+  Edit2, Eye, FilePlus, RefreshCw, Upload, X,
 } from 'lucide-react-native';
 import { AppIcon } from '../../../src/components/common/AppIcon';
 import { BackButton } from '../../../src/components/common/BackButton';
@@ -330,14 +330,292 @@ function AddBookModal({ visible, onClose, onCreated }: AddBookModalProps) {
   );
 }
 
+/* ─── Modal édition livre ─────────────────────────────────────────────────── */
+
+interface EditBookModalProps {
+  book: LibraryBook | null;
+  onClose: () => void;
+  onSaved: (updated: LibraryBook) => void;
+}
+
+function EditBookModal({ book, onClose, onSaved }: EditBookModalProps) {
+  const { colors, spacing } = useTheme();
+  const [title,        setTitle]        = useState('');
+  const [author,       setAuthor]       = useState('');
+  const [description,  setDescription]  = useState('');
+  const [category,     setCategory]     = useState('');
+  const [isFree,       setIsFree]       = useState(false);
+  const [coverFile,    setCoverFile]    = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [pdfFile,      setPdfFile]      = useState<File | null>(null);
+  const [saving,       setSaving]       = useState(false);
+
+  // Pré-remplir à chaque ouverture
+  useEffect(() => {
+    if (book) {
+      setTitle(book.title ?? '');
+      setAuthor(book.author ?? '');
+      setDescription(book.description ?? '');
+      setCategory(book.category ?? '');
+      setIsFree(book.isFree ?? false);
+      // Reset fichiers locaux (on repart de zéro à chaque ouverture)
+      setCoverFile(null);
+      setCoverPreview(null);
+      setPdfFile(null);
+    }
+  }, [book]);
+
+  /* ── Couverture ── */
+  function pickCover() {
+    if (Platform.OS === 'web') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/jpeg,image/png,image/webp';
+      input.onchange = (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file) {
+          setCoverFile(file);
+          setCoverPreview(URL.createObjectURL(file));
+        }
+      };
+      input.click();
+    } else {
+      Alert.alert('Non disponible', 'Le chargement d\'images n\'est disponible que depuis le navigateur web.');
+    }
+  }
+
+  function removeCover() {
+    setCoverFile(null);
+    if (coverPreview) { URL.revokeObjectURL(coverPreview); }
+    setCoverPreview(null);
+  }
+
+  /* ── PDF ── */
+  function pickPdf() {
+    if (Platform.OS === 'web') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.pdf,application/pdf';
+      input.onchange = (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file) setPdfFile(file);
+      };
+      input.click();
+    } else {
+      Alert.alert('Non disponible', 'Le chargement de PDF n\'est disponible que depuis le navigateur web.');
+    }
+  }
+
+  /* ── Enregistrer ── */
+  async function handleSave() {
+    if (!book) return;
+    if (!title.trim()) { Alert.alert('Champ requis', 'Le titre est obligatoire.'); return; }
+    setSaving(true);
+    const { data, error } = await LibraryService.updateBook(book.id, {
+      title:       title.trim(),
+      author:      author.trim()      || undefined,
+      description: description.trim() || undefined,
+      category:    category.trim()    || undefined,
+      isFree,
+      coverFile:   coverFile  ?? undefined,
+      pdfFile:     pdfFile    ?? undefined,
+    });
+    setSaving(false);
+    if (error) { Alert.alert('Erreur', error); return; }
+    if (data) onSaved(data);
+    onClose();
+  }
+
+  // Couverture actuelle (déjà enregistrée)
+  const existingCoverUrl = book ? buildCoverUrl(book.coverImage) : null;
+  const displayCover     = coverPreview ?? existingCoverUrl;
+
+  const visible    = !!book;
+  const fieldStyle = [styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }];
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable style={styles.backdrop} onPress={onClose} />
+      <View style={[styles.sheet, { backgroundColor: colors.background }]}>
+        <View style={[styles.handle, { backgroundColor: colors.border }]} />
+
+        <View style={[styles.sheetHeader, { borderBottomColor: colors.border }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.sheetTitle, { color: colors.text }]}>Modifier le livre</Text>
+            {book && (
+              <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2 }} numberOfLines={1}>
+                {book.title}
+              </Text>
+            )}
+          </View>
+          <TouchableOpacity onPress={onClose}>
+            <AppIcon icon={X} size={22} color={colors.text} strokeWidth={2.4} />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView
+          contentContainerStyle={{ padding: spacing.base, gap: 14 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Titre */}
+          <View style={{ gap: 4 }}>
+            <Text style={[styles.label, { color: colors.text }]}>Titre <Text style={{ color: '#EF4444' }}>*</Text></Text>
+            <TextInput style={fieldStyle} value={title} onChangeText={setTitle}
+              placeholder="Titre du livre" placeholderTextColor={colors.textSecondary} />
+          </View>
+
+          {/* Auteur */}
+          <View style={{ gap: 4 }}>
+            <Text style={[styles.label, { color: colors.text }]}>Auteur</Text>
+            <TextInput style={fieldStyle} value={author} onChangeText={setAuthor}
+              placeholder="Nom de l'auteur" placeholderTextColor={colors.textSecondary} />
+          </View>
+
+          {/* Catégorie */}
+          <View style={{ gap: 4 }}>
+            <Text style={[styles.label, { color: colors.text }]}>Catégorie</Text>
+            <TextInput style={fieldStyle} value={category} onChangeText={setCategory}
+              placeholder="Ex : Spiritualité, Prière…" placeholderTextColor={colors.textSecondary} />
+          </View>
+
+          {/* Description */}
+          <View style={{ gap: 4 }}>
+            <Text style={[styles.label, { color: colors.text }]}>Description</Text>
+            <TextInput
+              style={[fieldStyle, { height: 90, textAlignVertical: 'top', paddingTop: 12 }]}
+              value={description} onChangeText={setDescription} multiline
+              placeholder="Résumé du livre…" placeholderTextColor={colors.textSecondary}
+            />
+          </View>
+
+          {/* Image de couverture */}
+          <View style={{ gap: 6 }}>
+            <Text style={[styles.label, { color: colors.text }]}>Image de couverture</Text>
+
+            {/* Prévisualisation (existante ou nouvelle) */}
+            {displayCover ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <View style={{ position: 'relative' }}>
+                  <Image
+                    source={{ uri: displayCover }}
+                    style={{ width: 72, height: 96, borderRadius: 8, backgroundColor: colors.surface }}
+                    resizeMode="cover"
+                  />
+                  {/* Supprimer la nouvelle couverture sélectionnée */}
+                  {coverFile && (
+                    <TouchableOpacity
+                      onPress={removeCover}
+                      style={{
+                        position: 'absolute', top: -6, right: -6,
+                        width: 20, height: 20, borderRadius: 10,
+                        backgroundColor: '#EF4444', alignItems: 'center', justifyContent: 'center',
+                      }}
+                    >
+                      <AppIcon icon={X} size={11} color="#fff" strokeWidth={3} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 12, color: coverFile ? '#10B981' : colors.textSecondary }}>
+                    {coverFile ? coverFile.name : 'Couverture actuelle'}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={pickCover}
+                    style={[
+                      styles.actionBtn,
+                      { backgroundColor: 'rgba(201,168,76,0.12)', borderColor: '#C9A84C', marginTop: 8, alignSelf: 'flex-start' },
+                    ]}
+                  >
+                    <AppIcon icon={Camera} size={13} color="#C9A84C" strokeWidth={2.5} />
+                    <Text style={[styles.actionBtnText, { color: '#C9A84C' }]}>Changer</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <TouchableOpacity
+                onPress={pickCover}
+                style={[styles.fileBtn, { borderColor: colors.border, backgroundColor: colors.surface }]}
+              >
+                <AppIcon icon={Camera} size={20} color={colors.textSecondary} strokeWidth={2} />
+                <Text style={{ flex: 1, color: colors.textSecondary, fontSize: 13 }}>
+                  Choisir une image (JPEG / PNG / WebP)…
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Fichier PDF */}
+          <View style={{ gap: 6 }}>
+            <Text style={[styles.label, { color: colors.text }]}>Remplacer le PDF</Text>
+            <TouchableOpacity
+              onPress={pickPdf}
+              style={[
+                styles.fileBtn,
+                { borderColor: pdfFile ? '#10B981' : colors.border, backgroundColor: colors.surface },
+              ]}
+            >
+              <AppIcon
+                icon={pdfFile ? CheckCircle : Upload}
+                size={20}
+                color={pdfFile ? '#10B981' : colors.textSecondary}
+                strokeWidth={2}
+              />
+              <Text
+                style={{ flex: 1, color: pdfFile ? '#10B981' : colors.textSecondary, fontSize: 13 }}
+                numberOfLines={1}
+              >
+                {pdfFile ? pdfFile.name : book?.hasPdf ? 'PDF actuel conservé — cliquer pour remplacer' : 'Choisir un fichier PDF…'}
+              </Text>
+              {pdfFile && (
+                <TouchableOpacity onPress={() => setPdfFile(null)}>
+                  <AppIcon icon={X} size={16} color={colors.textSecondary} strokeWidth={2.5} />
+                </TouchableOpacity>
+              )}
+            </TouchableOpacity>
+            {Platform.OS !== 'web' && (
+              <Text style={{ fontSize: 11, color: colors.textTertiary }}>
+                Le chargement de PDF est disponible uniquement depuis le navigateur web.
+              </Text>
+            )}
+          </View>
+
+          {/* Accès */}
+          <TouchableOpacity
+            onPress={() => setIsFree(!isFree)}
+            style={[styles.toggleRow, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text }}>Accès libre (gratuit)</Text>
+              <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2 }}>
+                {isFree ? 'Tous les utilisateurs peuvent lire ce livre' : 'Réservé aux abonnés premium'}
+              </Text>
+            </View>
+            <View style={[styles.toggle, { backgroundColor: isFree ? '#10B981' : colors.border }]}>
+              <View style={[styles.toggleThumb, { transform: [{ translateX: isFree ? 18 : 2 }] }]} />
+            </View>
+          </TouchableOpacity>
+
+          <Button
+            label={saving ? 'Enregistrement…' : 'Enregistrer les modifications'}
+            variant="gold" fullWidth onPress={handleSave} style={{ marginTop: 8 }}
+          />
+          <View style={{ height: 32 }} />
+        </ScrollView>
+      </View>
+    </Modal>
+  );
+}
+
 /* ─── Carte livre ─────────────────────────────────────────────────────────── */
 
 interface BookCardProps {
   book: LibraryBook;
   onStatusChange: (id: string, status: LibraryBookStatus) => void;
+  onEdit: (book: LibraryBook) => void;
 }
 
-function BookCard({ book, onStatusChange }: BookCardProps) {
+function BookCard({ book, onStatusChange, onEdit }: BookCardProps) {
   const { colors } = useTheme();
   const [loading, setLoading] = useState(false);
 
@@ -402,6 +680,15 @@ function BookCard({ book, onStatusChange }: BookCardProps) {
         {/* ── Boutons d'action ── */}
         {!loading && (
           <View style={styles.actionRow}>
+            {/* Modifier */}
+            <TouchableOpacity
+              onPress={() => onEdit(book)}
+              style={[styles.actionBtn, { backgroundColor: 'rgba(99,102,241,0.12)', borderColor: '#6366F1' }]}
+            >
+              <AppIcon icon={Edit2} size={13} color="#6366F1" strokeWidth={2.5} />
+              <Text style={[styles.actionBtnText, { color: '#6366F1' }]}>Modifier</Text>
+            </TouchableOpacity>
+
             {book.status !== 'published' && (
               <TouchableOpacity
                 onPress={() => handleToggle('published')}
@@ -440,9 +727,10 @@ function BookCard({ book, onStatusChange }: BookCardProps) {
 
 export default function AdminBooksScreen() {
   const { colors, spacing } = useTheme();
-  const [books,    setBooks]    = useState<LibraryBook[]>([]);
-  const [loading,  setLoading]  = useState(true);
-  const [addModal, setAddModal] = useState(false);
+  const [books,     setBooks]     = useState<LibraryBook[]>([]);
+  const [loading,   setLoading]   = useState(true);
+  const [addModal,  setAddModal]  = useState(false);
+  const [editBook,  setEditBook]  = useState<LibraryBook | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -456,9 +744,11 @@ export default function AdminBooksScreen() {
   async function handleStatusChange(id: string, status: LibraryBookStatus) {
     const { data, error } = await LibraryService.updateStatus(id, status);
     if (error) { Alert.alert('Erreur', error); return; }
-    if (data) {
-      setBooks((prev) => prev.map((b) => (b.id === id ? { ...b, status: data.status } : b)));
-    }
+    if (data) setBooks((prev) => prev.map((b) => (b.id === id ? { ...b, ...data } : b)));
+  }
+
+  function handleBookSaved(updated: LibraryBook) {
+    setBooks((prev) => prev.map((b) => (b.id === updated.id ? { ...b, ...updated } : b)));
   }
 
   const byStatus = (s: LibraryBookStatus) => books.filter((b) => b.status === s);
@@ -504,7 +794,7 @@ export default function AdminBooksScreen() {
                   Publiés ({byStatus('published').length})
                 </Text>
                 {byStatus('published').map((b) => (
-                  <BookCard key={b.id} book={b} onStatusChange={handleStatusChange} />
+                  <BookCard key={b.id} book={b} onStatusChange={handleStatusChange} onEdit={setEditBook} />
                 ))}
               </View>
             )}
@@ -516,7 +806,7 @@ export default function AdminBooksScreen() {
                   Brouillons ({byStatus('draft').length})
                 </Text>
                 {byStatus('draft').map((b) => (
-                  <BookCard key={b.id} book={b} onStatusChange={handleStatusChange} />
+                  <BookCard key={b.id} book={b} onStatusChange={handleStatusChange} onEdit={setEditBook} />
                 ))}
               </View>
             )}
@@ -528,7 +818,7 @@ export default function AdminBooksScreen() {
                   Archivés ({byStatus('archived').length})
                 </Text>
                 {byStatus('archived').map((b) => (
-                  <BookCard key={b.id} book={b} onStatusChange={handleStatusChange} />
+                  <BookCard key={b.id} book={b} onStatusChange={handleStatusChange} onEdit={setEditBook} />
                 ))}
               </View>
             )}
@@ -558,6 +848,13 @@ export default function AdminBooksScreen() {
         visible={addModal}
         onClose={() => setAddModal(false)}
         onCreated={() => { setAddModal(false); load(); }}
+      />
+
+      {/* Modal édition */}
+      <EditBookModal
+        book={editBook}
+        onClose={() => setEditBook(null)}
+        onSaved={handleBookSaved}
       />
     </View>
   );
