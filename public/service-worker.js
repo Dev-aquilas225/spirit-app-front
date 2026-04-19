@@ -109,26 +109,44 @@ async function cacheFirst(request) {
 
 // ─── Push notifications ───────────────────────────────────────────────────────
 self.addEventListener('push', (event) => {
-  const data = event.data?.json() ?? {};
+  let data = {};
+  try { data = event.data?.json() ?? {}; } catch { data = {}; }
+
+  const title = data.title ?? '✨ Oracle Plus';
+  const body  = data.body  ?? 'Un nouveau message spirituel vous attend.';
+  const url   = data.url   ?? '/';
+
+  // tag = identifiant unique par type de notification
+  // → si l'utilisateur reçoit 2 pushes "matin" en retard, un seul s'affiche
+  const tag = data.tag ?? 'oracle-plus-default';
+
   event.waitUntil(
-    self.registration.showNotification(data.title ?? '✨ Oracle Plus', {
-      body: data.body ?? 'Un nouveau message spirituel vous attend.',
-      icon: '/icon.png',
-      badge: '/favicon.png',
-      vibrate: [100, 50, 100],
-      data: { url: data.url ?? '/' },
+    self.registration.showNotification(title, {
+      body,
+      icon:    '/icon-192.png',
+      badge:   '/icon-maskable-192.png',
+      vibrate: [200, 100, 200],
+      tag,                    // déduplique : remplace la notif précédente du même tag
+      renotify: false,        // ne re-sonne pas si la notif du même tag est déjà là
+      requireInteraction: false,
+      data: { url },
     }),
   );
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+  const url = event.notification.data?.url ?? '/';
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      // Si une fenêtre PWA est déjà ouverte, la focus
       for (const client of list) {
-        if ('focus' in client) return client.focus();
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          return client.focus();
+        }
       }
-      return clients.openWindow('/');
+      // Sinon ouvrir une nouvelle fenêtre
+      return clients.openWindow(url);
     }),
   );
 });

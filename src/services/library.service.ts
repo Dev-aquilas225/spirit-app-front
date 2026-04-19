@@ -33,6 +33,8 @@ export interface CreateBookPayload {
   author?: string;
   description?: string;
   coverImage?: string;
+  /** Image de couverture uploadée (fichier) */
+  coverFile?: File;
   category?: string;
   pages?: number;
   order?: number;
@@ -87,14 +89,18 @@ export const LibraryService = {
       if (payload.order != null) form.append('order',  String(payload.order));
       form.append('isFree', String(payload.isFree ?? false));
 
+      // PDF
       if (payload.file) {
         if (payload.file instanceof File) {
-          // Web : File natif
           form.append('file', payload.file, payload.file.name);
         } else {
-          // Mobile : { uri, name, type }
           form.append('file', payload.file as unknown as Blob);
         }
+      }
+
+      // Image de couverture (optionnelle)
+      if (payload.coverFile instanceof File) {
+        form.append('cover', payload.coverFile, payload.coverFile.name);
       }
 
       const res = await fetch(`${baseUrl}/library/admin/books`, {

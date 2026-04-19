@@ -610,6 +610,11 @@ export default function ProfileScreen() {
                 label="Gérer les abonnements"
                 onPress={() => router.push('/(app)/subscription/admin')}
               />
+              <MenuItem
+                icon={Bell}
+                label="Notifications push"
+                onPress={() => router.push('/(app)/push/admin')}
+              />
             </Card>
           </View>
         )}

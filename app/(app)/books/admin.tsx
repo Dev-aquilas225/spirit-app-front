@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Modal,
   Platform,
   Pressable,
@@ -14,7 +15,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import {
-  Archive, BookOpen, CheckCircle, Clock,
+  Archive, BookOpen, Camera, CheckCircle, Clock,
   Eye, FilePlus, RefreshCw, Upload, X,
 } from 'lucide-react-native';
 import { AppIcon } from '../../../src/components/common/AppIcon';
@@ -28,6 +29,14 @@ import {
   LibraryService,
 } from '../../../src/services/library.service';
 import { useTheme } from '../../../src/theme';
+import { Env } from '../../../src/utils/env';
+
+function buildCoverUrl(coverImage?: string): string | null {
+  if (!coverImage) return null;
+  if (coverImage.startsWith('http')) return coverImage;
+  // chemin relatif /api/v1/... → préfixer avec la base API
+  return Env.API_BASE_URL() + coverImage;
+}
 
 /* ─── Helpers ─────────────────────────────────────────────────────────────── */
 
@@ -58,19 +67,20 @@ function AddBookModal({ visible, onClose, onCreated }: AddBookModalProps) {
   const { colors, spacing } = useTheme();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const [title,       setTitle]       = useState('');
-  const [author,      setAuthor]      = useState('');
-  const [description, setDescription] = useState('');
-  const [category,    setCategory]    = useState('');
-  const [coverImage,  setCoverImage]  = useState('');
-  const [isFree,      setIsFree]      = useState(false);
+  const [title,        setTitle]        = useState('');
+  const [author,       setAuthor]       = useState('');
+  const [description,  setDescription]  = useState('');
+  const [category,     setCategory]     = useState('');
+  const [isFree,       setIsFree]       = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [saving,      setSaving]      = useState(false);
+  const [coverFile,    setCoverFile]    = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [saving,       setSaving]       = useState(false);
 
   function reset() {
     setTitle(''); setAuthor(''); setDescription('');
-    setCategory(''); setCoverImage(''); setIsFree(false);
-    setSelectedFile(null);
+    setCategory(''); setIsFree(false);
+    setSelectedFile(null); setCoverFile(null); setCoverPreview(null);
   }
 
   function handleClose() {
@@ -78,10 +88,28 @@ function AddBookModal({ visible, onClose, onCreated }: AddBookModalProps) {
     onClose();
   }
 
+  /* ── Sélection de la couverture ── */
+  function pickCover() {
+    if (Platform.OS === 'web') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/jpeg,image/png,image/webp';
+      input.onchange = (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file) {
+          setCoverFile(file);
+          setCoverPreview(URL.createObjectURL(file));
+        }
+      };
+      input.click();
+    } else {
+      Alert.alert('Non disponible', 'Le chargement d\'images n\'est disponible que depuis le navigateur web.');
+    }
+  }
+
   /* ── Sélection du fichier PDF ── */
   function pickFile() {
     if (Platform.OS === 'web') {
-      // Créer un input file temporaire
       const input = document.createElement('input');
       input.type = 'file';
       input.accept = '.pdf,application/pdf';
@@ -108,13 +136,13 @@ function AddBookModal({ visible, onClose, onCreated }: AddBookModalProps) {
 
     setSaving(true);
     const payload: CreateBookPayload = {
-      title: title.trim(),
+      title:       title.trim(),
       author:      author.trim()      || undefined,
       description: description.trim() || undefined,
       category:    category.trim()    || undefined,
-      coverImage:  coverImage.trim()  || undefined,
       isFree,
-      file: selectedFile,
+      file:        selectedFile,
+      coverFile:   coverFile ?? undefined,
     };
 
     const { error } = await LibraryService.createBook(payload);
@@ -200,18 +228,45 @@ function AddBookModal({ visible, onClose, onCreated }: AddBookModalProps) {
             />
           </View>
 
-          {/* Image de couverture (URL) */}
-          <View style={{ gap: 4 }}>
-            <Text style={[styles.label, { color: colors.text }]}>Image de couverture (URL)</Text>
-            <TextInput
-              style={fieldStyle}
-              value={coverImage}
-              onChangeText={setCoverImage}
-              placeholder="https://…"
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="url"
-              autoCapitalize="none"
-            />
+          {/* Image de couverture — upload fichier */}
+          <View style={{ gap: 6 }}>
+            <Text style={[styles.label, { color: colors.text }]}>Image de couverture</Text>
+
+            {/* Prévisualisation */}
+            {coverPreview ? (
+              <View style={{ position: 'relative', alignSelf: 'flex-start' }}>
+                <Image
+                  source={{ uri: coverPreview }}
+                  style={{ width: 90, height: 120, borderRadius: 10, backgroundColor: colors.surface }}
+                  resizeMode="cover"
+                />
+                <TouchableOpacity
+                  onPress={() => { setCoverFile(null); setCoverPreview(null); }}
+                  style={{
+                    position: 'absolute', top: -6, right: -6,
+                    width: 22, height: 22, borderRadius: 11,
+                    backgroundColor: '#EF4444', alignItems: 'center', justifyContent: 'center',
+                  }}
+                >
+                  <AppIcon icon={X} size={12} color="#fff" strokeWidth={3} />
+                </TouchableOpacity>
+              </View>
+            ) : null}
+
+            <TouchableOpacity
+              onPress={pickCover}
+              style={[styles.fileBtn, { borderColor: coverFile ? '#10B981' : colors.border, backgroundColor: colors.surface }]}
+            >
+              <AppIcon
+                icon={coverFile ? CheckCircle : Camera}
+                size={20}
+                color={coverFile ? '#10B981' : colors.textSecondary}
+                strokeWidth={2}
+              />
+              <Text style={{ flex: 1, color: coverFile ? '#10B981' : colors.textSecondary, fontSize: 13 }} numberOfLines={1}>
+                {coverFile ? coverFile.name : 'Choisir une image (JPEG / PNG / WebP)…'}
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* Accès libre */}
@@ -292,14 +347,24 @@ function BookCard({ book, onStatusChange }: BookCardProps) {
     setLoading(false);
   }
 
+  const coverUrl = buildCoverUrl(book.coverImage);
+
   return (
     <Card style={{ marginBottom: 10 }} padding="none">
       <View style={{ padding: 14 }}>
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
-          {/* Icône */}
-          <View style={[styles.bookIcon, { backgroundColor: 'rgba(201,168,76,0.12)' }]}>
-            <AppIcon icon={BookOpen} size={22} color="#C9A84C" strokeWidth={2} />
-          </View>
+          {/* Couverture ou icône */}
+          {coverUrl ? (
+            <Image
+              source={{ uri: coverUrl }}
+              style={[styles.bookIcon, { borderRadius: 10 }]}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={[styles.bookIcon, { backgroundColor: 'rgba(201,168,76,0.12)', alignItems: 'center', justifyContent: 'center' }]}>
+              <AppIcon icon={BookOpen} size={22} color="#C9A84C" strokeWidth={2} />
+            </View>
+          )}
 
           {/* Infos */}
           <View style={{ flex: 1, gap: 2 }}>

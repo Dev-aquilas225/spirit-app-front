@@ -12,6 +12,16 @@
  */
 
 const API_BASE = `${process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:4200'}/api/v1`;
+
+/** Récupère le token JWT stocké dans localStorage (même clé que StorageService) */
+function getStoredToken(): string | null {
+  try {
+    const raw = localStorage.getItem('@spirit/auth_token');
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
 const VAPID_PUBLIC_KEY =
   process.env.EXPO_PUBLIC_VAPID_PUBLIC_KEY ??
   'BKTtn0UqR8p4hYnDIuNZIbSQ7EQjQuczKSGB6YTCcdMrIlGm0inM14fhL2KGufB9Mihr1SOEzWIJJDlwwHr7lC4';
@@ -69,9 +79,13 @@ export const NotificationService = {
   async _registerWithBackend(subscription: PushSubscription): Promise<void> {
     try {
       const json = subscription.toJSON();
+      const token = getStoredToken();
       await fetch(`${API_BASE}/push/subscribe`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           endpoint: subscription.endpoint,
           keys: {
