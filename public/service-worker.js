@@ -136,17 +136,27 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const url = event.notification.data?.url ?? '/';
+
+  // URL cible : valeur envoyée par le backend (ex: /prayers) ou racine par défaut
+  const targetUrl = event.notification.data?.url ?? '/';
+  // URL absolue pour la comparaison et l'ouverture
+  const absoluteUrl = new URL(targetUrl, self.location.origin).href;
+
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
-      // Si une fenêtre PWA est déjà ouverte, la focus
+      // Si une fenêtre PWA est déjà ouverte → la focus ET la naviguer vers la page cible
       for (const client of list) {
-        if (client.url.includes(self.location.origin) && 'focus' in client) {
-          return client.focus();
+        if (client.url.startsWith(self.location.origin) && 'focus' in client) {
+          client.focus();
+          // navigate() redirige la fenêtre existante vers la page cible
+          if ('navigate' in client) {
+            return client.navigate(absoluteUrl);
+          }
+          return;
         }
       }
-      // Sinon ouvrir une nouvelle fenêtre
-      return clients.openWindow(url);
+      // Aucune fenêtre ouverte → ouvrir directement la bonne page
+      return clients.openWindow(absoluteUrl);
     }),
   );
 });
