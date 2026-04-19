@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useAIStore } from '../store/ai.store';
 import { useAuthStore } from '../store/auth.store';
 
-export type AIChatType = 'prophet' | 'consultation' | 'accompagnement' | 'dream';
+export type AIChatType = 'prophet' | 'consultation' | 'accompagnement' | 'dream' | 'prayer';
 
 /**
  * Hook pour le chat IA.

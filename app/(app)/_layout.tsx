@@ -43,7 +43,7 @@ export default function AppLayout() {
         <Stack.Screen name="formations/[id]" />
         <Stack.Screen name="formations/reader/[id]" />
         <Stack.Screen name="dreams/index" />
-        <Stack.Screen name="prayer-program/index" />
+        <Stack.Screen name="prayer-program/index" options={{ animation: 'slide_from_right', animationDuration: 320 }} />
         <Stack.Screen name="settings/index" />
         <Stack.Screen name="notifications/index" />
         <Stack.Screen name="referral/index" />

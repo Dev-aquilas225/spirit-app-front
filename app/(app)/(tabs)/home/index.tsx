@@ -35,7 +35,7 @@ import { useTheme } from "../../../../src/theme";
 import { formatDate } from "../../../../src/utils/helpers";
 
 const QUICK_ACTIONS_CONFIG = [
-  { icon: Heart,         labelKey: "prayer"       as const, route: "/(app)/(tabs)/prayers"  as const },
+  { icon: Heart,         labelKey: "prayer"       as const, route: "/(app)/prayer-program"  as const },
   { icon: MessageCircle, labelKey: "ai"           as const, route: "/(app)/(tabs)/ai"        as const },
   { icon: BookOpen,      labelKey: "library"      as const, route: "/(app)/(tabs)/library"   as const },
   { icon: Lightbulb,     labelKey: "consultation" as const, route: "/(app)/formations"       as const },
