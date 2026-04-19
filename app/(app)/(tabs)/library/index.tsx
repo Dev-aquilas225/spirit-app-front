@@ -192,7 +192,8 @@ function LibraryContent() {
 
       if (Platform.OS === 'web') {
         try {
-          const response = await fetch(LibraryService.getFileUrl(currentBook.id), {
+          const pdfUrl = LibraryService.getFileUrl(currentBook.id);
+          const response = await fetch(pdfUrl, {
             headers: { Authorization: `Bearer ${token}`, 'Accept-Language': language },
           });
 
@@ -201,7 +202,9 @@ function LibraryContent() {
           }
 
           const blob = await response.blob();
-          const nextUrl = URL.createObjectURL(blob);
+          // Forcer le type application/pdf pour Android Chrome
+          const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+          const nextUrl = URL.createObjectURL(pdfBlob);
 
           if (isCancelled) {
             URL.revokeObjectURL(nextUrl);
@@ -321,11 +324,37 @@ function LibraryContent() {
           />
         ) : Platform.OS === 'web' ? (
           readerWebUrl ? (
-            // react-native-webview does not support web — use a plain iframe instead
-            React.createElement('iframe', {
-              src: readerWebUrl,
-              style: { flex: 1, width: '100%', height: '100%', border: 'none' },
-            })
+            // Sur web/PWA : embed + lien fallback pour Android Chrome
+            React.createElement(
+              'div',
+              { style: { flex: 1, display: 'flex', flexDirection: 'column', width: '100%', height: '100%' } },
+              React.createElement('embed', {
+                src: readerWebUrl,
+                type: 'application/pdf',
+                style: { flex: 1, width: '100%', height: '100%', border: 'none' },
+              }),
+              // Lien de secours visible sur Android Chrome qui n'affiche pas les PDF en embed/iframe
+              React.createElement(
+                'a',
+                {
+                  href: readerWebUrl,
+                  target: '_blank',
+                  rel: 'noopener noreferrer',
+                  download: `${selectedBook.title}.pdf`,
+                  style: {
+                    display: 'block',
+                    textAlign: 'center',
+                    padding: '10px',
+                    background: '#7C3AED',
+                    color: '#fff',
+                    fontWeight: '600',
+                    fontSize: 14,
+                    textDecoration: 'none',
+                  },
+                },
+                '📖 Ouvrir / Télécharger le PDF'
+              )
+            )
           ) : (
             <LoadingSpinner fullScreen message={t.library.readerPreparing} />
           )
