@@ -41,7 +41,7 @@ const QUICK_ACTIONS_CONFIG: Array<{
   route: Href;
   premium?: boolean;
 }> = [
-  { icon: Heart,         labelKey: "prayer",          route: "/(app)/prayer-program",   premium: true  },
+  { icon: Heart,         labelKey: "prayer",          route: "/(app)/prayer-program"                   },
   { icon: MessageCircle, labelKey: "ai",              route: "/(app)/(tabs)/ai"                        },
   { icon: BookOpen,      labelKey: "library",         route: "/(app)/(tabs)/library"                   },
   { icon: Lightbulb,     labelKey: "consultation",    route: "/(app)/formations"                       },
@@ -166,36 +166,22 @@ export default function HomeScreen() {
           </GoldCard>
         )}
 
-        {/* Prière du jour — réservée aux abonnés */}
+        {/* Prière du jour — gratuit pour tous */}
         {todayPrayers.length > 0 && (
           <View>
             <View style={styles.sectionHeader}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                  {t.home.dailyPrayers}
-                </Text>
-                {!isPremium && (
-                  <View style={[styles.premiumTag, { backgroundColor: "rgba(201,168,76,0.15)", borderColor: "#C9A84C" }]}>
-                    <AppIcon icon={Crown} size={11} color="#C9A84C" strokeWidth={2.4} />
-                    <Text style={{ color: "#C9A84C", fontSize: 10, fontWeight: "700" }}>Premium</Text>
-                  </View>
-                )}
-              </View>
-              {isPremium && (
-                <TouchableOpacity onPress={() => router.push("/(app)/(tabs)/prayers")}>
-                  <Text style={{ color: colors.primary, fontSize: 13 }}>{t.common.seeAll}</Text>
-                </TouchableOpacity>
-              )}
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                {t.home.dailyPrayers}
+              </Text>
+              <TouchableOpacity onPress={() => router.push("/(app)/(tabs)/prayers")}>
+                <Text style={{ color: colors.primary, fontSize: 13 }}>{t.common.seeAll}</Text>
+              </TouchableOpacity>
             </View>
             {todayPrayers.map((prayer) => (
               <Card
                 key={prayer.id}
-                onPress={() =>
-                  isPremium
-                    ? router.push("/(app)/(tabs)/prayers")
-                    : router.push("/(app)/subscription")
-                }
-                style={{ marginBottom: 8, opacity: isPremium ? 1 : 0.75 }}
+                onPress={() => router.push("/(app)/(tabs)/prayers")}
+                style={{ marginBottom: 8 }}
               >
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
                   <View style={[
@@ -219,15 +205,9 @@ export default function HomeScreen() {
                       {prayer.verseReference}
                     </Text>
                   </View>
-                  {isPremium ? (
-                    <View style={[styles.readHint, { backgroundColor: colors.primary + "1A" }]}>
-                      <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "600" }}>{t.common.read}</Text>
-                    </View>
-                  ) : (
-                    <View style={[styles.readHint, { backgroundColor: "rgba(201,168,76,0.15)" }]}>
-                      <AppIcon icon={Lock} size={13} color="#C9A84C" strokeWidth={2.6} />
-                    </View>
-                  )}
+                  <View style={[styles.readHint, { backgroundColor: colors.primary + "1A" }]}>
+                    <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "600" }}>{t.common.read}</Text>
+                  </View>
                 </View>
               </Card>
             ))}
