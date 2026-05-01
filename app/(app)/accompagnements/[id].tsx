@@ -148,11 +148,10 @@ export default function AccompagnementDetailScreen() {
   }
 
   function handleAskQuestion() {
-    const remaining = isPremium ? Infinity : MAX_FREE_QUESTIONS - questionsUsed;
     if (!isPremium && questionsUsed >= MAX_FREE_QUESTIONS) {
       Alert.alert(
         'Limite atteinte',
-        'Vous avez atteint votre limite. Abonnez-vous ou choisissez un autre service.',
+        'Vous avez atteint votre limite de questions gratuites. Abonnez-vous pour un accès illimité.',
         [
           { text: 'Annuler', style: 'cancel' },
           { text: "S'abonner", onPress: () => router.push('/(app)/subscription') },
@@ -160,8 +159,11 @@ export default function AccompagnementDetailScreen() {
       );
       return;
     }
-    // Naviguer vers le guide spirituel avec contexte
-    router.push('/(app)/(tabs)/ai');
+    // Naviguer vers le chat accompagnement dédié (Prophète Georges — Accompagnement)
+    router.push({
+      pathname: '/(app)/accompagnements/chat',
+      params: { programme: programme?.title ?? id },
+    });
   }
 
   if (!programme) {

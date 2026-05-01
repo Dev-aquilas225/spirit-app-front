@@ -240,4 +240,27 @@ export const AIService = {
       await http.delete(`/ai/conversations/${conversationId}`);
     } catch {}
   },
+
+  async getDreamHistory(userId: string): Promise<AIConversation[]> {
+    try {
+      const data = await http.get<unknown>('/ai/dreams/history');
+      const conversations = Array.isArray(data) ? data : [];
+      return conversations.map((conversation) => normalizeConversation(conversation, userId));
+    } catch {
+      return [];
+    }
+  },
+
+  async getAdminSettings(): Promise<{ id: number; section_name: string; system_prompt: string; updated_at: string }[]> {
+    try {
+      const data = await http.get<unknown>('/ai/admin/settings');
+      return Array.isArray(data) ? data as any[] : [];
+    } catch {
+      return [];
+    }
+  },
+
+  async updateAdminSetting(section: string, system_prompt: string): Promise<void> {
+    await http.put(`/ai/admin/settings/${section}`, { system_prompt });
+  },
 };

@@ -124,6 +124,7 @@ export async function request<T>(
 export const http = {
   get:    <T>(path: string, token?: string) => request<T>(path, { method: 'GET', token }),
   post:   <T>(path: string, body?: unknown, token?: string) => request<T>(path, { method: 'POST',  body: body ? JSON.stringify(body) : undefined, token }),
+  put:    <T>(path: string, body?: unknown, token?: string) => request<T>(path, { method: 'PUT',   body: body ? JSON.stringify(body) : undefined, token }),
   patch:  <T>(path: string, body?: unknown, token?: string) => request<T>(path, { method: 'PATCH', body: body ? JSON.stringify(body) : undefined, token }),
   delete: <T>(path: string, token?: string) => request<T>(path, { method: 'DELETE', token }),
   saveTokens,

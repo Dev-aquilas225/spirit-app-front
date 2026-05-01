@@ -615,6 +615,11 @@ export default function ProfileScreen() {
                 label="Notifications push"
                 onPress={() => router.push('/(app)/push/admin')}
               />
+              <MenuItem
+                icon={Settings}
+                label="Prompts IA — Tableau de bord"
+                onPress={() => router.push('/(app)/admin/ai-settings')}
+              />
             </Card>
           </View>
         )}
