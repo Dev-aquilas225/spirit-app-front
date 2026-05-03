@@ -61,7 +61,6 @@ const QUICK_ACTIONS: QuickAction[] = [
     color: "#7C3AED",
     lightBg: "#EDE9FE",
     darkBg: "rgba(124,58,237,0.18)",
-    premium: true,
   },
   {
     icon: BookOpen,

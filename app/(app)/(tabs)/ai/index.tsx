@@ -1,7 +1,6 @@
 import { router } from "expo-router";
 import { Ban, Crown, History, MessageCircle } from "lucide-react-native";
 import React, { useEffect, useRef, useState } from "react";
-import { PremiumGuard } from "../../../../src/components/auth/PremiumGuard";
 import {
   Alert,
   FlatList,
@@ -179,11 +178,6 @@ export default function AIScreen() {
       )}
     </View>
   );
-
-  // ─── Guard premium ────────────────────────────────────────────────────────
-  if (!isPremium) {
-    return <PremiumGuard featureName="Guide spirituel">{null}</PremiumGuard>;
-  }
 
   // ─── Vue Historique ───────────────────────────────────────────────────────
   if (view === "history") {
