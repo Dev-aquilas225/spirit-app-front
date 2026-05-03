@@ -24,17 +24,23 @@ import { formatDate, truncateText } from '../../../src/utils/helpers';
 
 type AccompView = 'chat' | 'history';
 
-const SUGGESTIONS = [
-  "J'ai besoin d'accompagnement pour mon foyer",
-  'Je traverse une situation difficile au travail',
-  'Je cherche une guidance spirituelle pour ma vie',
-  "J'ai besoin de prière pour débloquer ma situation",
-];
+// Suggestion dynamique selon le programme sélectionné
+const PROGRAMME_SUGGESTIONS: Record<string, string> = {
+  foyer:      "J'ai besoin d'un accompagnement spirituel pour mon foyer et mon mariage",
+  enfants:    "J'ai besoin d'un accompagnement spirituel pour mes enfants",
+  projets:    "J'ai besoin d'un accompagnement spirituel pour mes projets et ma réussite",
+  travail:    "J'ai besoin d'un accompagnement spirituel pour mon travail et mes finances",
+  concours:   "J'ai besoin d'un accompagnement spirituel pour mes concours et examens",
+  addictions: "J'ai besoin d'un accompagnement spirituel pour ma délivrance",
+  sante:      "J'ai besoin d'un accompagnement spirituel pour ma guérison et ma santé",
+};
+
+const DEFAULT_SUGGESTION = "J'ai besoin d'un accompagnement spirituel";
 
 export default function AccompagnementChatScreen() {
   const { colors, spacing } = useTheme();
   const user = useAuthStore((s) => s.user);
-  const { programme } = useLocalSearchParams<{ programme?: string }>();
+  const { programme, id } = useLocalSearchParams<{ programme?: string; id?: string }>();
   const firstName = user?.firstName?.trim() || user?.name?.split(' ')[0] || '';
   const [view, setView] = useState<AccompView>('chat');
 
@@ -51,6 +57,10 @@ export default function AccompagnementChatScreen() {
 
   const flatListRef = useRef<FlatList>(null);
 
+  // Suggestion unique correspondant au programme
+  const programmeId = id ?? '';
+  const suggestion = PROGRAMME_SUGGESTIONS[programmeId] ?? DEFAULT_SUGGESTION;
+
   useEffect(() => {
     startNewConversation();
   }, []);
@@ -61,8 +71,13 @@ export default function AccompagnementChatScreen() {
     }
   }, [messages.length]);
 
+  // Préfixe le message avec le contexte du programme pour que l'IA s'adapte
   async function handleSend(text: string) {
-    await sendMessage(text);
+    const programmeTitle = programme ? decodeURIComponent(programme) : null;
+    const contextualMessage = programmeTitle && messages.length === 0
+      ? `[Programme : ${programmeTitle}]\n\n${text}`
+      : text;
+    await sendMessage(contextualMessage);
   }
 
   function handleDeleteConv(conv: AIConversation) {
@@ -177,19 +192,19 @@ export default function AccompagnementChatScreen() {
           <Text style={[s.emptySub, { color: colors.textSecondary }]}>
             Le Prophète Georges vous accompagne spirituellement dans votre programme.{'\n\n'}Partagez votre situation pour commencer.
           </Text>
-          <View style={{ marginTop: 24, width: '100%', gap: 8 }}>
-            {SUGGESTIONS.map((suggestion) => (
-              <TouchableOpacity
-                key={suggestion}
-                onPress={() => handleSend(suggestion)}
-                style={[s.suggestion, { backgroundColor: colors.surface, borderColor: colors.border }]}
-              >
-                <View style={s.suggestionRow}>
-                  <AppIcon icon={MessageCircle} size={16} color="#C9A84C" strokeWidth={2.2} />
-                  <Text style={{ color: colors.textSecondary, fontSize: 13 }}>{suggestion}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
+          <View style={{ marginTop: 24, width: '100%' }}>
+            <TouchableOpacity
+              onPress={() => handleSend(suggestion)}
+              style={[s.suggestion, { backgroundColor: colors.surface, borderColor: '#C9A84C' }]}
+              activeOpacity={0.8}
+            >
+              <View style={s.suggestionRow}>
+                <AppIcon icon={MessageCircle} size={16} color="#C9A84C" strokeWidth={2.2} />
+                <Text style={{ color: colors.text, fontSize: 13, fontWeight: '500', flex: 1 }}>
+                  {suggestion}
+                </Text>
+              </View>
+            </TouchableOpacity>
           </View>
         </View>
       ) : (

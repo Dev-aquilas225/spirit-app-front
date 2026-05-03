@@ -1,0 +1,199 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <!-- Fond dégradé radial -->
+    <radialGradient id="bgGrad" cx="50%" cy="38%" r="65%">
+      <stop offset="0%" stop-color="#1E1A50"/>
+      <stop offset="100%" stop-color="#07071A"/>
+    </radialGradient>
+    <!-- Halo glow -->
+    <radialGradient id="haloGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#C9A84C" stop-opacity="0.45"/>
+      <stop offset="60%" stop-color="#C9A84C" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#C9A84C" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Aura derrière le corps -->
+    <radialGradient id="auraGrad" cx="50%" cy="40%" r="55%">
+      <stop offset="0%" stop-color="#C9A84C" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#C9A84C" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Filtre glow doux -->
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softBlur" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="5"/>
+    </filter>
+    <filter id="headGlow" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- ── Fond arrondi ── -->
+  <rect width="1024" height="1024" rx="220" fill="url(#bgGrad)"/>
+
+  <!-- ── Aura générale derrière la figure ── -->
+  <ellipse cx="512" cy="430" rx="360" ry="420" fill="url(#auraGrad)"/>
+
+  <!-- ── Rayons de lumière subtils (du halo vers l'extérieur) ── -->
+  <g opacity="0.10" fill="#C9A84C">
+    <polygon points="512,100 520,330 504,330"/>
+    <polygon points="512,100 600,315 496,315"/>
+    <polygon points="512,100 424,315 528,315"/>
+    <polygon points="512,100 680,290 508,310"/>
+    <polygon points="512,100 344,290 516,310"/>
+    <polygon points="512,100 748,260 512,298"/>
+    <polygon points="512,100 276,260 512,298"/>
+    <polygon points="512,100 800,220 512,285"/>
+    <polygon points="512,100 224,220 512,285"/>
+  </g>
+
+  <!-- ── Halo anneau extérieur (grand, glow) ── -->
+  <circle cx="512" cy="258" r="145" fill="url(#haloGlow)" filter="url(#softBlur)"/>
+  <circle cx="512" cy="258" r="128" fill="none" stroke="#C9A84C" stroke-width="4" opacity="0.55"/>
+  <circle cx="512" cy="258" r="138" fill="none" stroke="#C9A84C" stroke-width="1.5" opacity="0.25"/>
+
+  <!-- ── Étoile au sommet du halo ── -->
+  <path d="M512,108 L517,124 L534,124 L521,134 L526,150 L512,140 L498,150 L503,134 L490,124 L507,124 Z"
+        fill="#FFD580" opacity="0.95" filter="url(#glow)"/>
+
+  <!-- ── Tête ── -->
+  <!-- Lueur derrière la tête -->
+  <circle cx="512" cy="258" r="82" fill="#C9A84C" opacity="0.12" filter="url(#softBlur)"/>
+  <!-- Visage/tête -->
+  <circle cx="512" cy="258" r="72" fill="#F2DEB0"/>
+  <!-- Ombre douce sur le bas du visage -->
+  <ellipse cx="512" cy="290" rx="50" ry="35" fill="#D4B07A" opacity="0.45"/>
+  <!-- Barbe stylisée -->
+  <ellipse cx="512" cy="308" rx="36" ry="22" fill="#B8924A" opacity="0.55"/>
+  <!-- Yeux (très simples, dots) -->
+  <circle cx="492" cy="250" r="6" fill="#3A2810" opacity="0.75"/>
+  <circle cx="532" cy="250" r="6" fill="#3A2810" opacity="0.75"/>
+  <!-- Reflet yeux -->
+  <circle cx="494" cy="248" r="2" fill="#FFFFFF" opacity="0.6"/>
+  <circle cx="534" cy="248" r="2" fill="#FFFFFF" opacity="0.6"/>
+
+  <!-- ── Robe / Corps ── -->
+  <!-- Ombre / profondeur de la robe -->
+  <path d="
+    M 458,330
+    C 400,355 305,530 305,870
+    Q 512,915 719,870
+    C 719,530 624,355 566,330
+    Z
+  " fill="#8B6820" opacity="0.35"/>
+
+  <!-- Corps principal en or -->
+  <path d="
+    M 454,330
+    C 390,352 298,525 298,858
+    Q 512,908 726,858
+    C 726,525 634,352 570,330
+    Z
+  " fill="#C9A84C"/>
+
+  <!-- Reflet central (ligne de lumière) -->
+  <path d="
+    M 512,330
+    C 515,550 516,720 514,858
+    Q 512,862 510,858
+    C 508,720 509,550 512,330
+    Z
+  " fill="#FFD580" opacity="0.20"/>
+
+  <!-- Pli de robe gauche -->
+  <path d="
+    M 454,330 C 420,400 370,580 350,858
+    Q 360,862 375,858
+    C 398,580 446,402 476,332
+    Z
+  " fill="#A08030" opacity="0.25"/>
+
+  <!-- Pli de robe droite -->
+  <path d="
+    M 570,330 C 604,402 654,580 674,858
+    Q 689,862 699,858
+    C 679,580 629,400 596,330
+    Z
+  " fill="#A08030" opacity="0.25"/>
+
+  <!-- ── Bras gauche ── -->
+  <path d="M 454,400 Q 370,468 238,592"
+        stroke="#C9A84C" stroke-width="78" stroke-linecap="round" fill="none"/>
+  <!-- Ombre bras gauche -->
+  <path d="M 454,400 Q 370,468 238,592"
+        stroke="#8B6820" stroke-width="78" stroke-linecap="round" fill="none" opacity="0.30"/>
+  <!-- Reflet bras gauche -->
+  <path d="M 454,400 Q 370,468 238,592"
+        stroke="#FFD580" stroke-width="20" stroke-linecap="round" fill="none" opacity="0.12"/>
+
+  <!-- ── Bras droit ── -->
+  <path d="M 570,400 Q 654,468 786,592"
+        stroke="#C9A84C" stroke-width="78" stroke-linecap="round" fill="none"/>
+  <!-- Ombre bras droit -->
+  <path d="M 570,400 Q 654,468 786,592"
+        stroke="#8B6820" stroke-width="78" stroke-linecap="round" fill="none" opacity="0.30"/>
+  <!-- Reflet bras droit -->
+  <path d="M 570,400 Q 654,468 786,592"
+        stroke="#FFD580" stroke-width="20" stroke-linecap="round" fill="none" opacity="0.12"/>
+
+  <!-- ── Mains ── -->
+  <!-- Main gauche -->
+  <circle cx="238" cy="592" r="38" fill="#F2DEB0"/>
+  <circle cx="238" cy="598" r="28" fill="#D4B07A" opacity="0.5"/>
+  <!-- Main droite -->
+  <circle cx="786" cy="592" r="38" fill="#F2DEB0"/>
+  <circle cx="786" cy="598" r="28" fill="#D4B07A" opacity="0.5"/>
+
+  <!-- ── Étoiles décoratives ── -->
+  <!-- Grande étoile haut-gauche -->
+  <g transform="translate(148,178) scale(0.85)" opacity="0.85" filter="url(#glow)">
+    <path d="M20,0 L24,14 L38,14 L27,22 L31,36 L20,28 L9,36 L13,22 L2,14 L16,14 Z" fill="#C9A84C"/>
+  </g>
+  <!-- Grande étoile haut-droit -->
+  <g transform="translate(826,148) scale(0.70)" opacity="0.78" filter="url(#glow)">
+    <path d="M20,0 L24,14 L38,14 L27,22 L31,36 L20,28 L9,36 L13,22 L2,14 L16,14 Z" fill="#C9A84C"/>
+  </g>
+  <!-- Petite étoile gauche -->
+  <g transform="translate(118,380) scale(0.48)" opacity="0.70">
+    <path d="M20,0 L24,14 L38,14 L27,22 L31,36 L20,28 L9,36 L13,22 L2,14 L16,14 Z" fill="#FFD580"/>
+  </g>
+  <!-- Petite étoile droite -->
+  <g transform="translate(862,360) scale(0.42)" opacity="0.65">
+    <path d="M20,0 L24,14 L38,14 L27,22 L31,36 L20,28 L9,36 L13,22 L2,14 L16,14 Z" fill="#FFD580"/>
+  </g>
+  <!-- Petites étincelles (dots) -->
+  <circle cx="186" cy="560" r="7" fill="#C9A84C" opacity="0.65"/>
+  <circle cx="180" cy="572" r="3" fill="#FFD580" opacity="0.80"/>
+  <circle cx="840" cy="520" r="7" fill="#C9A84C" opacity="0.60"/>
+  <circle cx="848" cy="532" r="3" fill="#FFD580" opacity="0.75"/>
+  <circle cx="168" cy="720" r="5" fill="#C9A84C" opacity="0.45"/>
+  <circle cx="856" cy="740" r="5" fill="#C9A84C" opacity="0.40"/>
+  <circle cx="290" cy="130" r="5" fill="#C9A84C" opacity="0.50"/>
+  <circle cx="740" cy="112" r="4" fill="#C9A84C" opacity="0.45"/>
+
+  <!-- ── Éclat de lumière sparkle au centre-haut du halo ── -->
+  <g transform="translate(512,118)" opacity="0.95" filter="url(#glow)">
+    <line x1="0" y1="-16" x2="0" y2="16" stroke="#FFD580" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="-16" y1="0" x2="16" y2="0" stroke="#FFD580" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="-11" y1="-11" x2="11" y2="11" stroke="#FFD580" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="11" y1="-11" x2="-11" y2="11" stroke="#FFD580" stroke-width="1.5" stroke-linecap="round"/>
+  </g>
+
+  <!-- ── Sparkle gauche ── -->
+  <g transform="translate(164,312)" opacity="0.80">
+    <line x1="0" y1="-10" x2="0" y2="10" stroke="#C9A84C" stroke-width="2" stroke-linecap="round"/>
+    <line x1="-10" y1="0" x2="10" y2="0" stroke="#C9A84C" stroke-width="2" stroke-linecap="round"/>
+    <line x1="-7" y1="-7" x2="7" y2="7" stroke="#C9A84C" stroke-width="1" stroke-linecap="round"/>
+    <line x1="7" y1="-7" x2="-7" y2="7" stroke="#C9A84C" stroke-width="1" stroke-linecap="round"/>
+  </g>
+
+  <!-- ── Sparkle droit ── -->
+  <g transform="translate(860,290)" opacity="0.75">
+    <line x1="0" y1="-10" x2="0" y2="10" stroke="#C9A84C" stroke-width="2" stroke-linecap="round"/>
+    <line x1="-10" y1="0" x2="10" y2="0" stroke="#C9A84C" stroke-width="2" stroke-linecap="round"/>
+    <line x1="-7" y1="-7" x2="7" y2="7" stroke="#C9A84C" stroke-width="1" stroke-linecap="round"/>
+    <line x1="7" y1="-7" x2="-7" y2="7" stroke="#C9A84C" stroke-width="1" stroke-linecap="round"/>
+  </g>
+</svg>

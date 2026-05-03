@@ -2,11 +2,13 @@
  * PaymentScreen — Oracle Plus
  *
  * Flux :
- * 1. Lance le paiement Paystack → ouvre dans un nouvel onglet/navigateur
- * 2. Polle GET /subscriptions/status/:reference toutes les 4 secondes
- * 3. Quand le webhook Paystack active l'abonnement en base → le poll le détecte
- * 4. Affiche une animation VIP et redirige vers la page succès
- * 5. Après 10 minutes sans réponse → échec automatique (et le backend expire aussi)
+ * 1. Initie le paiement → récupère l'authorization_url Paystack
+ * 2. Démarre le polling (toutes les 4s) et le décompte AVANT d'ouvrir le navigateur
+ * 3. Ouvre Paystack dans un navigateur in-app via WebBrowser.openAuthSessionAsync
+ *    → le navigateur se ferme AUTOMATIQUEMENT quand Paystack redirige vers
+ *      oracleplus://subscription/callback (deep link intercepté par expo-web-browser)
+ * 4. Le polling détecte l'activation → animation VIP → page succès
+ * 5. Après 10 minutes sans confirmation → timeout côté client
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -19,6 +21,7 @@ import {
   View,
 } from 'react-native';
 import { router } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import { Crown, ExternalLink, XCircle } from 'lucide-react-native';
 import { useTheme } from '../../../src/theme';
 import { useSubscription } from '../../../src/hooks/useSubscription';
@@ -36,13 +39,30 @@ type Step = 'initiating' | 'waiting' | 'vip' | 'timeout' | 'error';
 
 /* ─── Helpers ────────────────────────────────────────────────────────────── */
 
-async function openPaystackUrl(url: string) {
+/**
+ * Ouvre Paystack dans un navigateur in-app.
+ *
+ * Mobile : utilise WebBrowser.openAuthSessionAsync — le navigateur (Chrome
+ *   Custom Tab sur Android / SFSafariViewController sur iOS) se ferme
+ *   AUTOMATIQUEMENT dès que Paystack redirige vers oracleplus://...
+ *
+ * Web : ouvre dans un nouvel onglet (comportement inchangé).
+ */
+async function openPaystackUrl(url: string): Promise<void> {
   if (Platform.OS === 'web') {
     window.open(url, '_blank', 'noopener,noreferrer');
     return;
   }
-  const { Linking } = await import('react-native');
-  await Linking.openURL(url);
+
+  try {
+    // Le 2e paramètre = préfixe du deep link à intercepter.
+    // Quand Paystack redirige vers oracleplus://..., le navigateur se ferme.
+    await WebBrowser.openAuthSessionAsync(url, 'oracleplus://');
+  } catch {
+    // Fallback : ouvre dans le navigateur externe si WebBrowser échoue
+    const { Linking } = await import('react-native');
+    await Linking.openURL(url);
+  }
 }
 
 function formatTime(ms: number): string {
@@ -201,15 +221,14 @@ export default function PaymentScreen() {
     setStep('waiting');
     startedAt.current = Date.now();
 
-    await openPaystackUrl(result.authorization_url);
-
-    // ── Polling statut ──────────────────────────────────────────────────
+    // ── Polling statut — démarré AVANT l'ouverture du navigateur ───────
+    // (openAuthSessionAsync bloque jusqu'à la fermeture du navigateur,
+    //  donc le polling doit être actif dès maintenant)
     pollRef.current = setInterval(async () => {
-      const { status, subscription } = await PaymentService.getStatus(result.reference);
+      const { status } = await PaymentService.getStatus(result.reference);
 
       if (status === 'active') {
         stopAll();
-        // Mettre à jour le store
         await loadSubscription();
         setStep('vip');
         setTimeout(() => router.replace('/(app)/subscription/success'), VIP_DISPLAY_MS);
@@ -220,7 +239,6 @@ export default function PaymentScreen() {
         stopAll();
         setError('Le paiement n\'a pas abouti.');
         setStep('error');
-        return;
       }
     }, POLL_INTERVAL_MS);
 
@@ -236,6 +254,14 @@ export default function PaymentScreen() {
         setStep('timeout');
       }
     }, 1_000);
+
+    // ── Ouvrir Paystack dans le navigateur in-app ───────────────────────
+    // Sur mobile : WebBrowser.openAuthSessionAsync — se ferme automatiquement
+    // quand Paystack redirige vers oracleplus://subscription/callback
+    // Le polling continue en arrière-plan pendant que le navigateur est ouvert.
+    await openPaystackUrl(result.authorization_url);
+    // ← ici le navigateur est fermé (deep link intercepté ou bouton "Annuler")
+    // Le polling tourne encore et détectera le paiement si confirmé
   }, [initiatePayment, loadSubscription, stopAll, clearPaymentError]);
 
   // Lance au montage
