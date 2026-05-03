@@ -128,6 +128,9 @@ function HistoryTab() {
   const [conversations, setConversations] = useState<AIConversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
+  // Cache des réponses IA chargées à la demande (conversationId → texte)
+  const [aiResponses, setAiResponses] = useState<Record<string, string>>({});
+  const [loadingResponse, setLoadingResponse] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -137,6 +140,27 @@ function HistoryTab() {
   }, [user?.id]);
 
   useEffect(() => { load(); }, [load]);
+
+  async function handleExpand(item: AIConversation) {
+    const isOpen = expanded === item.id;
+    if (isOpen) {
+      setExpanded(null);
+      return;
+    }
+    setExpanded(item.id);
+
+    // Si la réponse IA est déjà en cache, pas besoin de recharger
+    if (aiResponses[item.id]) return;
+
+    // Charger le détail complet de la conversation pour avoir la réponse IA
+    setLoadingResponse(item.id);
+    const messages = await AIService.getConversationHistory(item.id);
+    const aiMsg = messages.find((m) => m.role === 'assistant');
+    if (aiMsg) {
+      setAiResponses((prev) => ({ ...prev, [item.id]: aiMsg.content }));
+    }
+    setLoadingResponse(null);
+  }
 
   async function handleDelete(conv: AIConversation) {
     Alert.alert(
@@ -150,6 +174,7 @@ function HistoryTab() {
           onPress: async () => {
             await AIService.deleteConversation(conv.id);
             setConversations((prev) => prev.filter((c) => c.id !== conv.id));
+            setAiResponses((prev) => { const n = { ...prev }; delete n[conv.id]; return n; });
           },
         },
       ],
@@ -182,14 +207,20 @@ function HistoryTab() {
       contentContainerStyle={{ padding: spacing.base, gap: 10 }}
       renderItem={({ item }) => {
         const firstMsg = item.messages.find((m) => m.role === 'user');
-        const aiMsg = item.messages.find((m) => m.role === 'assistant');
         const isOpen = expanded === item.id;
+        const aiText = aiResponses[item.id];
+        const isLoadingThis = loadingResponse === item.id;
+
+        // Nettoyer le préfixe automatique ajouté lors de l'interprétation
+        const dreamDescription = firstMsg
+          ? firstMsg.content.replace(/^Interprète spirituellement ce rêve\s*:\s*/i, '').trim()
+          : 'Rêve interprété';
 
         return (
           <TouchableOpacity
-            onPress={() => setExpanded(isOpen ? null : item.id)}
+            onPress={() => handleExpand(item)}
             onLongPress={() => handleDelete(item)}
-            style={[styles.histCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            style={[styles.histCard, { backgroundColor: colors.surface, borderColor: isOpen ? '#C9A84C' : colors.border }]}
             activeOpacity={0.85}
           >
             <View style={styles.histHeader}>
@@ -201,7 +232,7 @@ function HistoryTab() {
                   </Text>
                 </View>
                 <Text style={{ color: colors.text, fontWeight: '600', fontSize: 13, lineHeight: 20 }}>
-                  {firstMsg ? truncateText(firstMsg.content.replace(/^Interprète spirituellement ce rêve : /i, ''), 80) : 'Rêve interprété'}
+                  {truncateText(dreamDescription, 90)}
                 </Text>
               </View>
               <TouchableOpacity onPress={() => handleDelete(item)} style={{ padding: 6 }}>
@@ -209,17 +240,30 @@ function HistoryTab() {
               </TouchableOpacity>
             </View>
 
-            {isOpen && aiMsg && (
+            {isOpen && (
               <View style={[styles.histBody, { borderTopColor: colors.border }]}>
-                <Text style={{ color: colors.text, fontSize: 14, lineHeight: 24 }}>
-                  {aiMsg.content}
-                </Text>
+                {isLoadingThis ? (
+                  <View style={{ alignItems: 'center', padding: 16 }}>
+                    <ActivityIndicator size="small" color="#C9A84C" />
+                    <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 8 }}>
+                      Chargement de l'interprétation…
+                    </Text>
+                  </View>
+                ) : aiText ? (
+                  <Text style={{ color: colors.text, fontSize: 14, lineHeight: 24 }}>
+                    {aiText}
+                  </Text>
+                ) : (
+                  <Text style={{ color: colors.textTertiary, fontSize: 13, fontStyle: 'italic' }}>
+                    L'interprétation n'est pas disponible pour cette entrée.
+                  </Text>
+                )}
               </View>
             )}
 
             <View style={{ alignItems: 'center', marginTop: 8 }}>
               <Text style={{ color: colors.textTertiary, fontSize: 11 }}>
-                {isOpen ? 'Appuyez pour réduire ▲' : 'Appuyez pour lire l\'interprétation ▼'}
+                {isOpen ? 'Réduire ▲' : 'Lire l\'interprétation ▼'}
               </Text>
             </View>
           </TouchableOpacity>

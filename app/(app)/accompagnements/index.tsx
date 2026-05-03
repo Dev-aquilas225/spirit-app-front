@@ -132,7 +132,7 @@ export default function AccomppagnementsScreen() {
                   router.push('/(app)/subscription');
                   return;
                 }
-                router.push(`/(app)/accompagnements/${prog.id}`);
+                router.push({ pathname: '/(app)/accompagnements/chat', params: { programme: prog.title, id: prog.id } });
               }}
             >
               <View style={[s.iconWrap, { backgroundColor: prog.color + '20' }]}>

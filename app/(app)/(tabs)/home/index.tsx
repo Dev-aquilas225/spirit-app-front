@@ -4,9 +4,9 @@ import {
   Bell,
   BookOpen,
   Calendar,
+  ChevronRight,
   CloudMoon,
   Crown,
-  GraduationCap,
   Hand,
   Heart,
   Lightbulb,
@@ -25,7 +25,6 @@ import {
   View,
 } from "react-native";
 import { AppIcon } from "../../../../src/components/common/AppIcon";
-import { Card, GoldCard } from "../../../../src/components/common/Card";
 import { PremiumBanner } from "../../../../src/components/subscription/PremiumBanner";
 import { getTodayMessage } from "../../../../src/data/messages.data";
 import { useAuth } from "../../../../src/hooks/useAuth";
@@ -35,19 +34,74 @@ import { useI18n } from "../../../../src/i18n";
 import { useTheme } from "../../../../src/theme";
 import { formatDate } from "../../../../src/utils/helpers";
 
-const QUICK_ACTIONS_CONFIG: Array<{
+interface QuickAction {
   icon: LucideIcon;
   labelKey: "prayer" | "ai" | "library" | "consultation" | "dreams" | "prophet" | "accompagnements";
   route: Href;
+  color: string;
+  lightBg: string;
+  darkBg: string;
   premium?: boolean;
-}> = [
-  { icon: Heart,         labelKey: "prayer",          route: "/(app)/prayer-program"                   },
-  { icon: MessageCircle, labelKey: "ai",              route: "/(app)/(tabs)/ai"                        },
-  { icon: BookOpen,      labelKey: "library",         route: "/(app)/(tabs)/library"                   },
-  { icon: Lightbulb,     labelKey: "consultation",    route: "/(app)/formations"                       },
-  { icon: CloudMoon,     labelKey: "dreams",          route: "/(app)/dreams"                           },
-  { icon: Calendar,      labelKey: "prophet",         route: "/(app)/consultation"                     },
-  { icon: Users,         labelKey: "accompagnements", route: "/(app)/accompagnements",  premium: true  },
+}
+
+const QUICK_ACTIONS: QuickAction[] = [
+  {
+    icon: Heart,
+    labelKey: "prayer",
+    route: "/(app)/prayer-program",
+    color: "#F59E0B",
+    lightBg: "#FFF7E0",
+    darkBg: "rgba(245,158,11,0.18)",
+  },
+  {
+    icon: MessageCircle,
+    labelKey: "ai",
+    route: "/(app)/(tabs)/ai",
+    color: "#7C3AED",
+    lightBg: "#EDE9FE",
+    darkBg: "rgba(124,58,237,0.18)",
+  },
+  {
+    icon: BookOpen,
+    labelKey: "library",
+    route: "/(app)/(tabs)/library",
+    color: "#3B82F6",
+    lightBg: "#DBEAFE",
+    darkBg: "rgba(59,130,246,0.18)",
+  },
+  {
+    icon: Lightbulb,
+    labelKey: "consultation",
+    route: "/(app)/formations",
+    color: "#10B981",
+    lightBg: "#D1FAE5",
+    darkBg: "rgba(16,185,129,0.18)",
+  },
+  {
+    icon: CloudMoon,
+    labelKey: "dreams",
+    route: "/(app)/dreams",
+    color: "#6366F1",
+    lightBg: "#E0E7FF",
+    darkBg: "rgba(99,102,241,0.18)",
+  },
+  {
+    icon: Calendar,
+    labelKey: "prophet",
+    route: "/(app)/consultation",
+    color: "#EC4899",
+    lightBg: "#FCE7F3",
+    darkBg: "rgba(236,72,153,0.18)",
+  },
+  {
+    icon: Users,
+    labelKey: "accompagnements",
+    route: "/(app)/accompagnements",
+    color: "#C9A84C",
+    lightBg: "#FFF7E0",
+    darkBg: "rgba(201,168,76,0.18)",
+    premium: true,
+  },
 ];
 
 export default function HomeScreen() {
@@ -61,288 +115,411 @@ export default function HomeScreen() {
   const todayPrayers = dailyPrayers.slice(0, 2);
   const today = formatDate(new Date().toISOString());
 
+  const firstName = user?.name?.split(" ")[0] ?? "";
+
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.background }}
-      contentContainerStyle={{ paddingBottom: 32 }}
+      contentContainerStyle={{ paddingBottom: 40 }}
       showsVerticalScrollIndicator={false}
     >
-      {/* Header */}
-      <View
-        style={[
-          styles.header,
-          {
-            backgroundColor: colors.deepBlue ?? "#1A1A3E",
-            padding: spacing.xl,
-            paddingTop: 60,
-          },
-        ]}
-      >
-        <View style={styles.headerTop}>
-          <View>
-            <View style={styles.greetingRow}>
-              <Text style={styles.greeting}>
-                {t.home.greeting(user?.name?.split(" ")[0] ?? "")}
+      {/* ── HEADER ─────────────────────────────────────────────── */}
+      <View style={s.headerWrap}>
+        {/* Cercles décoratifs */}
+        <View style={s.deco1} />
+        <View style={s.deco2} />
+
+        {/* Top row */}
+        <View style={[s.headerTop, { paddingTop: 60, paddingHorizontal: 20 }]}>
+          <View style={{ flex: 1 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Text style={s.greeting}>
+                {t.home.greeting(firstName)}
               </Text>
-              <AppIcon icon={Hand} size={18} color="#fff" strokeWidth={2.4} />
+              <AppIcon icon={Hand} size={18} color="#FFD580" strokeWidth={2.4} />
             </View>
-            <Text style={styles.date}>{today}</Text>
+            <Text style={s.date}>{today}</Text>
           </View>
-          <TouchableOpacity
-            onPress={() => router.push("/(app)/notifications")}
-            style={[
-              styles.notifBtn,
-              { backgroundColor: "rgba(255,255,255,0.15)" },
-            ]}
-          >
-            <AppIcon icon={Bell} size={20} color="#fff" strokeWidth={2.2} />
-          </TouchableOpacity>
+
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            {isPremium && (
+              <View style={s.premiumBadge}>
+                <AppIcon icon={Crown} size={12} color="#C9A84C" strokeWidth={2.4} />
+                <Text style={s.premiumBadgeText}>VIP</Text>
+              </View>
+            )}
+            <TouchableOpacity
+              onPress={() => router.push("/(app)/notifications")}
+              style={s.notifBtn}
+            >
+              <AppIcon icon={Bell} size={20} color="#fff" strokeWidth={2.2} />
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {isPremium && (
-          <View
-            style={[
-              styles.badge,
-              {
-                backgroundColor: "rgba(201,168,76,0.2)",
-                borderColor: "#C9A84C",
-              },
-            ]}
-          >
-            <View style={styles.premiumBadgeRow}>
-              <AppIcon
-                icon={Crown}
-                size={14}
-                color="#C9A84C"
-                strokeWidth={2.4}
-              />
-              <Text
-                style={{ color: "#C9A84C", fontSize: 12, fontWeight: "700" }}
-              >
-                {t.common.premium}
+        {/* Verset du jour — intégré dans le header */}
+        {todayMessage && (
+          <View style={[s.verseBox, { marginHorizontal: 20, marginTop: 16 }]}>
+            <Text style={s.verseQuote}>"</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={s.verseText} numberOfLines={3}>
+                {todayMessage.content}
               </Text>
+              {todayMessage.verse && (
+                <Text style={s.verseRef}>— {todayMessage.verse}</Text>
+              )}
             </View>
           </View>
         )}
+
+        {/* Espace bas */}
+        <View style={{ height: 28 }} />
       </View>
 
-      <View style={{ padding: spacing.base, gap: spacing.base }}>
-        {/* Message spirituel du jour */}
-        {todayMessage && (
-          <GoldCard>
-            <Text
-              style={{
-                fontSize: 11,
-                color: "#C9A84C",
-                fontWeight: "700",
-                marginBottom: 8,
-                letterSpacing: 1,
-              }}
-            >
-              {t.home.todayMessage}
-            </Text>
-            <Text
-              style={{
-                fontSize: 15,
-                color: colors.text,
-                lineHeight: 24,
-                fontStyle: "italic",
-              }}
-            >
-              “{todayMessage.content}”
-            </Text>
-            {todayMessage.verse && (
-              <Text
-                style={{
-                  color: "#C9A84C",
-                  fontSize: 12,
-                  marginTop: 12,
-                  fontWeight: "600",
-                }}
-              >
-                — {todayMessage.verse}
-              </Text>
-            )}
-          </GoldCard>
-        )}
+      <View style={{ paddingHorizontal: spacing.base, gap: 24 }}>
 
-        {/* Prière du jour — gratuit pour tous */}
+        {/* ── PRIÈRES DU JOUR ────────────────────────────────────── */}
         {todayPrayers.length > 0 && (
           <View>
-            <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                {t.home.dailyPrayers}
-              </Text>
+            <View style={s.sectionHeader}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <View style={[s.sectionDot, { backgroundColor: "#F59E0B" }]} />
+                <Text style={[s.sectionTitle, { color: colors.text }]}>
+                  {t.home.dailyPrayers}
+                </Text>
+              </View>
               <TouchableOpacity onPress={() => router.push("/(app)/(tabs)/prayers")}>
-                <Text style={{ color: colors.primary, fontSize: 13 }}>{t.common.seeAll}</Text>
+                <Text style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}>
+                  {t.common.seeAll}
+                </Text>
               </TouchableOpacity>
             </View>
-            {todayPrayers.map((prayer) => (
-              <Card
-                key={prayer.id}
-                onPress={() => router.push("/(app)/(tabs)/prayers")}
-                style={{ marginBottom: 8 }}
-              >
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                  <View style={[
-                    styles.prayerIconWrap,
-                    { backgroundColor: prayer.period === "morning"
-                        ? (isDark ? "rgba(201,168,76,0.18)" : "#FFF7E0")
-                        : (isDark ? "rgba(124,92,191,0.20)" : "#EDE9FF") },
-                  ]}>
-                    <AppIcon
-                      icon={prayer.period === "morning" ? Sunrise : Sunset}
-                      size={20}
-                      color={prayer.period === "morning" ? "#C9A84C" : "#9B7FD4"}
-                      strokeWidth={2.4}
-                    />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontWeight: "700", color: colors.text, fontSize: 14 }} numberOfLines={1}>
-                      {prayer.theme}
-                    </Text>
-                    <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>
-                      {prayer.verseReference}
-                    </Text>
-                  </View>
-                  <View style={[styles.readHint, { backgroundColor: colors.primary + "1A" }]}>
-                    <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "600" }}>{t.common.read}</Text>
-                  </View>
-                </View>
-              </Card>
-            ))}
+
+            <View style={{ gap: 10 }}>
+              {todayPrayers.map((prayer) => {
+                const isMorning = prayer.period === "morning";
+                const accentColor = isMorning ? "#F59E0B" : "#9B7FD4";
+                const bgColor = isMorning
+                  ? isDark ? "rgba(245,158,11,0.12)" : "#FFF7E0"
+                  : isDark ? "rgba(155,127,212,0.12)" : "#F3F0FF";
+                return (
+                  <TouchableOpacity
+                    key={prayer.id}
+                    onPress={() => router.push("/(app)/(tabs)/prayers")}
+                    style={[s.prayerCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                    activeOpacity={0.8}
+                  >
+                    {/* Barre accent gauche */}
+                    <View style={[s.prayerAccent, { backgroundColor: accentColor }]} />
+
+                    <View style={[s.prayerIconCircle, { backgroundColor: bgColor }]}>
+                      <AppIcon
+                        icon={isMorning ? Sunrise : Sunset}
+                        size={20}
+                        color={accentColor}
+                        strokeWidth={2.4}
+                      />
+                    </View>
+
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontWeight: "700", color: colors.text, fontSize: 14 }} numberOfLines={1}>
+                        {prayer.theme}
+                      </Text>
+                      <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>
+                        {prayer.verseReference}
+                      </Text>
+                    </View>
+
+                    <View style={[s.readPill, { backgroundColor: accentColor + "20" }]}>
+                      <Text style={{ color: accentColor, fontSize: 11, fontWeight: "700" }}>
+                        {t.common.read}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
         )}
 
-        {/* Quick actions */}
+        {/* ── ACCÈS RAPIDE ───────────────────────────────────────── */}
         <View>
-          <Text
-            style={[
-              styles.sectionTitle,
-              { color: colors.text, marginBottom: 12 },
-            ]}
-          >
-            {t.home.quickAccess}
-          </Text>
-          <View style={styles.grid}>
-            {QUICK_ACTIONS_CONFIG.map((action) => {
+          <View style={s.sectionHeader}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <View style={[s.sectionDot, { backgroundColor: colors.primary }]} />
+              <Text style={[s.sectionTitle, { color: colors.text }]}>
+                {t.home.quickAccess}
+              </Text>
+            </View>
+          </View>
+
+          <View style={s.grid}>
+            {QUICK_ACTIONS.map((action) => {
               const isLocked = action.premium && !isPremium;
+              const iconBg = isDark ? action.darkBg : action.lightBg;
               const handlePress = isLocked
                 ? () => router.push("/(app)/subscription")
                 : () => router.push(action.route);
+
               return (
                 <TouchableOpacity
                   key={action.labelKey}
                   onPress={handlePress}
                   style={[
-                    styles.actionBtn,
+                    s.actionCard,
                     {
                       backgroundColor: colors.surface,
-                      borderColor: isLocked ? "#C9A84C" : colors.border,
+                      borderColor: isLocked ? action.color + "55" : colors.border,
                     },
                   ]}
+                  activeOpacity={0.78}
                 >
-                  {/* Icône principale */}
-                  <View style={{ marginBottom: 6 }}>
+                  {/* Icône colorée */}
+                  <View style={[s.actionIconWrap, { backgroundColor: iconBg }]}>
                     <AppIcon
                       icon={action.icon}
-                      size={26}
-                      color={isLocked ? "#C9A84C" : colors.primary}
+                      size={22}
+                      color={action.color}
                       strokeWidth={2.2}
                     />
+                    {isLocked && (
+                      <View style={[s.lockDot, { backgroundColor: action.color }]}>
+                        <AppIcon icon={Lock} size={8} color="#fff" strokeWidth={3} />
+                      </View>
+                    )}
                   </View>
+
+                  {/* Texte */}
                   <Text
-                    style={{
-                      fontSize: 11,
-                      fontWeight: "600",
-                      color: isLocked ? "#C9A84C" : colors.textSecondary,
-                      textAlign: "center",
-                    }}
+                    style={[
+                      s.actionLabel,
+                      { color: isLocked ? action.color : colors.text },
+                    ]}
+                    numberOfLines={2}
                   >
                     {t.home.actions[action.labelKey]}
                   </Text>
-                  {/* Badge cadenas pour les abonnés seulement */}
-                  {isLocked && (
-                    <View style={styles.lockBadge}>
-                      <AppIcon icon={Lock} size={10} color="#fff" strokeWidth={2.8} />
-                    </View>
-                  )}
+
+                  {/* Flèche */}
+                  <View style={[s.actionArrow, { backgroundColor: action.color + "15" }]}>
+                    <AppIcon icon={ChevronRight} size={12} color={action.color} strokeWidth={2.8} />
+                  </View>
                 </TouchableOpacity>
               );
             })}
           </View>
         </View>
 
-        {/* Premium banner for free users */}
-        {!isPremium && <PremiumBanner />}
+        {/* ── PREMIUM BANNER ─────────────────────────────────────── */}
+        {!isPremium && (
+          <View style={{ marginTop: -8 }}>
+            <PremiumBanner />
+          </View>
+        )}
       </View>
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  header: {},
+const s = StyleSheet.create({
+  /* ── Header ── */
+  headerWrap: {
+    backgroundColor: "#1A1A3E",
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    marginBottom: 20,
+    overflow: "hidden",
+  },
+  deco1: {
+    position: "absolute",
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: "rgba(124,58,237,0.22)",
+    top: -80,
+    right: -50,
+  },
+  deco2: {
+    position: "absolute",
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    backgroundColor: "rgba(201,168,76,0.14)",
+    bottom: -30,
+    left: -30,
+  },
   headerTop: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 12,
+    justifyContent: "space-between",
   },
-  greetingRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  greeting: { fontSize: 20, fontWeight: "700", color: "#fff" },
-  date: { fontSize: 13, color: "rgba(255,255,255,0.6)", marginTop: 2 },
+  greeting: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#fff",
+    letterSpacing: 0.2,
+  },
+  date: {
+    fontSize: 13,
+    color: "rgba(255,255,255,0.55)",
+    marginTop: 4,
+  },
   notifBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "rgba(255,255,255,0.14)",
     alignItems: "center",
     justifyContent: "center",
   },
-  badge: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
+  premiumBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "rgba(201,168,76,0.22)",
     borderWidth: 1,
+    borderColor: "#C9A84C",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
   },
-  premiumBadgeRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  premiumBadgeText: {
+    color: "#C9A84C",
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
+
+  /* Verset dans le header */
+  verseBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    backgroundColor: "rgba(255,255,255,0.09)",
+    borderRadius: 18,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.14)",
+  },
+  verseQuote: {
+    fontSize: 48,
+    lineHeight: 40,
+    color: "#C9A84C",
+    fontWeight: "900",
+    marginTop: -4,
+  },
+  verseText: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.88)",
+    lineHeight: 22,
+    fontStyle: "italic",
+  },
+  verseRef: {
+    color: "#C9A84C",
+    fontSize: 12,
+    fontWeight: "600",
+    marginTop: 8,
+  },
+
+  /* ── Sections ── */
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 14,
   },
-  sectionTitle: { fontSize: 17, fontWeight: "700" },
-  prayerIconWrap: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
-  readHint: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  actionBtn: {
-    width: "30%",
-    aspectRatio: 1,
-    borderRadius: 12,
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: "800",
+    letterSpacing: 0.1,
+  },
+  sectionDot: {
+    width: 4,
+    height: 18,
+    borderRadius: 2,
+  },
+
+  /* ── Prayer cards ── */
+  prayerCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 16,
     borderWidth: 1,
+    padding: 14,
+    gap: 12,
+    overflow: "hidden",
+  },
+  prayerAccent: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
+  },
+  prayerIconCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 6,
+  },
+  readPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+
+  /* ── Quick actions grid ── */
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  actionCard: {
+    width: "47.5%",
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 14,
+    gap: 10,
+    position: "relative",
+    overflow: "hidden",
+  },
+  actionIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
   },
-  lockBadge: {
+  lockDot: {
     position: "absolute",
-    top: 6,
-    right: 6,
+    top: -4,
+    right: -4,
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: "#C9A84C",
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#fff",
   },
-  premiumTag: {
-    flexDirection: "row",
+  actionLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+    lineHeight: 18,
+  },
+  actionArrow: {
+    position: "absolute",
+    bottom: 12,
+    right: 12,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 20,
-    borderWidth: 1,
+    justifyContent: "center",
   },
 });

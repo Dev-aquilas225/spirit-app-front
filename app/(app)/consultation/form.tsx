@@ -43,8 +43,9 @@ export default function ConsultationFormScreen() {
     await sendMessage(firstMessage, 'consultation');
 
     setLoading(false);
-    // Naviguer vers le chat IA pour continuer la consultation
-    router.replace('/(app)/(tabs)/ai');
+    // Naviguer vers l'écran de consultation (Prophète Georges — chatType: 'consultation')
+    // PAS vers le guide /(app)/(tabs)/ai qui utilise un prompt différent
+    router.replace('/(app)/consultation/chat');
   }
 
   return (
