@@ -103,6 +103,7 @@ const QUICK_ACTIONS: QuickAction[] = [
     color: "#C9A84C",
     lightBg: "#FFF7E0",
     darkBg: "rgba(201,168,76,0.18)",
+    premium: true,
   },
 ];
 

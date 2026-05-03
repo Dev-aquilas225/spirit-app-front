@@ -9,6 +9,8 @@ import {
 import type { LucideIcon } from 'lucide-react-native';
 import { AppIcon } from '../../../src/components/common/AppIcon';
 import { BackButton } from '../../../src/components/common/BackButton';
+import { PremiumGuard } from '../../../src/components/auth/PremiumGuard';
+import { usePremiumAccess } from '../../../src/hooks/usePremiumAccess';
 import { useTheme } from '../../../src/theme';
 import { useAuthStore } from '../../../src/store/auth.store';
 
@@ -92,6 +94,11 @@ export default function AccomppagnementsScreen() {
   const { colors, spacing } = useTheme();
   const user = useAuthStore((s) => s.user);
   const isPremium = user?.role === 'subscriber' || user?.role === 'admin';
+  const { isPremium: hasPremium } = usePremiumAccess();
+
+  if (!hasPremium) {
+    return <PremiumGuard featureName="Accompagnement spirituel">{null}</PremiumGuard>;
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
