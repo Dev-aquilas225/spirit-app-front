@@ -52,6 +52,7 @@ const QUICK_ACTIONS: QuickAction[] = [
     color: "#F59E0B",
     lightBg: "#FFF7E0",
     darkBg: "rgba(245,158,11,0.18)",
+    premium: true,
   },
   {
     icon: MessageCircle,
@@ -60,6 +61,7 @@ const QUICK_ACTIONS: QuickAction[] = [
     color: "#7C3AED",
     lightBg: "#EDE9FE",
     darkBg: "rgba(124,58,237,0.18)",
+    premium: true,
   },
   {
     icon: BookOpen,
@@ -84,6 +86,7 @@ const QUICK_ACTIONS: QuickAction[] = [
     color: "#6366F1",
     lightBg: "#E0E7FF",
     darkBg: "rgba(99,102,241,0.18)",
+    premium: true,
   },
   {
     icon: Calendar,
@@ -92,6 +95,7 @@ const QUICK_ACTIONS: QuickAction[] = [
     color: "#EC4899",
     lightBg: "#FCE7F3",
     darkBg: "rgba(236,72,153,0.18)",
+    premium: true,
   },
   {
     icon: Users,
@@ -100,7 +104,6 @@ const QUICK_ACTIONS: QuickAction[] = [
     color: "#C9A84C",
     lightBg: "#FFF7E0",
     darkBg: "rgba(201,168,76,0.18)",
-    premium: true,
   },
 ];
 

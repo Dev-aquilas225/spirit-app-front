@@ -16,6 +16,7 @@ import { useDailyPrayers } from '../../../../src/hooks/useDailyPrayers';
 import { DailyPrayer, DailyPrayers, PrayerMood, PrayersService } from '../../../../src/services/prayers.service';
 import { Card } from '../../../../src/components/common/Card';
 import { PremiumBanner } from '../../../../src/components/subscription/PremiumBanner';
+import { PremiumGuard } from '../../../../src/components/auth/PremiumGuard';
 import { AppIcon } from '../../../../src/components/common/AppIcon';
 import { formatDate, formatMonthYear, getWeekdayShortNames } from '../../../../src/utils/helpers';
 
@@ -370,7 +371,10 @@ export default function PrayersScreen() {
         )}
 
         {/* ── Onglet Archives ── */}
-        {activeTab === 'archive' && (
+        {activeTab === 'archive' && !isPremium && (
+          <PremiumGuard inline featureName="Historique des prières">{null}</PremiumGuard>
+        )}
+        {activeTab === 'archive' && isPremium && (
           <View>
             <Text style={[styles.archiveHint, { color: colors.textSecondary }]}>
               {t.prayers.archiveHint}

@@ -1,5 +1,7 @@
 import { Heart, History, MessageCircle } from "lucide-react-native";
 import React, { useEffect, useRef, useState } from "react";
+import { usePremiumAccess } from "../../../src/hooks/usePremiumAccess";
+import { PremiumGuard } from "../../../src/components/auth/PremiumGuard";
 import {
   FlatList,
   StyleSheet,
@@ -30,6 +32,7 @@ export default function PrayerProgramScreen() {
   const user = useAuthStore((s) => s.user);
   const firstName = user?.firstName?.trim() || user?.name?.split(" ")[0] || "";
   const [view, setView] = useState<PrayerView>("chat");
+  const { isPremium } = usePremiumAccess();
 
   const {
     messages,
@@ -70,6 +73,11 @@ export default function PrayerProgramScreen() {
         onPress: () => deleteConversation(conv.id),
       },
     ]);
+  }
+
+  // ─── Guard premium ────────────────────────────────────────────────────────
+  if (!isPremium) {
+    return <PremiumGuard featureName="Prière & Suivi spirituel">{null}</PremiumGuard>;
   }
 
   // ─── Header ───────────────────────────────────────────────────────────────
