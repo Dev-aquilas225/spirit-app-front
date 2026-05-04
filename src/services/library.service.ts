@@ -184,6 +184,16 @@ export const LibraryService = {
     }
   },
 
+  /** [Admin] Supprimer définitivement un livre (fichiers + BDD) */
+  async deleteBook(id: string): Promise<{ error?: string }> {
+    try {
+      await http.delete(`/library/admin/books/${id}`);
+      return {};
+    } catch (e) {
+      return { error: (e as ApiError).message };
+    }
+  },
+
   /** [Admin] Changer le statut d'un livre */
   async updateStatus(id: string, status: 'draft' | 'published' | 'archived'): Promise<{ data?: LibraryBook; error?: string }> {
     try {

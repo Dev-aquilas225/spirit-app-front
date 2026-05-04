@@ -25,6 +25,7 @@ import {
   PauseCircle,
   PlayCircle,
   RefreshCw,
+  Trash2,
   Upload,
   X,
 } from 'lucide-react-native';
@@ -608,9 +609,10 @@ interface FormationCardProps {
   onAddLesson: (formation: Formation) => void;
   onToggleActive: (formation: Formation) => void;
   onEdit: (formation: Formation) => void;
+  onDelete: (formation: Formation) => void;
 }
 
-function FormationCard({ formation, onAddLesson, onToggleActive, onEdit }: FormationCardProps) {
+function FormationCard({ formation, onAddLesson, onToggleActive, onEdit, onDelete }: FormationCardProps) {
   const { colors } = useTheme();
   const [expanded, setExpanded] = useState(false);
   const [loading,  setLoading]  = useState(false);
@@ -737,6 +739,14 @@ function FormationCard({ formation, onAddLesson, onToggleActive, onEdit }: Forma
                 <AppIcon icon={FilePlus} size={13} color="#C9A84C" strokeWidth={2.5} />
                 <Text style={[styles.actionBtnText, { color: '#C9A84C' }]}>Ajouter une leçon</Text>
               </TouchableOpacity>
+              {/* Supprimer */}
+              <TouchableOpacity
+                onPress={() => onDelete(formation)}
+                style={[styles.actionBtn, { backgroundColor: 'rgba(239,68,68,0.10)', borderColor: '#EF4444' }]}
+              >
+                <AppIcon icon={Trash2} size={13} color="#EF4444" strokeWidth={2.5} />
+                <Text style={[styles.actionBtnText, { color: '#EF4444' }]}>Supprimer</Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -847,6 +857,25 @@ export default function AdminFormationsScreen() {
     setEditFormation(formation);
   }
 
+  function handleDeleteFormation(formation: Formation) {
+    Alert.alert(
+      'Supprimer la formation',
+      `Voulez-vous vraiment supprimer définitivement « ${formation.title} » et toutes ses leçons ? Cette action est irréversible.`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: async () => {
+            const { error } = await FormationsService.adminPurgeFormation(formation.id);
+            if (error) { Alert.alert('Erreur', error); return; }
+            setFormations((prev) => prev.filter((f) => f.id !== formation.id));
+          },
+        },
+      ],
+    );
+  }
+
   function handleFormationSaved() {
     setEditFormation(null);
     load();
@@ -905,6 +934,7 @@ export default function AdminFormationsScreen() {
                     onAddLesson={handleAddLesson}
                     onToggleActive={handleToggleActive}
                     onEdit={handleEdit}
+                    onDelete={handleDeleteFormation}
                   />
                 ))}
               </View>
@@ -923,6 +953,7 @@ export default function AdminFormationsScreen() {
                     onAddLesson={handleAddLesson}
                     onToggleActive={handleToggleActive}
                     onEdit={handleEdit}
+                    onDelete={handleDeleteFormation}
                   />
                 ))}
               </View>

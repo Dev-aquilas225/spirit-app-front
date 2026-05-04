@@ -205,6 +205,17 @@ export const FormationsService = {
     }
   },
 
+  /** [Admin] Supprimer définitivement une formation (fichiers + BDD) */
+  async adminPurgeFormation(id: string): Promise<{ error?: string }> {
+    try {
+      const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
+      await http.delete(`/formations/admin/formations/${id}/purge`, token ?? undefined);
+      return {};
+    } catch (e) {
+      return { error: (e as ApiError)?.message ?? 'Erreur réseau' };
+    }
+  },
+
   /** [Admin] Désactiver une formation (soft delete) */
   async adminDeleteFormation(id: string): Promise<{ error?: string }> {
     try {

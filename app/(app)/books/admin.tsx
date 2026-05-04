@@ -16,7 +16,7 @@ import {
 import { router } from 'expo-router';
 import {
   Archive, BookOpen, Camera, CheckCircle, Clock,
-  Edit2, Eye, FilePlus, RefreshCw, Upload, X,
+  Edit2, Eye, FilePlus, RefreshCw, Trash2, Upload, X,
 } from 'lucide-react-native';
 import { AppIcon } from '../../../src/components/common/AppIcon';
 import { BackButton } from '../../../src/components/common/BackButton';
@@ -613,9 +613,10 @@ interface BookCardProps {
   book: LibraryBook;
   onStatusChange: (id: string, status: LibraryBookStatus) => void;
   onEdit: (book: LibraryBook) => void;
+  onDelete: (book: LibraryBook) => void;
 }
 
-function BookCard({ book, onStatusChange, onEdit }: BookCardProps) {
+function BookCard({ book, onStatusChange, onEdit, onDelete }: BookCardProps) {
   const { colors } = useTheme();
   const [loading, setLoading] = useState(false);
 
@@ -716,6 +717,14 @@ function BookCard({ book, onStatusChange, onEdit }: BookCardProps) {
                 <Text style={[styles.actionBtnText, { color: '#9CA3AF' }]}>Archiver</Text>
               </TouchableOpacity>
             )}
+            {/* Supprimer définitivement */}
+            <TouchableOpacity
+              onPress={() => onDelete(book)}
+              style={[styles.actionBtn, { backgroundColor: 'rgba(239,68,68,0.10)', borderColor: '#EF4444' }]}
+            >
+              <AppIcon icon={Trash2} size={13} color="#EF4444" strokeWidth={2.5} />
+              <Text style={[styles.actionBtnText, { color: '#EF4444' }]}>Supprimer</Text>
+            </TouchableOpacity>
           </View>
         )}
       </View>
@@ -749,6 +758,25 @@ export default function AdminBooksScreen() {
 
   function handleBookSaved(updated: LibraryBook) {
     setBooks((prev) => prev.map((b) => (b.id === updated.id ? { ...b, ...updated } : b)));
+  }
+
+  function handleDeleteBook(book: LibraryBook) {
+    Alert.alert(
+      'Supprimer le livre',
+      `Supprimer définitivement « ${book.title} » ? Cette action est irréversible.`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: async () => {
+            const { error } = await LibraryService.deleteBook(book.id);
+            if (error) { Alert.alert('Erreur', error); return; }
+            setBooks((prev) => prev.filter((b) => b.id !== book.id));
+          },
+        },
+      ],
+    );
   }
 
   const byStatus = (s: LibraryBookStatus) => books.filter((b) => b.status === s);
@@ -794,7 +822,7 @@ export default function AdminBooksScreen() {
                   Publiés ({byStatus('published').length})
                 </Text>
                 {byStatus('published').map((b) => (
-                  <BookCard key={b.id} book={b} onStatusChange={handleStatusChange} onEdit={setEditBook} />
+                  <BookCard key={b.id} book={b} onStatusChange={handleStatusChange} onEdit={setEditBook} onDelete={handleDeleteBook} />
                 ))}
               </View>
             )}
@@ -806,7 +834,7 @@ export default function AdminBooksScreen() {
                   Brouillons ({byStatus('draft').length})
                 </Text>
                 {byStatus('draft').map((b) => (
-                  <BookCard key={b.id} book={b} onStatusChange={handleStatusChange} onEdit={setEditBook} />
+                  <BookCard key={b.id} book={b} onStatusChange={handleStatusChange} onEdit={setEditBook} onDelete={handleDeleteBook} />
                 ))}
               </View>
             )}
@@ -818,7 +846,7 @@ export default function AdminBooksScreen() {
                   Archivés ({byStatus('archived').length})
                 </Text>
                 {byStatus('archived').map((b) => (
-                  <BookCard key={b.id} book={b} onStatusChange={handleStatusChange} onEdit={setEditBook} />
+                  <BookCard key={b.id} book={b} onStatusChange={handleStatusChange} onEdit={setEditBook} onDelete={handleDeleteBook} />
                 ))}
               </View>
             )}
