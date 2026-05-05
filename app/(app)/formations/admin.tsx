@@ -858,22 +858,26 @@ export default function AdminFormationsScreen() {
   }
 
   function handleDeleteFormation(formation: Formation) {
-    Alert.alert(
-      'Supprimer la formation',
-      `Voulez-vous vraiment supprimer définitivement « ${formation.title} » et toutes ses leçons ? Cette action est irréversible.`,
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Supprimer',
-          style: 'destructive',
-          onPress: async () => {
-            const { error } = await FormationsService.adminPurgeFormation(formation.id);
-            if (error) { Alert.alert('Erreur', error); return; }
-            setFormations((prev) => prev.filter((f) => f.id !== formation.id));
-          },
-        },
-      ],
-    );
+    const doDelete = async () => {
+      const { error } = await FormationsService.adminPurgeFormation(formation.id);
+      if (error) { Alert.alert('Erreur', error); return; }
+      setFormations((prev) => prev.filter((f) => f.id !== formation.id));
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm(`Supprimer définitivement « ${formation.title} » et toutes ses leçons ? Cette action est irréversible.`)) {
+        doDelete();
+      }
+    } else {
+      Alert.alert(
+        'Supprimer la formation',
+        `Voulez-vous vraiment supprimer définitivement « ${formation.title} » et toutes ses leçons ? Cette action est irréversible.`,
+        [
+          { text: 'Annuler', style: 'cancel' },
+          { text: 'Supprimer', style: 'destructive', onPress: doDelete },
+        ],
+      );
+    }
   }
 
   function handleFormationSaved() {

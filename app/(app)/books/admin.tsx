@@ -761,22 +761,26 @@ export default function AdminBooksScreen() {
   }
 
   function handleDeleteBook(book: LibraryBook) {
-    Alert.alert(
-      'Supprimer le livre',
-      `Supprimer définitivement « ${book.title} » ? Cette action est irréversible.`,
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Supprimer',
-          style: 'destructive',
-          onPress: async () => {
-            const { error } = await LibraryService.deleteBook(book.id);
-            if (error) { Alert.alert('Erreur', error); return; }
-            setBooks((prev) => prev.filter((b) => b.id !== book.id));
-          },
-        },
-      ],
-    );
+    const doDelete = async () => {
+      const { error } = await LibraryService.deleteBook(book.id);
+      if (error) { Alert.alert('Erreur', error); return; }
+      setBooks((prev) => prev.filter((b) => b.id !== book.id));
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm(`Supprimer définitivement « ${book.title} » ? Cette action est irréversible.`)) {
+        doDelete();
+      }
+    } else {
+      Alert.alert(
+        'Supprimer le livre',
+        `Supprimer définitivement « ${book.title} » ? Cette action est irréversible.`,
+        [
+          { text: 'Annuler', style: 'cancel' },
+          { text: 'Supprimer', style: 'destructive', onPress: doDelete },
+        ],
+      );
+    }
   }
 
   const byStatus = (s: LibraryBookStatus) => books.filter((b) => b.status === s);
