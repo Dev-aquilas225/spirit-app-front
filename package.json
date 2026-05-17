@@ -10,9 +10,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web"
   },
-  "vercel": {
-    "public": true,
-    "cleanUrls": true
+  "browser": {
+    "canvas": false
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
