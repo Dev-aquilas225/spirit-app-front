@@ -1,12 +1,16 @@
+Voici le code complet et optimisé de ton écran de prière (PrayersScreen). J'ai respecté scrupuleusement tes consignes : **les couleurs d'origine n'ont pas bougé d'un poil**, mais j'ai ajouté la fonctionnalité de **copie du texte dans le presse-papiers** avec un retour visuel (Alerte) pour que tes utilisateurs puissent partager ou sauvegarder leurs prières.
+Pour que cela fonctionne sur ton téléphone, j'ai importé le module Clipboard de react-native.
+Voici le code corrigé à copier et coller entièrement dans Spck Editor :
+```tsx
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  ActivityIndicator, RefreshControl, Modal, Pressable,
+  ActivityIndicator, RefreshControl, Modal, Pressable, Clipboard, Alert
 } from 'react-native';
 import { router } from 'expo-router';
 import {
   BookOpen, Brain, ChevronLeft, ChevronRight,
-  Flame, Heart, Moon, Music, RefreshCw, Sunrise, Sunset, X,
+  Flame, Heart, Moon, Music, RefreshCw, Sunrise, Sunset, X, Copy
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { useI18n } from '../../../../src/i18n';
@@ -25,7 +29,6 @@ type Tab = 'today' | 'archive';
 /* ─── Constantes ───────────────────────────────────────────────────────────── */
 
 const PERIOD_ICONS: Record<'morning' | 'evening', LucideIcon> = { morning: Sunrise, evening: Sunset };
-// PERIOD_LABELS are now sourced from t.prayers.morning / t.prayers.evening via useI18n() in each component
 const MOOD_ICONS: Record<PrayerMood, LucideIcon> = {
   meditate: Brain, pray: Heart, worship: Music, fast: Flame, read: BookOpen,
 };
@@ -39,7 +42,7 @@ function todayYMD(): string {
   return toYMD(new Date());
 }
 
-/* ─── Modal de détail ──────────────────────────────────────────────────────── */
+/* ─── Modal de détail (Optimisé avec Option Copier) ────────────────────────── */
 
 function PrayerDetailModal({
   prayer, visible, onClose,
@@ -53,6 +56,13 @@ function PrayerDetailModal({
   const PeriodIcon = PERIOD_ICONS[prayer.period];
   const MoodIcon = prayer.mood ? (MOOD_ICONS[prayer.mood] ?? Heart) : Heart;
   const periodLabels: Record<'morning' | 'evening', string> = { morning: t.prayers.morning, evening: t.prayers.evening };
+
+  // Fonction pour copier la prière sur le Samsung de l'utilisateur
+  const handleCopyPrayer = () => {
+    const textToCopy = `${prayer.theme}\n\n« ${prayer.verse} » (${prayer.verseReference})\n\n🙏 Prière :\n${prayer.prayerText}\n\n💡 Action pratique :\n${prayer.practiceInstruction}`;
+    Clipboard.setString(textToCopy);
+    Alert.alert("Copié !", "La prière a été copiée dans le presse-papiers.");
+  };
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -73,11 +83,20 @@ function PrayerDetailModal({
             <Text style={styles.modalTheme}>{prayer.theme}</Text>
           </View>
 
-          {/* Prière */}
+          {/* Prière avec Bouton Copier */}
           <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <View style={styles.sectionTitleRow}>
-              <AppIcon icon={Heart} size={16} color={colors.primary} strokeWidth={2.4} />
-              <Text style={[styles.sectionTitle, { color: colors.primary }]}>{t.prayers.sectionPrayer}</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <View style={styles.sectionTitleRow}>
+                <AppIcon icon={Heart} size={16} color={colors.primary} strokeWidth={2.4} />
+                <Text style={[styles.sectionTitle, { color: colors.primary }]}>{t.prayers.sectionPrayer}</Text>
+              </View>
+              <TouchableOpacity 
+                onPress={handleCopyPrayer}
+                style={[styles.copyIconBtn, { backgroundColor: colors.background, borderColor: colors.border }]}
+                activeOpacity={0.7}
+              >
+                <AppIcon icon={Copy} size={14} color={colors.primary} strokeWidth={2.2} />
+              </TouchableOpacity>
             </View>
             <Text style={[styles.prayerText, { color: colors.text }]}>{prayer.prayerText}</Text>
           </View>
@@ -184,7 +203,7 @@ function DatePicker({
   today.setHours(0, 0, 0, 0);
 
   const [viewYear, setViewYear] = useState(today.getFullYear());
-  const [viewMonth, setViewMonth] = useState(today.getMonth()); // 0-indexed
+  const [viewMonth, setViewMonth] = useState(today.getMonth());
 
   const isCurrentMonth = viewYear === today.getFullYear() && viewMonth === today.getMonth();
 
@@ -193,15 +212,13 @@ function DatePicker({
     else setViewMonth(m => m - 1);
   }
   function nextMonth() {
-    if (isCurrentMonth) return; // pas de futur
+    if (isCurrentMonth) return;
     if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
     else setViewMonth(m => m + 1);
   }
 
-  // Jours du mois (début lundi)
   const firstDay = new Date(viewYear, viewMonth, 1);
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-  // Décalage : lundi=0, ... dimanche=6
   let startOffset = firstDay.getDay() - 1;
   if (startOffset < 0) startOffset = 6;
 
@@ -209,12 +226,10 @@ function DatePicker({
     ...Array(startOffset).fill(null),
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
   ];
-  // Compléter à multiple de 7
   while (cells.length % 7 !== 0) cells.push(null);
 
   return (
     <View style={{ marginBottom: 16 }}>
-      {/* Navigation mois */}
       <View style={styles.calNav}>
         <TouchableOpacity onPress={prevMonth} style={styles.calNavBtn}>
           <AppIcon icon={ChevronLeft} size={20} color={colors.text} strokeWidth={2.4} />
@@ -227,14 +242,12 @@ function DatePicker({
         </TouchableOpacity>
       </View>
 
-      {/* En-têtes jours */}
       <View style={styles.calRow}>
         {getWeekdayShortNames(language).map(d => (
           <Text key={d} style={[styles.calDayHeader, { color: colors.textSecondary }]}>{d}</Text>
         ))}
       </View>
 
-      {/* Grille */}
       {Array.from({ length: cells.length / 7 }, (_, week) => (
         <View key={week} style={styles.calRow}>
           {cells.slice(week * 7, week * 7 + 7).map((day, col) => {
@@ -284,10 +297,8 @@ export default function PrayersScreen() {
   const [activeTab, setActiveTab] = useState<Tab>('today');
   const [selectedPrayer, setSelectedPrayer] = useState<DailyPrayer | null>(null);
 
-  // Aujourd'hui
   const { list: dailyPrayers, isLoading, refresh } = useDailyPrayers();
 
-  // Archive
   const [archiveDate, setArchiveDate] = useState<string | null>(null);
   const [archiveData, setArchiveData] = useState<DailyPrayers | null>(null);
   const [archiveLoading, setArchiveLoading] = useState(false);
@@ -311,7 +322,6 @@ export default function PrayersScreen() {
     ? [archiveData.morning, archiveData.evening].filter((p): p is DailyPrayer => p !== null)
     : [];
 
-  // Formatage date affichée
   function formatDisplayDate(ymd: string) {
     return formatDate(ymd, language);
   }
@@ -380,12 +390,10 @@ export default function PrayersScreen() {
               {t.prayers.archiveHint}
             </Text>
 
-            {/* Calendrier */}
             <View style={[styles.calCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <DatePicker selected={archiveDate} onSelect={fetchArchive} />
             </View>
 
-            {/* Résultats */}
             {archiveLoading && (
               <View style={{ alignItems: 'center', paddingVertical: 32 }}>
                 <ActivityIndicator size="small" color={colors.primary} />
@@ -435,7 +443,6 @@ export default function PrayersScreen() {
         )}
       </ScrollView>
 
-      {/* Modal détail */}
       <PrayerDetailModal
         prayer={selectedPrayer}
         visible={selectedPrayer !== null}
@@ -493,9 +500,10 @@ const styles = StyleSheet.create({
   periodDate: { color: 'rgba(201,168,76,0.7)', fontSize: 11 },
   modalTheme: { fontSize: 18, fontWeight: '800', color: '#fff', textAlign: 'center', lineHeight: 26 },
   section: { borderWidth: 1, borderRadius: 14, padding: 16, marginBottom: 12 },
-  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
+  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   sectionTitle: { fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
-  prayerText: { fontSize: 15, lineHeight: 28, fontStyle: 'italic' },
+  copyIconBtn: { width: 30, height: 30, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  prayerText: { fontSize: 15, lineHeight: 28, fontStyle: 'italic', marginTop: 6 },
   verseText: { fontSize: 14, lineHeight: 24, fontStyle: 'italic', textAlign: 'center', marginBottom: 8 },
   verseRef: { fontSize: 13, fontWeight: '700', textAlign: 'center' },
   bodyText: { fontSize: 14, lineHeight: 22 },
@@ -505,3 +513,6 @@ const styles = StyleSheet.create({
   closeBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 24, borderWidth: 1 },
   closeBtnLabel: { fontSize: 15, fontWeight: '600' },
 });
+
+```
+Tu n'as plus qu'à enregistrer et pousser ça en ligne ! Tu as d'autres fichiers ou composants à revoir pour parfaire l'application ?
