@@ -23,6 +23,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Dimensions,
 } from "react-native";
 import { AppIcon } from "../../../../src/components/common/AppIcon";
 import { PremiumBanner } from "../../../../src/components/subscription/PremiumBanner";
@@ -33,6 +34,8 @@ import { useDailyPrayers } from "../../../../src/hooks/useDailyPrayers";
 import { useI18n } from "../../../../src/i18n";
 import { useTheme } from "../../../../src/theme";
 import { formatDate } from "../../../../src/utils/helpers";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 interface QuickAction {
   icon: LucideIcon;
@@ -126,13 +129,13 @@ export default function HomeScreen() {
       contentContainerStyle={{ paddingBottom: 40 }}
       showsVerticalScrollIndicator={false}
     >
-      {/* ── HEADER ─────────────────────────────────────────────── */}
+      {/* ── HEADER PREMIUM ───────────────────────────────────────── */}
       <View style={s.headerWrap}>
-        {/* Cercles décoratifs */}
+        {/* Cercles décoratifs spirituels */}
         <View style={s.deco1} />
         <View style={s.deco2} />
 
-        {/* Top row */}
+        {/* Ligne d'accueil utilisateur */}
         <View style={[s.headerTop, { paddingTop: 60, paddingHorizontal: 20 }]}>
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
@@ -147,22 +150,23 @@ export default function HomeScreen() {
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             {isPremium && (
               <View style={s.premiumBadge}>
-                <AppIcon icon={Crown} size={12} color="#C9A84C" strokeWidth={2.4} />
+                <AppIcon icon={Crown} size={11} color="#C9A84C" strokeWidth={2.4} />
                 <Text style={s.premiumBadgeText}>VIP</Text>
               </View>
             )}
             <TouchableOpacity
               onPress={() => router.push("/(app)/notifications")}
               style={s.notifBtn}
+              activeOpacity={0.8}
             >
-              <AppIcon icon={Bell} size={20} color="#fff" strokeWidth={2.2} />
+              <AppIcon icon={Bell} size={19} color="#fff" strokeWidth={2.2} />
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Verset du jour — intégré dans le header */}
+        {/* Boîte d'affichage du verset du jour */}
         {todayMessage && (
-          <View style={[s.verseBox, { marginHorizontal: 20, marginTop: 16 }]}>
+          <View style={[s.verseBox, { marginHorizontal: 20, marginTop: 18 }]}>
             <Text style={s.verseQuote}>"</Text>
             <View style={{ flex: 1 }}>
               <Text style={s.verseText} numberOfLines={3}>
@@ -175,8 +179,7 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* Espace bas */}
-        <View style={{ height: 28 }} />
+        <View style={{ height: 24 }} />
       </View>
 
       <View style={{ paddingHorizontal: spacing.base, gap: 24 }}>
@@ -191,14 +194,14 @@ export default function HomeScreen() {
                   {t.home.dailyPrayers}
                 </Text>
               </View>
-              <TouchableOpacity onPress={() => router.push("/(app)/(tabs)/prayers")}>
-                <Text style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}>
+              <TouchableOpacity onPress={() => router.push("/(app)/(tabs)/prayers")} activeOpacity={0.7}>
+                <Text style={{ color: colors.primary, fontSize: 13, fontWeight: "700" }}>
                   {t.common.seeAll}
                 </Text>
               </TouchableOpacity>
             </View>
 
-            <View style={{ gap: 10 }}>
+            <View style={{ gap: 12 }}>
               {todayPrayers.map((prayer) => {
                 const isMorning = prayer.period === "morning";
                 const accentColor = isMorning ? "#F59E0B" : "#9B7FD4";
@@ -210,30 +213,29 @@ export default function HomeScreen() {
                     key={prayer.id}
                     onPress={() => router.push("/(app)/(tabs)/prayers")}
                     style={[s.prayerCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-                    activeOpacity={0.8}
+                    activeOpacity={0.85}
                   >
-                    {/* Barre accent gauche */}
                     <View style={[s.prayerAccent, { backgroundColor: accentColor }]} />
 
                     <View style={[s.prayerIconCircle, { backgroundColor: bgColor }]}>
                       <AppIcon
                         icon={isMorning ? Sunrise : Sunset}
-                        size={20}
+                        size={18}
                         color={accentColor}
                         strokeWidth={2.4}
                       />
                     </View>
 
-                    <View style={{ flex: 1 }}>
+                    <View style={{ flex: 1, paddingRight: 4 }}>
                       <Text style={{ fontWeight: "700", color: colors.text, fontSize: 14 }} numberOfLines={1}>
                         {prayer.theme}
                       </Text>
-                      <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>
+                      <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 3 }}>
                         {prayer.verseReference}
                       </Text>
                     </View>
 
-                    <View style={[s.readPill, { backgroundColor: accentColor + "20" }]}>
+                    <View style={[s.readPill, { backgroundColor: accentColor + "18" }]}>
                       <Text style={{ color: accentColor, fontSize: 11, fontWeight: "700" }}>
                         {t.common.read}
                       </Text>
@@ -245,8 +247,8 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* ── ACCÈS RAPIDE ───────────────────────────────────────── */}
-        <View>
+        {/* ── ACCÈS RAPIDE - GRILLE RECALCULÉE ET PARFAITE ────────── */}
+        <View style={{ marginBottom: 10 }}>
           <View style={s.sectionHeader}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <View style={[s.sectionDot, { backgroundColor: colors.primary }]} />
@@ -272,50 +274,49 @@ export default function HomeScreen() {
                     s.actionCard,
                     {
                       backgroundColor: colors.surface,
-                      borderColor: isLocked ? action.color + "55" : colors.border,
+                      borderColor: isLocked ? action.color + "40" : colors.border,
                     },
                   ]}
-                  activeOpacity={0.78}
+                  activeOpacity={0.8}
                 >
-                  {/* Icône colorée */}
-                  <View style={[s.actionIconWrap, { backgroundColor: iconBg }]}>
-                    <AppIcon
-                      icon={action.icon}
-                      size={22}
-                      color={action.color}
-                      strokeWidth={2.2}
-                    />
-                    {isLocked && (
-                      <View style={[s.lockDot, { backgroundColor: action.color }]}>
-                        <AppIcon icon={Lock} size={8} color="#fff" strokeWidth={3} />
-                      </View>
-                    )}
+                  <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+                    <View style={[s.actionIconWrap, { backgroundColor: iconBg }]}>
+                      <AppIcon
+                        icon={action.icon}
+                        size={20}
+                        color={action.color}
+                        strokeWidth={2.2}
+                      />
+                      {isLocked && (
+                        <View style={[s.lockDot, { backgroundColor: action.color }]}>
+                          <AppIcon icon={Lock} size={8} color="#fff" strokeWidth={3} />
+                        </View>
+                      )}
+                    </View>
+
+                    <View style={[s.actionArrow, { backgroundColor: action.color + "12" }]}>
+                      <AppIcon icon={ChevronRight} size={10} color={action.color} strokeWidth={3} />
+                    </View>
                   </View>
 
-                  {/* Texte */}
                   <Text
                     style={[
                       s.actionLabel,
-                      { color: isLocked ? action.color : colors.text },
+                      { color: isLocked ? action.color : colors.text, marginTop: 4 },
                     ]}
                     numberOfLines={2}
                   >
                     {t.home.actions[action.labelKey]}
                   </Text>
-
-                  {/* Flèche */}
-                  <View style={[s.actionArrow, { backgroundColor: action.color + "15" }]}>
-                    <AppIcon icon={ChevronRight} size={12} color={action.color} strokeWidth={2.8} />
-                  </View>
                 </TouchableOpacity>
               );
             })}
           </View>
         </View>
 
-        {/* ── PREMIUM BANNER ─────────────────────────────────────── */}
+        {/* ── BANNIÈRE ABONNEMENT EN BAS ─────────────────────────── */}
         {!isPremium && (
-          <View style={{ marginTop: -8 }}>
+          <View style={{ marginTop: -4 }}>
             <PremiumBanner />
           </View>
         )}
@@ -325,30 +326,31 @@ export default function HomeScreen() {
 }
 
 const s = StyleSheet.create({
-  /* ── Header ── */
+  /* Header */
   headerWrap: {
     backgroundColor: "#1A1A3E",
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
     marginBottom: 20,
     overflow: "hidden",
+    position: "relative",
   },
   deco1: {
     position: "absolute",
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: "rgba(124,58,237,0.22)",
-    top: -80,
-    right: -50,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: "rgba(124,58,237,0.18)",
+    top: -70,
+    right: -40,
   },
   deco2: {
     position: "absolute",
-    width: 130,
-    height: 130,
-    borderRadius: 65,
-    backgroundColor: "rgba(201,168,76,0.14)",
-    bottom: -30,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: "rgba(201,168,76,0.12)",
+    bottom: -40,
     left: -30,
   },
   headerTop: {
@@ -360,26 +362,27 @@ const s = StyleSheet.create({
     fontSize: 22,
     fontWeight: "800",
     color: "#fff",
-    letterSpacing: 0.2,
+    letterSpacing: 0.1,
   },
   date: {
     fontSize: 13,
-    color: "rgba(255,255,255,0.55)",
+    color: "rgba(255,255,255,0.5)",
     marginTop: 4,
+    fontWeight: "500",
   },
   notifBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "rgba(255,255,255,0.14)",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.12)",
     alignItems: "center",
     justifyContent: "center",
   },
   premiumBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    backgroundColor: "rgba(201,168,76,0.22)",
+    gap: 4,
+    backgroundColor: "rgba(201,168,76,0.2)",
     borderWidth: 1,
     borderColor: "#C9A84C",
     paddingHorizontal: 10,
@@ -393,27 +396,27 @@ const s = StyleSheet.create({
     letterSpacing: 0.5,
   },
 
-  /* Verset dans le header */
+  /* Verset */
   verseBox: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 12,
-    backgroundColor: "rgba(255,255,255,0.09)",
-    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.14)",
+    borderColor: "rgba(255,255,255,0.12)",
   },
   verseQuote: {
-    fontSize: 48,
-    lineHeight: 40,
+    fontSize: 44,
+    lineHeight: 38,
     color: "#C9A84C",
     fontWeight: "900",
     marginTop: -4,
   },
   verseText: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.88)",
+    color: "rgba(255,255,255,0.85)",
     lineHeight: 22,
     fontStyle: "italic",
   },
@@ -424,33 +427,34 @@ const s = StyleSheet.create({
     marginTop: 8,
   },
 
-  /* ── Sections ── */
+  /* Sections */
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 14,
+    marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "800",
     letterSpacing: 0.1,
   },
   sectionDot: {
     width: 4,
-    height: 18,
+    height: 16,
     borderRadius: 2,
   },
 
-  /* ── Prayer cards ── */
+  /* Prières */
   prayerCard: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
-    padding: 14,
+    padding: 12,
     gap: 12,
     overflow: "hidden",
+    position: "relative",
   },
   prayerAccent: {
     position: "absolute",
@@ -458,16 +462,16 @@ const s = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: 4,
-    borderTopLeftRadius: 16,
-    borderBottomLeftRadius: 16,
+    borderTopLeftRadius: 14,
+    borderBottomLeftRadius: 14,
   },
   prayerIconCircle: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: 6,
+    marginLeft: 4,
   },
   readPill: {
     paddingHorizontal: 12,
@@ -475,36 +479,36 @@ const s = StyleSheet.create({
     borderRadius: 20,
   },
 
-  /* ── Quick actions grid ── */
+  /* Grille intelligente adaptée aux écrans Samsung */
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
+    justifyContent: "space-between",
     gap: 10,
   },
   actionCard: {
-    width: "47.5%",
-    borderRadius: 18,
+    width: (SCREEN_WIDTH - 42) / 2, // Calcule automatiquement la moitié exacte moins les marges
+    borderRadius: 16,
     borderWidth: 1,
     padding: 14,
-    gap: 10,
-    position: "relative",
-    overflow: "hidden",
+    gap: 12,
+    justifyContent: "space-between",
   },
   actionIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
   },
   lockDot: {
     position: "absolute",
-    top: -4,
-    right: -4,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    top: -3,
+    right: -3,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
@@ -516,12 +520,9 @@ const s = StyleSheet.create({
     lineHeight: 18,
   },
   actionArrow: {
-    position: "absolute",
-    bottom: 12,
-    right: 12,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     alignItems: "center",
     justifyContent: "center",
   },

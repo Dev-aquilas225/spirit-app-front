@@ -27,7 +27,7 @@ type DreamTab = 'interpret' | 'history';
 
 // ─── Onglet interprétation ────────────────────────────────────────────────────
 
-function InterpretTab() {
+function InterpretTab({ onInterpretationSuccess }: { onInterpretationSuccess: () => void }) {
   const { colors, spacing } = useTheme();
   const { t } = useI18n();
   const [dream, setDream] = useState('');
@@ -39,10 +39,17 @@ function InterpretTab() {
     if (!dream.trim() || dream.trim().length < 20) return;
     setLoading(true);
     setInterpretation(null);
-    const { message } = await AIService.interpretDream(dream.trim());
-    setInterpretation(message.content || "Une erreur s'est produite. Réessaie.");
-    setDate(new Date().toISOString());
-    setLoading(false);
+    try {
+      const { message } = await AIService.interpretDream(dream.trim());
+      setInterpretation(message.content || "Une erreur s'est produite. Réessaie.");
+      setDate(new Date().toISOString());
+      // Rafraîchir l'historique en arrière-plan pour inclure ce nouveau rêve
+      onInterpretationSuccess();
+    } catch (error) {
+      Alert.alert("Erreur", "Impossible de contacter le service d'interprétation.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -97,7 +104,7 @@ function InterpretTab() {
           onPress={handleInterpret}
         />
 
-        {/* Résultat */}
+        {/* Résultat en direct */}
         {interpretation && (
           <View style={[styles.resultCard, { backgroundColor: colors.premiumBackground, borderColor: colors.premiumBorder }]}>
             <View style={styles.resultLabelRow}>
@@ -120,26 +127,17 @@ function InterpretTab() {
   );
 }
 
-// ─── Onglet historique ────────────────────────────────────────────────────────
+// ─── Onglet historique (Anciens messages sécurisés) ───────────────────────────
 
-function HistoryTab() {
+function HistoryTab({ conversations, loading, loadHistory }: { conversations: AIConversation[], loading: boolean, loadHistory: () => void }) {
   const { colors, spacing } = useTheme();
-  const user = useAuthStore((s) => s.user);
-  const [conversations, setConversations] = useState<AIConversation[]>([]);
-  const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
-  // Cache des réponses IA chargées à la demande (conversationId → texte)
-  const [aiResponses, setAiResponses] = useState<Record<string, string>>({});
+  const [aiResponses, setAiResponses] = useState<Record<string, { userDream: string, aiInterpretation: string }>>({});
   const [loadingResponse, setLoadingResponse] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    const data = await AIService.getDreamHistory(user?.id ?? '');
-    setConversations(data);
-    setLoading(false);
-  }, [user?.id]);
-
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    loadHistory();
+  }, []);
 
   async function handleExpand(item: AIConversation) {
     const isOpen = expanded === item.id;
@@ -149,17 +147,37 @@ function HistoryTab() {
     }
     setExpanded(item.id);
 
-    // Si la réponse IA est déjà en cache, pas besoin de recharger
+    // Si l'ancien rêve et son interprétation sont déjà chargés en cache, on s'arrête là
     if (aiResponses[item.id]) return;
 
-    // Charger le détail complet de la conversation pour avoir la réponse IA
     setLoadingResponse(item.id);
-    const messages = await AIService.getConversationHistory(item.id);
-    const aiMsg = messages.find((m) => m.role === 'assistant');
-    if (aiMsg) {
-      setAiResponses((prev) => ({ ...prev, [item.id]: aiMsg.content }));
+    try {
+      // Récupération complète de l'historique du message depuis le serveur LWS
+      const messages = await AIService.getConversationHistory(item.id);
+      
+      const userMsg = messages.find((m) => m.role === 'user');
+      const aiMsg = messages.find((m) => m.role === 'assistant');
+
+      const userDreamText = userMsg 
+        ? userMsg.content.replace(/^Interprète spirituellement ce rêve\s*:\s*/i, '').trim()
+        : 'Rêve enregistré';
+        
+      const aiInterpretationText = aiMsg 
+        ? aiMsg.content 
+        : "L'interprétation n'a pas pu être récupérée.";
+
+      setAiResponses((prev) => ({
+        ...prev,
+        [item.id]: {
+          userDream: userDreamText,
+          aiInterpretation: aiInterpretationText
+        }
+      }));
+    } catch (e) {
+      Alert.alert("Erreur", "Impossible de charger l'ancien message.");
+    } finally {
+      setLoadingResponse(null);
     }
-    setLoadingResponse(null);
   }
 
   async function handleDelete(conv: AIConversation) {
@@ -173,7 +191,7 @@ function HistoryTab() {
           style: 'destructive',
           onPress: async () => {
             await AIService.deleteConversation(conv.id);
-            setConversations((prev) => prev.filter((c) => c.id !== conv.id));
+            loadHistory();
             setAiResponses((prev) => { const n = { ...prev }; delete n[conv.id]; return n; });
           },
         },
@@ -194,7 +212,7 @@ function HistoryTab() {
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 12 }}>
         <AppIcon icon={CloudMoon} size={48} color="#C9A84C" strokeWidth={1.6} />
         <Text style={{ color: '#888', fontSize: 15, textAlign: 'center', lineHeight: 22 }}>
-          Aucune interprétation de rêve enregistrée.{'\n'}Interprétez votre premier rêve pour le retrouver ici.
+          Aucune interprétation de rêve enregistrée.{"\n"}Interprétez votre premier rêve pour le retrouver ici.
         </Text>
       </View>
     );
@@ -204,17 +222,16 @@ function HistoryTab() {
     <FlatList
       data={conversations}
       keyExtractor={(item) => item.id}
-      contentContainerStyle={{ padding: spacing.base, gap: 10 }}
+      contentContainerStyle={{ padding: spacing.base, gap: 12 }}
       renderItem={({ item }) => {
-        const firstMsg = item.messages.find((m) => m.role === 'user');
         const isOpen = expanded === item.id;
-        const aiText = aiResponses[item.id];
+        const cachedData = aiResponses[item.id];
         const isLoadingThis = loadingResponse === item.id;
 
-        // Nettoyer le préfixe automatique ajouté lors de l'interprétation
-        const dreamDescription = firstMsg
-          ? firstMsg.content.replace(/^Interprète spirituellement ce rêve\s*:\s*/i, '').trim()
-          : 'Rêve interprété';
+        // Titre de l'aperçu avant d'ouvrir
+        const previewTitle = item.messages && item.messages.length > 0
+          ? item.messages[0].content.replace(/^Interprète spirituellement ce rêve\s*:\s*/i, '').trim()
+          : 'Ancien rêve';
 
         return (
           <TouchableOpacity
@@ -225,14 +242,14 @@ function HistoryTab() {
           >
             <View style={styles.histHeader}>
               <View style={{ flex: 1 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <AppIcon icon={CloudMoon} size={16} color="#C9A84C" strokeWidth={2.2} />
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <AppIcon icon={CloudMoon} size={14} color="#C9A84C" strokeWidth={2.2} />
                   <Text style={{ color: '#C9A84C', fontSize: 11, fontWeight: '700' }}>
-                    {formatDate(item.updatedAt)}
+                    {formatDate(item.updatedAt || item.createdAt)}
                   </Text>
                 </View>
-                <Text style={{ color: colors.text, fontWeight: '600', fontSize: 13, lineHeight: 20 }}>
-                  {truncateText(dreamDescription, 90)}
+                <Text style={{ color: colors.text, fontWeight: '600', fontSize: 14, lineHeight: 20 }}>
+                  {truncateText(cachedData ? cachedData.userDream : previewTitle, 75)}
                 </Text>
               </View>
               <TouchableOpacity onPress={() => handleDelete(item)} style={{ padding: 6 }}>
@@ -246,24 +263,34 @@ function HistoryTab() {
                   <View style={{ alignItems: 'center', padding: 16 }}>
                     <ActivityIndicator size="small" color="#C9A84C" />
                     <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 8 }}>
-                      Chargement de l'interprétation…
+                      Récupération de l'interprétation stockée…
                     </Text>
                   </View>
-                ) : aiText ? (
-                  <Text style={{ color: colors.text, fontSize: 14, lineHeight: 24 }}>
-                    {aiText}
-                  </Text>
+                ) : cachedData ? (
+                  <View style={{ gap: 12 }}>
+                    {/* Rappel du rêve soumis */}
+                    <View style={{ backgroundColor: colors.background, padding: 10, borderRadius: 8, borderLeftWidth: 3, borderLeftColor: '#C9A84C' }}>
+                      <Text style={{ color: colors.textSecondary, fontSize: 13, fontStyle: 'italic', lineHeight: 18 }}>
+                        " {cachedData.userDream} "
+                      </Text>
+                    </View>
+                    
+                    {/* Interprétation divine de l'IA */}
+                    <Text style={{ color: colors.text, fontSize: 14, lineHeight: 24, fontWeight: '400' }}>
+                      {cachedData.aiInterpretation}
+                    </Text>
+                  </View>
                 ) : (
                   <Text style={{ color: colors.textTertiary, fontSize: 13, fontStyle: 'italic' }}>
-                    L'interprétation n'est pas disponible pour cette entrée.
+                    Impossible d'afficher les détails.
                   </Text>
                 )}
               </View>
             )}
 
-            <View style={{ alignItems: 'center', marginTop: 8 }}>
-              <Text style={{ color: colors.textTertiary, fontSize: 11 }}>
-                {isOpen ? 'Réduire ▲' : 'Lire l\'interprétation ▼'}
+            <View style={{ alignItems: 'center', marginTop: 10, borderTopWidth: isOpen ? 0.5 : 0, borderTopColor: colors.border, paddingTop: isOpen ? 8 : 0 }}>
+              <Text style={{ color: colors.textTertiary, fontSize: 11, fontWeight: '500' }}>
+                {isOpen ? 'Réduire ▲' : 'Consulter l\'ancien message ▼'}
               </Text>
             </View>
           </TouchableOpacity>
@@ -276,9 +303,27 @@ function HistoryTab() {
 // ─── Écran principal ──────────────────────────────────────────────────────────
 
 function DreamsContent() {
-  const { colors, spacing } = useTheme();
+  const { colors } = useTheme();
   const { t } = useI18n();
+  const user = useAuthStore((s) => s.user);
   const [activeTab, setActiveTab] = useState<DreamTab>('interpret');
+  
+  // Partage de l'état de l'historique pour mise à jour instantanée
+  const [conversations, setConversations] = useState<AIConversation[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+
+  const loadHistory = useCallback(async () => {
+    if (!user?.id) return;
+    setLoadingHistory(true);
+    try {
+      const data = await AIService.getDreamHistory(user.id);
+      setConversations(data);
+    } catch (e) {
+      console.log("Erreur historique:", e);
+    } finally {
+      setLoadingHistory(false);
+    }
+  }, [user?.id]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -318,7 +363,11 @@ function DreamsContent() {
         ))}
       </View>
 
-      {activeTab === 'interpret' ? <InterpretTab /> : <HistoryTab />}
+      {activeTab === 'interpret' ? (
+        <InterpretTab onInterpretationSuccess={loadHistory} />
+      ) : (
+        <HistoryTab conversations={conversations} loading={loadingHistory} loadHistory={loadHistory} />
+      )}
     </View>
   );
 }
