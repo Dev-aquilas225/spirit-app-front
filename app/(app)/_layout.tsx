@@ -1,13 +1,12 @@
 import React, { useEffect } from 'react';
 import { Platform } from 'react-native';
 import { Stack } from 'expo-router';
-import { router } from 'expo-router';
 import { AuthGuard } from '../../src/components/auth/AuthGuard';
 import { useSubscriptionStore } from '../../src/store/subscription.store';
 
 /**
- * App Layout — Toutes les routes sous (app) sont protégées par AuthGuard.
- * Vérifie l'expiration de l'abonnement et envoie une notification 7 jours avant.
+ * App Layout — Version PWA Web
+ * Gère les routes et planifie le test de rappel quotidien pour les navigateurs mobiles.
  */
 export default function AppLayout() {
   const loadSubscription = useSubscriptionStore((s) => s.loadSubscription);
@@ -20,9 +19,10 @@ export default function AppLayout() {
 
   useEffect(() => {
     if (!isActive) return;
-    // Envoyer une notification locale si l'abonnement expire dans ≤ 7 jours
+    
+    // Déclenchement automatique chaque jour si l'abonnement expire dans ≤ 7 jours
     if (daysUntilExpiry > 0 && daysUntilExpiry <= 7) {
-      scheduleExpiryNotification(daysUntilExpiry);
+      schedulePwaNotification(daysUntilExpiry);
     }
   }, [isActive, daysUntilExpiry]);
 
@@ -30,13 +30,11 @@ export default function AppLayout() {
     <AuthGuard>
       <Stack screenOptions={{
         headerShown: false,
-        animation: 'ios',
-        animationDuration: 320,
+        animation: 'fade',
         gestureEnabled: true,
       }}>
-        <Stack.Screen name="(tabs)" options={{ animation: 'fade', animationDuration: 300, gestureEnabled: false }} />
-        <Stack.Screen name="complete-profile" options={{ animation: 'fade', animationDuration: 350, gestureEnabled: false }} />
-        {/* Push screens — slide from right */}
+        <Stack.Screen name="(tabs)" options={{ gestureEnabled: false }} />
+        <Stack.Screen name="complete-profile" options={{ gestureEnabled: false }} />
         <Stack.Screen name="consultation/index" />
         <Stack.Screen name="consultation/my-consultations" />
         <Stack.Screen name="formations/index" />
@@ -45,7 +43,7 @@ export default function AppLayout() {
         <Stack.Screen name="formations/admin" />
         <Stack.Screen name="push/admin" />
         <Stack.Screen name="dreams/index" />
-        <Stack.Screen name="prayer-program/index" options={{ animation: 'slide_from_right', animationDuration: 320 }} />
+        <Stack.Screen name="prayer-program/index" />
         <Stack.Screen name="settings/index" />
         <Stack.Screen name="notifications/index" />
         <Stack.Screen name="referral/index" />
@@ -55,38 +53,55 @@ export default function AppLayout() {
         <Stack.Screen name="accompagnements/index" />
         <Stack.Screen name="accompagnements/[id]" />
         <Stack.Screen name="prophet/index" />
-        {/* Modales — slide from bottom */}
-        <Stack.Screen name="consultation/form" options={{ animation: 'slide_from_bottom', animationDuration: 350 }} />
-        <Stack.Screen name="subscription/index" options={{ animation: 'slide_from_bottom', animationDuration: 380 }} />
-        <Stack.Screen name="subscription/payment" options={{ animation: 'slide_from_bottom', animationDuration: 350 }} />
-        <Stack.Screen name="subscription/success" options={{ animation: 'fade', animationDuration: 400 }} />
-        <Stack.Screen name="subscription/failure" options={{ animation: 'fade', animationDuration: 400 }} />
-        <Stack.Screen name="subscription/history" options={{ animation: 'slide_from_bottom', animationDuration: 350 }} />
-        <Stack.Screen name="subscription/manage" options={{ animation: 'slide_from_bottom', animationDuration: 350 }} />
+        <Stack.Screen name="consultation/form" />
+        <Stack.Screen name="subscription/index" />
+        <Stack.Screen name="subscription/payment" />
+        <Stack.Screen name="subscription/success" />
+        <Stack.Screen name="subscription/failure" />
+        <Stack.Screen name="subscription/history" />
+        <Stack.Screen name="subscription/manage" />
       </Stack>
     </AuthGuard>
   );
 }
 
-async function scheduleExpiryNotification(daysLeft: number) {
+/**
+ * Envoie la notification au format PWA Web (Vibration + Son système gérés par le navigateur)
+ */
+async function schedulePwaNotification(daysLeft: number) {
   try {
-    if (Platform.OS === 'web') {
-      if (Notification.permission === 'granted') {
-        new Notification('Oracle Plus — Abonnement', {
-          body: `Votre abonnement Premium expire dans ${daysLeft} jour${daysLeft > 1 ? 's' : ''}. Renouvelez pour ne pas perdre vos accès.`,
-          icon: '/icon.png',
-        });
-      }
-      return;
+    if (typeof window === 'undefined' || typeof Notification === 'undefined') return;
+
+    // 1. Demander la permission à l'utilisateur si ce n'est pas déjà fait
+    if (Notification.permission === 'default') {
+      await Notification.requestPermission();
     }
-    const Notifications = (await import('expo-notifications')).default;
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: 'Oracle Plus — Abonnement',
-        body: `Votre abonnement Premium expire dans ${daysLeft} jour${daysLeft > 1 ? 's' : ''}. Renouvelez pour ne pas perdre vos accès.`,
-        data: { screen: '/(app)/subscription' },
-      },
-      trigger: null, // immédiat
-    });
-  } catch {}
+
+    if (Notification.permission === 'granted') {
+      const titleText = 'Oracle Plus — Test de rappel';
+      const bodyText = `Test de rappel : Renouveler votre abonnement. Votre abonnement expire dans ${daysLeft} jour${daysLeft > 1 ? 's' : ''}.`;
+
+      // 2. Utiliser le Service Worker de la PWA pour envoyer une vraie notification système en arrière-plan
+      if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.ready;
+        if (registration && registration.showNotification) {
+          registration.showNotification(titleText, {
+            body: bodyText,
+            icon: '/icon.png',
+            badge: '/badge.png',
+            tag: 'expiry-reminder-daily', // Met à jour la notification existante sans créer de doublons
+            renotify: true, // Force le téléphone Android à vibrer/sonner à chaque mise à jour quotidienne
+            // Patron de vibration pour le web [vibre 200ms, pause 100ms, vibre 200ms]
+            vibrate: [200, 100, 200],
+          });
+          return;
+        }
+      }
+
+      // Fallback si le Service Worker n'est pas encore prêt sur le navigateur
+      new Notification(titleText, { body: bodyText, icon: '/icon.png' });
+    }
+  } catch (error) {
+    console.log("Les notifications PWA ne sont pas pleinement supportées sur ce navigateur.");
+  }
 }

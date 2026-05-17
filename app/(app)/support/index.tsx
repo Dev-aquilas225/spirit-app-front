@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Linking } from 'react-native';
+import { View, Text, Linking, StyleSheet } from 'react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { Mail, MessageCircle, Phone } from 'lucide-react-native';
 import { useI18n } from '../../../src/i18n';
@@ -13,7 +13,7 @@ export default function SupportScreen() {
   const { colors, spacing } = useTheme();
   const { t } = useI18n();
   const supportOptions = [
-    { icon: Mail, label: t.support.email, value: 'tchingankonggeorges@gmail.com', action: () => Linking.openURL('mailto:chingankonggeorges@gmail.com') },
+    { icon: Mail, label: t.support.email, value: 'tchingankonggeorges@gmail.com', action: () => Linking.openURL('mailto:tchingankonggeorges@gmail.com') },
     { icon: Phone, label: 'Telegram', value: '+225 05 04 67 38 29', action: () => Linking.openURL('https://t.me/+2250504673829') },
     { icon: MessageCircle, label: t.support.liveChat, value: t.support.available, action: () => {} },
   ] satisfies { icon: LucideIcon; label: string; value: string; action: () => void }[];
@@ -24,7 +24,8 @@ export default function SupportScreen() {
 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 24 }}>
         <AppIcon icon={MessageCircle} size={22} color={colors.text} strokeWidth={2.4} />
-        <Text style={{ fontSize: 22, fontWeight: '800', color: colors.text }}>{t.support.title}</Text>
+        {/* CORRECTION : Affichage direct de "Support" au lieu du texte Spirit */}
+        <Text style={{ fontSize: 22, fontWeight: '800', color: colors.text }}>Support</Text>
       </View>
 
       <View style={{ gap: spacing.lg }}>

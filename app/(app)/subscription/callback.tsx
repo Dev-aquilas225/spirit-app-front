@@ -4,17 +4,17 @@
  * Cette page est atteinte dans 2 cas :
  *
  * 1. VERSION WEB (navigateur) :
- *    Paystack redirige ici → https://bo.oracle-plus.online/subscription/callback?reference=ORP-xxx
- *    La page affiche un message de succès et tente de fermer l'onglet.
+ * Paystack redirige ici → https://bo.oracle-plus.online/subscription/callback?reference=ORP-xxx
+ * La page affiche un message de succès et tente de fermer l'onglet.
  *
  * 2. VERSION MOBILE (deep link) :
- *    Si la variable PAYSTACK_CALLBACK_URL = oracleplus://subscription/callback,
- *    expo-web-browser intercepte le redirect et ferme le navigateur AVANT que
- *    cette page soit rendue. Cette page n'est donc jamais affichée sur mobile.
- *    Elle sert de fallback si l'interception échoue.
+ * Si la variable PAYSTACK_CALLBACK_URL = oracleplus://subscription/callback,
+ * expo-web-browser intercepte le redirect et ferme le navigateur AVANT que
+ * cette page soit rendue. Cette page n'est donc jamais affichée sur mobile.
+ * Elle sert de fallback si l'interception échoue.
  */
 import React, { useEffect, useState } from 'react';
-import { Linking, Platform, StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { CheckCircle } from 'lucide-react-native';
 import { useTheme } from '../../../src/theme';
@@ -28,7 +28,7 @@ export default function PaystackCallbackScreen() {
   const [countdown, setCountdown] = useState(3);
 
   useEffect(() => {
-    // Sur web : tenter de fermer l'onglet après 3 secondes
+    // Sur web : tenter de fermer l'onglet après 9 secondes
     const tick = setInterval(() => {
       setCountdown((c) => {
         if (c <= 1) {
@@ -44,17 +44,18 @@ export default function PaystackCallbackScreen() {
 
   function tryReturn() {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      // Essayer de fermer l'onglet (fonctionne si ouvert par window.open)
       window.close();
-      // Si l'onglet ne se ferme pas (navigateur bloque), rediriger vers l'accueil de l'app
       setTimeout(() => {
         window.location.href = '/';
       }, 500);
     } else {
-      // Mobile fallback : ouvrir le deep link vers la page de succès
-      Linking.openURL('oracleplus://subscription/success').catch(() => {
-        router.replace('/(app)/subscription/success');
-      });
+      try {
+        const WebBrowser = require('expo-web-browser');
+        WebBrowser.dismissBrowser();
+      } catch (e) {
+        console.log("Navigateur déjà fermé");
+      }
+      router.replace('/(app)/subscription/success');
     }
   }
 

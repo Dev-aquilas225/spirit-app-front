@@ -8,7 +8,6 @@ import { ScreenWrapper } from '../../../src/components/common/ScreenWrapper';
 import { Card } from '../../../src/components/common/Card';
 import { BackButton } from '../../../src/components/common/BackButton';
 import { AppIcon } from '../../../src/components/common/AppIcon';
-import { NOTIFICATION_TIMES } from '../../../src/utils/constants';
 
 export default function NotificationsScreen() {
   const { colors, spacing } = useTheme();
@@ -16,10 +15,19 @@ export default function NotificationsScreen() {
   const { enableNotifications, disableNotifications, isEnabled } = useNotifications();
   const [enabled, setEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // CORRECTION : Libellés personnalisés pour correspondre exactement à tes demandes
   const reminderLabels = [
-    t.notifications.morningPrayer,
-    t.notifications.middayMessage,
-    t.notifications.eveningPrayer,
+    "Prière du matin",
+    "Message de réconfort pour la journée",
+    "Prière du soir",
+  ];
+
+  // CORRECTION : Heures exactes demandées (05h45, 13h00, 21h00)
+  const PWA_TIMES = [
+    { hour: 5, minute: 45, icon: Sunrise },
+    { hour: 13, minute: 0, icon: Sun },
+    { hour: 21, minute: 0, icon: Moon },
   ];
 
   useEffect(() => {
@@ -65,13 +73,13 @@ export default function NotificationsScreen() {
         </View>
       </Card>
 
-      <Text style={{ fontWeight: '600', color: colors.text, marginBottom: 12 }}>{t.notifications.schedulesTitle}</Text>
+      <Text style={{ fontWeight: '600', color: colors.text, marginBottom: 12 }}>Programme des rappels</Text>
 
-      {NOTIFICATION_TIMES.map((time, index) => (
+      {PWA_TIMES.map((time, index) => (
         <View key={`${time.hour}-${time.minute}`} style={[styles.timeRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={{ marginRight: 12 }}>
             <AppIcon
-              icon={time.hour === 8 ? Sunrise : time.hour === 13 ? Sun : Moon}
+              icon={time.icon}
               size={20}
               color={colors.primary}
               strokeWidth={2.4}
@@ -80,10 +88,7 @@ export default function NotificationsScreen() {
           <View style={{ flex: 1 }}>
             <Text style={{ fontWeight: '600', color: colors.text }}>{reminderLabels[index]}</Text>
             <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-              {t.notifications.everyday(
-                time.hour.toString().padStart(2, '0'),
-                time.minute.toString().padStart(2, '0'),
-              )}
+              Tous les jours à {time.hour.toString().padStart(2, '0')}h{time.minute.toString().padStart(2, '0')}
             </Text>
           </View>
           <View style={[styles.dot, { backgroundColor: enabled ? '#10B981' : colors.border }]} />
