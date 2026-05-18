@@ -249,7 +249,7 @@ function HistoryTab({ conversations, loading, loadHistory }: { conversations: AI
                   </Text>
                 </View>
                 <Text style={{ color: colors.text, fontWeight: '600', fontSize: 14, lineHeight: 20 }}>
-                  {truncateText(cachedData ? cachedData.userDream : previewTitle, 75)}
+                  {cachedData ? cachedData.userDream : previewTitle}
                 </Text>
               </View>
               <TouchableOpacity onPress={() => handleDelete(item)} style={{ padding: 6 }}>
@@ -288,11 +288,14 @@ function HistoryTab({ conversations, loading, loadHistory }: { conversations: AI
               </View>
             )}
 
-            <View style={{ alignItems: 'center', marginTop: 10, borderTopWidth: isOpen ? 0.5 : 0, borderTopColor: colors.border, paddingTop: isOpen ? 8 : 0 }}>
-              <Text style={{ color: colors.textTertiary, fontSize: 11, fontWeight: '500' }}>
-                {isOpen ? 'Réduire ▲' : 'Consulter l\'ancien message ▼'}
+            <TouchableOpacity 
+              onPress={() => handleExpand(item)}
+              style={{ alignItems: 'center', marginTop: 10, borderTopWidth: isOpen ? 0.5 : 0, borderTopColor: colors.border, paddingTop: isOpen ? 8 : 0, paddingVertical: 10 }}
+            >
+              <Text style={{ color: '#C9A84C', fontSize: 12, fontWeight: '700' }}>
+                {isOpen ? '▲ FERMER LE MESSAGE' : '▼ CLIQUER ICI POUR CONSULTER LE MESSAGE'}
               </Text>
-            </View>
+            </TouchableOpacity>
           </TouchableOpacity>
         );
       }}
