@@ -1,17 +1,12 @@
 {
   "name": "oracle-plus",
-  "main": "expo-router/entry",
   "version": "1.0.0",
+  "private": true,
+  "main": "expo-router/entry",
   "scripts": {
-    "start": "node server.js",
+    "start": "expo start",
     "dev": "expo start",
     "build": "expo export --platform web",
-    "build:web": "expo export --platform web",
-    "start:prod": "node server.js",
-    "reset-project": "node ./scripts/reset-project.js",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web",
     "lint": "expo lint"
   },
   "dependencies": {
@@ -64,6 +59,5 @@
   },
   "engines": {
     "node": ">=22"
-  },
-  "private": true
+  }
 }
