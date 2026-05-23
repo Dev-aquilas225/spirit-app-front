@@ -17,7 +17,9 @@
     
     "build:web": "expo export --platform web",
     
-    "clear": "expo start -c"
+    "clear": "expo start -c",
+    
+    "lint": "expo lint"
   },
   
   "dependencies": {
@@ -45,20 +47,34 @@
     "expo-speech": "~13.0.1",
     "expo-status-bar": "~1.12.1",
     
-    "react-native-svg": "15.2.0"
+    "react-native-svg": "15.2.0",
+    
+    "react-native-web": "~0.19.10",
+    "react-dom": "18.2.0"
   },
   
   "devDependencies": {
     "@babel/core": "^7.20.0",
     
     "@types/react": "~18.2.45",
-    "@types/react-native": "~0.73.0",
     
     "typescript": "~5.3.3"
   },
   
   "expo": {
+    "name": "Oracle Plus",
+    
+    "slug": "oracle-plus",
+    
     "scheme": "oracle-plus",
+    
+    "version": "1.0.0",
+    
+    "orientation": "portrait",
+    
+    "userInterfaceStyle": "automatic",
+    
+    "newArchEnabled": true,
     
     "plugins": [
       "expo-router"
@@ -66,6 +82,45 @@
     
     "experiments": {
       "typedRoutes": true
+    },
+    
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    
+    "android": {
+      "package": "com.oracleplus.app",
+      
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      }
+    },
+    
+    "ios": {
+      "supportsTablet": true,
+      
+      "bundleIdentifier": "com.oracleplus.app"
+    },
+    
+    "web": {
+      "bundler": "metro",
+      
+      "output": "static",
+      
+      "favicon": "./assets/favicon.png"
+    },
+    
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    
+    "runtimeVersion": {
+      "policy": "appVersion"
     }
   }
 }
