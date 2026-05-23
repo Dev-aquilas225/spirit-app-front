@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator
 import * as Notifications from 'expo-notifications';
 import { useDailyPrayers } from '../../../src/hooks/useDailyPrayers';
 import { useTheme } from "../../../src/theme";
-import { Sun, Moon, Copy, Volume2, Square, RefreshCw } from 'lucide-react-native';
+import { Sun, Moon, Copy, Volume2, Square } from 'lucide-react-native';
 import { FadeInView } from "../../../src/components/common/FadeInView";
 
 // Configuration des notifications
@@ -17,9 +17,8 @@ Notifications.setNotificationHandler({
 
 export default function PrayerProgramScreen() {
   const { colors } = useTheme();
-  const { morning, evening, isLoading, error, refresh, currentlyPlayingId } = useDailyPrayers();
+  const { morning, evening, isLoading, currentlyPlayingId } = useDailyPrayers();
 
-  // Programmation des notifications à chaque fois que les prières sont chargées
   useEffect(() => {
     if (morning || evening) {
       programmerNotifications();
@@ -32,7 +31,6 @@ export default function PrayerProgramScreen() {
 
     await Notifications.cancelAllScheduledNotificationsAsync();
 
-    // Notification Matin (06h00)
     if (morning) {
       const texte = morning.text || morning.content || "";
       await Notifications.scheduleNotificationAsync({
@@ -44,7 +42,6 @@ export default function PrayerProgramScreen() {
       });
     }
 
-    // Notification Soir (20h00)
     if (evening) {
       const texte = evening.text || evening.content || "";
       await Notifications.scheduleNotificationAsync({
@@ -59,27 +56,27 @@ export default function PrayerProgramScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background ?? '#0F172A' }]}>
+      <View style={[styles.center, { backgroundColor: colors.background || '#0F172A' }]}>
         <ActivityIndicator size="large" color="#C9A84C" />
       </View>
     );
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background ?? '#0F172A' }]}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background || '#0F172A' }]}>
       <FadeInView>
         <Text style={styles.headerTitle}>Prières Prophétiques</Text>
         
         {/* SECTION MATIN */}
         {morning && (
-          <View style={[styles.card, { backgroundColor: colors.surface ?? '#1E293B' }]}>
+          <View style={[styles.card, { backgroundColor: colors.surface || '#1E293B' }]}>
             <View style={styles.cardHeader}>
               <Sun size={24} color="#C9A84C" />
               <Text style={styles.prayerTitle}>Prière du Matin</Text>
             </View>
             <Text style={styles.prayerText}>{morning.text || morning.content}</Text>
             <View style={styles.actionsContainer}>
-              <TouchableOpacity style={styles.actionButton} onPress={morning.copyText}>
+              <TouchableOpacity style={[styles.actionButton, styles.btnPlay]} onPress={morning.copyText}>
                 <Copy size={18} color="#fff" />
                 <Text style={styles.actionButtonText}>Copier</Text>
               </TouchableOpacity>
@@ -96,14 +93,14 @@ export default function PrayerProgramScreen() {
 
         {/* SECTION SOIR */}
         {evening && (
-          <View style={[styles.card, { backgroundColor: colors.surface ?? '#1E293B' }]}>
+          <View style={[styles.card, { backgroundColor: colors.surface || '#1E293B' }]}>
             <View style={styles.cardHeader}>
               <Moon size={24} color="#C9A84C" />
               <Text style={styles.prayerTitle}>Prière du Soir</Text>
             </View>
             <Text style={styles.prayerText}>{evening.text || evening.content}</Text>
             <View style={styles.actionsContainer}>
-              <TouchableOpacity style={styles.actionButton} onPress={evening.copyText}>
+              <TouchableOpacity style={[styles.actionButton, styles.btnPlay]} onPress={evening.copyText}>
                 <Copy size={18} color="#fff" />
                 <Text style={styles.actionButtonText}>Copier</Text>
               </TouchableOpacity>
