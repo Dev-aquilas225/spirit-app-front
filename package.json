@@ -1,101 +1,33 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
-import * as Clipboard from 'expo-clipboard';
-import * as Speech from 'expo-speech';
-import { Ionicons } from '@expo/vector-icons';
-
-export default function PrayersScreen({ currentPrayer, isArchive = false }) {
-  const [isSpeaking, setIsSpeaking] = useState(false);
-
-  const prayer = currentPrayer || {
-    title: "Prière du Matin",
-    instruction: "Installez-vous dans un endroit calme.",
-    explication: "Méditation sur la grâce divine.",
-    priere_principale: "Seigneur, je te remercie pour ce nouveau jour...",
-    declarations: ["Je suis béni", "Ma journée est sous ta protection"]
-  };
-
-  const copyToClipboard = async () => {
-    const fullText = `${prayer.title}\n\n${prayer.priere_principale}`;
-    await Clipboard.setStringAsync(fullText);
-    Alert.alert("Succès", "La prière a été copiée !");
-  };
-
-  const handleSpeech = () => {
-    if (isSpeaking) {
-      Speech.stop();
-      setIsSpeaking(false);
-    } else {
-      setIsSpeaking(true);
-      
-      const textToRead = `
-        ${prayer.instruction}. 
-        Méditation du jour : ${prayer.explication}. 
-        Prière : ${prayer.priere_principale}. 
-        Déclarations : ${prayer.declarations.join('. ')}
-      `;
-
-      Speech.speak(textToRead, {
-        language: 'fr-FR',
-        pitch: 1.0,
-        rate: 0.92,
-        onDone: () => setIsSpeaking(false),
-        onError: () => setIsSpeaking(false),
-      });
-    }
-  };
-
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
-      <Text style={styles.title}>{prayer.title}</Text>
-      
-      <View style={styles.card}>
-        <Text style={styles.instructionText}>💡 {prayer.instruction}</Text>
-        <Text style={styles.bodyText}>{prayer.priere_principale}</Text>
-      </View>
-
-      <View style={styles.actionRow}>
-        <TouchableOpacity style={styles.iconButton} onPress={copyToClipboard}>
-          <Ionicons name="copy-outline" size={22} color="#8A2BE2" />
-          <Text style={styles.actionLabel}>Copier</Text>
-        </TouchableOpacity>
-      </View>
-
-      {!isArchive ? (
-        <TouchableOpacity 
-          style={[styles.audioButton, isSpeaking && styles.audioButtonActive]} 
-          onPress={handleSpeech}
-        >
-          <Ionicons 
-            name={isSpeaking ? "stop-circle-outline" : "play-circle-outline"} 
-            size={26} 
-            color="#FFF" 
-          />
-          <Text style={styles.audioButtonText}>
-            {isSpeaking ? "Arrêter l'écoute" : "Écouter la prière du jour"}
-          </Text>
-        </TouchableOpacity>
-      ) : (
-        <View style={styles.infoBox}>
-          <Text style={styles.infoText}>⚠️ Les audios des prières passées ne sont pas archivés.</Text>
-        </View>
-      )}
-    </ScrollView>
-  );
+{
+  "name": "oracle-plus",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "ts:check": "tsc",
+    "build": "expo export --platform web"
+  },
+  "dependencies": {
+    "@expo/vector-icons": "^14.0.2",
+    "@react-navigation/native": "^6.1.17",
+    "expo": "~51.0.0",
+    "expo-clipboard": "~6.0.3",
+    "expo-constants": "~16.0.2",
+    "expo-linking": "~6.3.1",
+    "expo-router": "~3.5.23",
+    "expo-speech": "~13.0.1",
+    "expo-status-bar": "~1.12.1",
+    "react": "18.2.0",
+    "react-native": "0.74.5",
+    "react-native-safe-area-context": "4.10.5",
+    "react-native-screens": "3.31.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.0",
+    "@types/react": "~18.2.45",
+    "typescript": "~5.3.3"
+  },
+  "private": true
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9F9FB', padding: 20 },
-  title: { fontSize: 24, fontWeight: 'bold', color: '#333', marginBottom: 20, textAlign: 'center' },
-  card: { backgroundColor: '#FFF', padding: 20, borderRadius: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
-  instructionText: { fontSize: 14, fontStyle: 'italic', color: '#666', marginBottom: 15 },
-  bodyText: { fontSize: 16, lineHeight: 26, color: '#222' },
-  actionRow: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 15, paddingHorizontal: 5 },
-  iconButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F0E6FF', paddingVertical: 8, paddingHorizontal: 15, borderRadius: 20 },
-  actionLabel: { color: '#8A2BE2', fontWeight: '600', marginLeft: 6, fontSize: 14 },
-  audioButton: { flexDirection: 'row', backgroundColor: '#8A2BE2', padding: 16, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginTop: 25 },
-  audioButtonActive: { backgroundColor: '#D32F2F' },
-  audioButtonText: { color: '#FFF', fontWeight: 'bold', marginLeft: 10, fontSize: 16 },
-  infoBox: { marginTop: 25, padding: 12, backgroundColor: '#FFF3CD', borderRadius: 8, alignItems: 'center' },
-  infoText: { color: '#856404', fontSize: 13, fontWeight: '500' }
-});
