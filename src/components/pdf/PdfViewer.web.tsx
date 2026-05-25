@@ -11,12 +11,22 @@
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import * as pdfjsLib from 'pdfjs-dist';
+// Import dynamique pour éviter que le bundler SSR (expo export -p web) ne tente
+// de résoudre le binaire natif canvas.node de pdfjs-dist côté serveur.
 import type { PDFDocumentProxy } from 'pdfjs-dist';
+type PdfjsLib = typeof import('pdfjs-dist');
 
-// Worker CDN — correspond exactement à la version installée (3.11.174)
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-  `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
+// pdfjsLib est chargé dynamiquement (voir usePdfjs) pour éviter que le bundler
+// SSR ne tente de résoudre canvas.node lors de expo export -p web.
+let _pdfjsLib: PdfjsLib | null = null;
+async function getPdfjs(): Promise<PdfjsLib> {
+  if (_pdfjsLib) return _pdfjsLib;
+  const lib = await import('pdfjs-dist');
+  lib.GlobalWorkerOptions.workerSrc =
+    `https://unpkg.com/pdfjs-dist@${lib.version}/build/pdf.worker.min.js`;
+  _pdfjsLib = lib;
+  return lib;
+}
 
 // ─── CSS injecté une seule fois ───────────────────────────────────────────────
 const STYLES = `
@@ -80,7 +90,7 @@ function PdfPage({ pdf, pageNumber, scale, containerWidth }: PageProps) {
   // Calcul des dimensions placeholder sans render
   useEffect(() => {
     let cancelled = false;
-    pdf.getPage(pageNumber).then((page) => {
+    pdf.getPage(pageNumber).then((page: any) => {
       if (cancelled) return;
       const vp = page.getViewport({ scale });
       const ratio = vp.width > 0 ? vp.height / vp.width : 1.414;
@@ -108,7 +118,7 @@ function PdfPage({ pdf, pageNumber, scale, containerWidth }: PageProps) {
     let cancelled = false;
 
     (async () => {
-      const page = await pdf.getPage(pageNumber);
+      const page = await (pdf as any).getPage(pageNumber);
       const vp   = page.getViewport({ scale });
       const canvas = canvasRef.current;
       if (!canvas || cancelled) return;
@@ -194,14 +204,17 @@ export function PdfViewer({ pdfData }: PdfViewerProps) {
     setError(null);
     setPdf(null);
     setNumPages(0);
+    let task: any;
     // Copier le buffer pour éviter "detached ArrayBuffer"
     const copy = pdfData.slice(0);
-    const task = pdfjsLib.getDocument({ data: copy });
-    task.promise.then(
-      (doc) => { setPdf(doc); setNumPages(doc.numPages); setLoading(false); },
-      (err) => { setError(err?.message ?? 'Impossible de charger le PDF'); setLoading(false); },
+    getPdfjs().then((lib) => {
+      task = lib.getDocument({ data: copy });
+      return task.promise;
+    }).then(
+      (doc: any) => { setPdf(doc); setNumPages(doc.numPages); setLoading(false); },
+      (err: any) => { setError(err?.message ?? 'Impossible de charger le PDF'); setLoading(false); },
     );
-    return () => { task.destroy(); };
+    return () => { task?.destroy(); };
   }, [pdfData]);
 
   const zoomOut = () => setScale((s) => Math.max(0.5, +(s - 0.25).toFixed(2)));

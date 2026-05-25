@@ -8,6 +8,9 @@ const config = getDefaultConfig(__dirname);
 // (rendu côté serveur Node.js). On remplace ce module par un objet vide :
 // dans le navigateur, le rendu se fait via l'API Canvas HTML native, pas via
 // le package npm 'canvas'.
+//
+// Le shim s'applique à TOUS les environnements Metro (client + SSR server)
+// pour éviter l'erreur "Unable to resolve canvas.node" lors de expo export -p web.
 config.resolver.extraNodeModules = {
   ...config.resolver.extraNodeModules,
   canvas: path.resolve(__dirname, 'src/utils/canvas-shim.js'),
