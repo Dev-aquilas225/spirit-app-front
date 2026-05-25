@@ -12,7 +12,8 @@
     "web": "expo start --web",
     "build": "expo export -p web",
     "vercel-build": "expo export -p web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "postinstall": "node scripts/patch-canvas.js"
   },
   
   "dependencies": {
