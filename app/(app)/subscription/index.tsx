@@ -1,4 +1,5 @@
 import { router } from "expo-router";
+import { useRequireAuth } from "../../../src/hooks/useRequireAuth";
 import type { LucideIcon } from "lucide-react-native";
 import {
   BookOpen,
@@ -37,6 +38,7 @@ export default function SubscriptionScreen() {
   const { t } = useI18n();
   const { isPremium } = usePremiumAccess();
   const { subscription, daysUntilExpiry, isExpiringSoon } = useSubscription();
+  const requireAuth = useRequireAuth();
 
   const PREMIUM_FEATURES: { icon: LucideIcon; label: string; desc: string }[] = [
     { icon: MessageCircle, label: "Consultation spirituelle générale",    desc: "Un espace d'échange libre pour obtenir une consultation ou révélation sur ta situation actuelle." },

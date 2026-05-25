@@ -97,7 +97,7 @@ const en: Translations = {
   },
 
   home: {
-    greeting: (name: string) => `Welcome, ${name}`,
+    greeting: (name: string) => name ? `Welcome, ${name}` : `Welcome to Oracle Plus`,
     todayMessage: "TODAY'S MESSAGE",
     dailyPrayers: 'Daily prayers',
     quickAccess: 'Quick access',

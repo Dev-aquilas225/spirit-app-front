@@ -121,7 +121,7 @@ export default function HomeScreen() {
   const todayPrayers = dailyPrayers.slice(0, 2);
   const today = formatDate(new Date().toISOString());
 
-  const firstName = user?.name?.split(" ")[0] ?? "";
+  const firstName = user?.firstName ?? user?.name?.split(" ")[0] ?? "";
 
   return (
     <ScrollView

@@ -111,7 +111,7 @@ const fr = {
   },
 
   home: {
-    greeting: (name: string) => `Bienvenue, ${name}`,
+    greeting: (name: string) => name ? `Bienvenue, ${name}` : `Bienvenue sur Oracle Plus`,
     todayMessage: 'MESSAGE DU JOUR',
     dailyPrayers: 'Prières du jour',
     quickAccess: 'Accès rapide',
