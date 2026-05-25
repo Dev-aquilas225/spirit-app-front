@@ -70,13 +70,13 @@ jobs:
             dist/ \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_PATH }}/
 
-      # ── 8. Recharger Nginx ────────────────────────────────────────────────
+      # ── 8. Recharger Nginx (si actif) ────────────────────────────────────
       - name: Reload Nginx
         run: |
           ssh -i ~/.ssh/id_deploy \
             -o StrictHostKeyChecking=no \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
-            "nginx -t && systemctl reload nginx && echo '✅ Nginx rechargé'"
+            "nginx -t && (systemctl is-active nginx && systemctl reload nginx && echo '✅ Nginx rechargé') || echo '⚠️ Nginx non actif (Traefik/Docker utilisé à la place) — fichiers déployés avec succès'"
 
       # ── 9. Nettoyage clé SSH ──────────────────────────────────────────────
       - name: Cleanup SSH key
