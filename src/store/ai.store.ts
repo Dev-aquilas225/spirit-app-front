@@ -84,68 +84,87 @@ export const useAIStore = create<AIStore>((set, get) => ({
 
     const isPremium = user.role === 'subscriber' || user.role === 'admin';
 
-    // Créer la conversation si elle n'existe pas
-    let conv = currentConversation;
-    if (!conv) {
-      conv = await AIService.createConversation(user.id);
+    set({ isSending: true });
+
+    try {
+      // Créer la conversation si elle n'existe pas
+      let conv = currentConversation;
+      if (!conv) {
+        conv = await AIService.createConversation(user.id);
+        set((state) => ({
+          currentConversation: conv,
+          conversations: [conv!, ...state.conversations],
+        }));
+      }
+
+      // Ajouter le message utilisateur localement
+      const userMessage: AIMessage = {
+        id: generateId(),
+        role: 'user',
+        content,
+        timestamp: new Date().toISOString(),
+      };
+
+      const updatedConv: AIConversation = {
+        ...conv,
+        messages: [...conv.messages, userMessage],
+        updatedAt: new Date().toISOString(),
+      };
+
+      set({ currentConversation: updatedConv });
+
+      // Sauvegarder le message utilisateur (non bloquant)
+      AIService.addMessageToConversation(conv.id, userMessage).catch(() => {});
+
+      // Obtenir la réponse IA
+      const {
+        message: aiMessage,
+        conversationId: resolvedConversationId,
+        error,
+      } = await AIService.sendMessage(conv.id, content, isPremium, chatType);
+
+      const finalConv: AIConversation = {
+        ...updatedConv,
+        id: resolvedConversationId ?? updatedConv.id,
+        messages: [...updatedConv.messages, aiMessage],
+        updatedAt: new Date().toISOString(),
+      };
+
+      AIService.addMessageToConversation(conv.id, aiMessage).catch(() => {});
+
       set((state) => ({
-        currentConversation: conv,
-        conversations: [conv!, ...state.conversations],
+        currentConversation: finalConv,
+        conversations: [
+          finalConv,
+          ...state.conversations.filter(
+            (c) => c.id !== conv!.id && c.id !== finalConv.id,
+          ),
+        ],
+        isSending: false,
+        limitReached: error === 'limit_reached',
+      }));
+
+      // Rafraîchir le compteur d'utilisation (non bloquant)
+      get().refreshUsage().catch(() => {});
+
+    } catch {
+      // Erreur réseau — débloquer l'UI et afficher un message
+      const errorMsg: AIMessage = {
+        id: generateId(),
+        role: 'assistant',
+        content: 'Une erreur est survenue. Vérifiez votre connexion et réessayez.',
+        timestamp: new Date().toISOString(),
+      };
+      set((state) => ({
+        isSending: false,
+        currentConversation: state.currentConversation
+          ? {
+              ...state.currentConversation,
+              messages: [...state.currentConversation.messages, errorMsg],
+            }
+          : state.currentConversation,
       }));
     }
-
-    // Ajouter le message utilisateur localement
-    const userMessage: AIMessage = {
-      id: generateId(),
-      role: 'user',
-      content,
-      timestamp: new Date().toISOString(),
-    };
-
-    const updatedConv: AIConversation = {
-      ...conv,
-      messages: [...conv.messages, userMessage],
-      updatedAt: new Date().toISOString(),
-    };
-
-    set({ currentConversation: updatedConv, isSending: true });
-
-    // Sauvegarder le message utilisateur
-    await AIService.addMessageToConversation(conv.id, userMessage);
-
-    // Obtenir la réponse IA
-    const {
-      message: aiMessage,
-      conversationId: resolvedConversationId,
-      error,
-    } = await AIService.sendMessage(conv.id, content, isPremium, chatType);
-
-    // Ajouter la réponse IA
-    const finalConv: AIConversation = {
-      ...updatedConv,
-      id: resolvedConversationId ?? updatedConv.id,
-      messages: [...updatedConv.messages, aiMessage],
-      updatedAt: new Date().toISOString(),
-    };
-
-    await AIService.addMessageToConversation(conv.id, aiMessage);
-
-    // Mettre à jour l'état des conversations
-    set((state) => ({
-      currentConversation: finalConv,
-      conversations: [
-        finalConv,
-        ...state.conversations.filter(
-          (conversation) =>
-            conversation.id !== conv.id && conversation.id !== finalConv.id,
-        ),
-      ],
-      isSending: false,
-      limitReached: error === 'limit_reached',
-    }));
-
-    // Rafraîchir le compteur d'utilisation
-    await get().refreshUsage();
   },
 
   deleteConversation: async (id) => {

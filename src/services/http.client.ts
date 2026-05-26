@@ -8,7 +8,10 @@ import { Env } from '../utils/env';
 
 // Eval au moment de l'appel (pas au module load) pour que window.__ENV__ soit dispo
 function baseUrl(): string {
-  return Env.API_BASE_URL() + '/api/v1';
+  const base = Env.API_BASE_URL();
+  // Fallback explicite si env non chargé
+  const url = base || 'https://api.oracle-plus.online';
+  return url.replace(/\/api\/v1$/, '') + '/api/v1';
 }
 
 export interface ApiError {
@@ -129,4 +132,25 @@ export const http = {
   delete: <T>(path: string, token?: string) => request<T>(path, { method: 'DELETE', token }),
   saveTokens,
   getRefreshToken,
+  /** Télécharge un fichier binaire (PDF…) avec auth JWT → ArrayBuffer */
+  getRaw: async (path: string): Promise<ArrayBuffer> => {
+    const token = await getAccessToken();
+    const headers: Record<string, string> = { Accept: 'application/pdf' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(`${baseUrl()}${path}`, { method: 'GET', headers });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.arrayBuffer();
+  },
+  /** Upload multipart/form-data avec auth JWT */
+  upload: async <T>(path: string, formData: FormData): Promise<T> => {
+    const token = await getAccessToken();
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(`${baseUrl()}${path}`, { method: 'POST', headers, body: formData });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({})) as Record<string, unknown>;
+      throw new Error((err.message as string) || `HTTP ${res.status}`);
+    }
+    return res.json() as Promise<T>;
+  },
 };

@@ -52,6 +52,9 @@ export default function Root({ children }: { children: React.ReactNode }) {
         {/* ── Icône navigateur (favicon dans public/) ──────────────────── */}
         <link rel="icon" type="image/png" href="/favicon.png" />
 
+        {/* Variables d'environnement runtime — injectées avant le bundle JS */}
+        <script src="/env-config.js" />
+
         {/* Google Identity Services chargé dynamiquement dans LoginModal uniquement */}
 
         {/* ── Plein écran PWA + safe areas ─────────────────────────────── */}

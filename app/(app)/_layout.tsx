@@ -43,6 +43,7 @@ export default function AppLayout() {
       <Stack.Screen name="dreams/index" />
       <Stack.Screen name="prayer-program/index" />
       <Stack.Screen name="futur/index" />
+      <Stack.Screen name="library/reader" />
       <Stack.Screen name="settings/index" />
       <Stack.Screen name="notifications/index" />
       <Stack.Screen name="referral/index" />

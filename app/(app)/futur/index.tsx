@@ -27,13 +27,13 @@ import { useTheme } from '../../../src/theme';
 import { AIConversation } from '../../../src/types/content.types';
 import { formatDate, truncateText } from '../../../src/utils/helpers';
 
-type View = 'chat' | 'history';
+type TabView = 'chat' | 'history';
 
 export default function FuturScreen() {
   const { colors, spacing } = useTheme();
   const user = useAuthStore((s) => s.user);
   const firstName = user?.firstName?.trim() || user?.name?.split(' ')[0] || '';
-  const [view, setView] = useState<View>('chat');
+  const [view, setView] = useState<TabView>('chat');
   const { hasSubscription, canPerform } = useAccess();
   // Accès autorisé si abonné OU si l'utilisateur a assez de crédits
   const canAccess = hasSubscription || canPerform('prophetic_consultation');

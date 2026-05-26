@@ -114,7 +114,7 @@ export const LibraryService = {
         form.append('cover', payload.coverFile, payload.coverFile.name);
       }
 
-      const res = await fetch(`${baseUrl}/library/admin/books`, {
+      const res = await fetch(`${baseUrl}/library/upload`, {
         method: 'POST',
         headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: form,
@@ -162,8 +162,8 @@ export const LibraryService = {
         if (hasCoverFile) form.append('cover', payload.coverFile!, payload.coverFile!.name);
         if (hasPdfFile)   form.append('file',  payload.pdfFile!,  payload.pdfFile!.name);
 
-        const res = await fetch(`${baseUrl}/library/admin/books/${id}`, {
-          method: 'PATCH',
+        const res = await fetch(`${baseUrl}/library/${id}/upload`, {
+          method: 'POST',
           headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
           body: form,
         });
@@ -177,7 +177,7 @@ export const LibraryService = {
       }
 
       // Pas de fichiers → simple JSON PATCH
-      const data = await http.patch<LibraryBook>(`/library/admin/books/${id}`, payload);
+      const data = await http.patch<LibraryBook>(`/library/${id}`, payload);
       return { data };
     } catch (e) {
       return { error: (e as ApiError)?.message ?? 'Erreur réseau' };
@@ -187,7 +187,7 @@ export const LibraryService = {
   /** [Admin] Supprimer définitivement un livre (fichiers + BDD) */
   async deleteBook(id: string): Promise<{ error?: string }> {
     try {
-      await http.delete(`/library/admin/books/${id}`);
+      await http.delete(`/library/${id}`);
       return {};
     } catch (e) {
       return { error: (e as ApiError).message };

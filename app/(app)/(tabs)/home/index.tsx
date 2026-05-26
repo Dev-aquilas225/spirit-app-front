@@ -20,7 +20,7 @@ import { formatDate } from '../../../../src/utils/helpers';
 const { width: W } = Dimensions.get('window');
 const CARD_W = (W - 48) / 2;
 const SPLASH_KEY = 'oracle_splash_seen';
-const SPLASH_MS  = 8000;
+const SPLASH_MS  = 5000;
 
 function SplashOverlay({ onDone }: { onDone: () => void }) {
   const fade  = useRef(new Animated.Value(0)).current;
