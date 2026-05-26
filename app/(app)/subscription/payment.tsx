@@ -22,6 +22,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { Crown, ExternalLink, XCircle } from 'lucide-react-native';
 import { useTheme } from '../../../src/theme';
 import { useSubscription } from '../../../src/hooks/useSubscription';
+import { useAuthStore } from '../../../src/store/auth.store';
 import { PaymentService } from '../../../src/services/payment.service';
 import { AppIcon } from '../../../src/components/common/AppIcon';
 import { Button } from '../../../src/components/common/Button';
@@ -36,7 +37,12 @@ type Step = 'initiating' | 'waiting' | 'vip' | 'timeout' | 'error';
 /* ─── Helpers ────────────────────────────────────────────────────────────── */
 async function openPaystackUrl(url: string): Promise<void> {
   if (Platform.OS === 'web') {
-    window.open(url, '_blank', 'noopener,noreferrer');
+    // Essayer window.open (Chrome/Android). Sur iOS Safari bloqué → fallback location.href
+    const win = window.open(url, '_blank');
+    if (!win) {
+      // iOS Safari a bloqué window.open → même onglet
+      window.location.href = url;
+    }
     return;
   }
   try {
@@ -131,6 +137,7 @@ function VipAnimation() {
 export default function PaymentScreen() {
   const { colors } = useTheme();
   const { initiatePayment, paymentError, clearPaymentError, loadSubscription } = useSubscription();
+  const refreshUser = useAuthStore((s) => s.refreshUser);
 
   const [step, setStep]         = useState<Step>('initiating');
   const [reference, setRef]     = useState<string | null>(null);
@@ -171,7 +178,7 @@ export default function PaymentScreen() {
     pollRef.current = setInterval(async () => {
       const { status } = await PaymentService.getStatus(result.reference);
 
-      if (status === 'active') {
+      if (status === 'active' || status === 'success') {
         stopAll();
         
         // CORRECTION : On ferme de force la fenêtre du navigateur Paystack immédiatement
@@ -183,7 +190,7 @@ export default function PaymentScreen() {
           console.log("Erreur fermeture navigateur");
         }
 
-        await loadSubscription();
+        await Promise.all([loadSubscription(), refreshUser()]);
         setStep('vip');
         setTimeout(() => router.replace('/subscription/success'), VIP_DISPLAY_MS);
         return;
@@ -215,6 +222,39 @@ export default function PaymentScreen() {
         setStep('timeout');
       }
     }, 1_000);
+
+    // Sur web : quand l'utilisateur revient sur l'onglet (après iOS redirect),
+    // vérifier immédiatement le statut via localStorage (écrit par callback.tsx)
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const onVisible = async () => {
+        if (document.visibilityState !== 'visible') return;
+        // Lire le résultat écrit par la page callback
+        const stored = localStorage.getItem('paystack_result');
+        if (stored) {
+          try {
+            const { reference: ref, status: st } = JSON.parse(stored);
+            if (ref === result.reference && (st === 'success' || st === 'active')) {
+              localStorage.removeItem('paystack_result');
+              stopAll();
+              await Promise.all([loadSubscription(), refreshUser()]);
+              setStep('vip');
+              setTimeout(() => router.replace('/subscription/success'), VIP_DISPLAY_MS);
+              return;
+            }
+          } catch {}
+        }
+        // Sinon forcer un poll immédiat
+        const { status: s } = await PaymentService.getStatus(result.reference);
+        if (s === 'success' || s === 'active') {
+          stopAll();
+          await Promise.all([loadSubscription(), refreshUser()]);
+          setStep('vip');
+          setTimeout(() => router.replace('/subscription/success'), VIP_DISPLAY_MS);
+        }
+      };
+      document.addEventListener('visibilitychange', onVisible);
+      window.addEventListener('focus', onVisible);
+    }
 
     await openPaystackUrl(result.authorization_url);
   }, [initiatePayment, loadSubscription, stopAll, clearPaymentError]);

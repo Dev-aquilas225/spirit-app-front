@@ -15,6 +15,7 @@ export const INITIAL_CREDITS = 2000;
 
 export const CREDIT_COSTS = {
   ai_chat:                 50,
+  accompagnement:          50,
   dream_interpretation:    80,
   prophetic_consultation: 100,
   prayer_generation:       20,

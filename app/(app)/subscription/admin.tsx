@@ -57,7 +57,7 @@ function SubscriptionCard({
   activating,
 }: {
   sub: AdminSubscription;
-  onActivate: (id: string) => void;
+  onActivate: (id: string, forfait?: any) => void;
   activating: boolean;
 }) {
   const { colors } = useTheme();
@@ -99,23 +99,31 @@ function SubscriptionCard({
         </View>
       )}
 
-      {/* Bouton Activer */}
+      {/* Boutons forfaits manuels */}
       {canActivate && (
-        <TouchableOpacity
-          style={[s.activateBtn, { opacity: activating ? 0.6 : 1 }]}
-          onPress={() => onActivate(sub.id)}
-          disabled={activating}
-          activeOpacity={0.8}
-        >
-          {activating ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <>
-              <AppIcon icon={Crown} size={15} color="#fff" strokeWidth={2.4} />
-              <Text style={s.activateBtnText}>Passer Premium</Text>
-            </>
-          )}
-        </TouchableOpacity>
+        <View style={{ paddingHorizontal: 12, paddingBottom: 12, gap: 8 }}>
+          <Text style={{ fontSize: 11, fontWeight: '700', color: '#C9A84C', marginBottom: 4 }}>ACTIVATION MANUELLE</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+            {[
+              { label: '500 cr.', credits: 500, days: 0, price: '500F' },
+              { label: '1000 cr.', credits: 1000, days: 0, price: '1000F' },
+              { label: '1 Semaine', credits: 0, days: 7, price: '3000F' },
+              { label: '1 Mois', credits: 0, days: 30, price: '8000F' },
+            ].map(f => (
+              <TouchableOpacity
+                key={f.label}
+                style={[s.activateBtn, { flex: 0, paddingHorizontal: 10, paddingVertical: 8, opacity: activating ? 0.6 : 1 }]}
+                onPress={() => onActivate(sub.id, f)}
+                disabled={activating}
+                activeOpacity={0.8}
+              >
+                {activating ? <ActivityIndicator size="small" color="#fff" /> : (
+                  <Text style={[s.activateBtnText, { fontSize: 11 }]}>{f.label} ({f.price})</Text>
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
       )}
 
       {sub.status === 'active' && (
@@ -181,15 +189,24 @@ export default function AdminSubscriptionsScreen() {
   const counts: Record<string, number> = { all: data.length };
   data.forEach((s) => { counts[s.status] = (counts[s.status] ?? 0) + 1; });
 
+  // ── Forfaits disponibles pour activation manuelle ────────────────────
+  const FORFAITS = [
+    { label: 'Pack 500 cr.', credits: 500,  days: 0,  price: '500 FCFA' },
+    { label: 'Pack 1000 cr.', credits: 1000, days: 0,  price: '1 000 FCFA' },
+    { label: 'Semaine',       credits: 0,    days: 7,  price: '3 000 FCFA' },
+    { label: 'Mensuel',       credits: 0,    days: 30, price: '8 000 FCFA' },
+  ];
+
   // ── Activer ───────────────────────────────────────────────────────────
-  async function handleActivate(id: string) {
+  async function handleActivate(id: string, forfait?: typeof FORFAITS[0]) {
     const sub = data.find((s) => s.id === id);
     const name = sub ? userName(sub) : id;
+    const label = forfait ? `${forfait.label} (${forfait.price})` : 'abonnement mensuel';
 
     const confirmed = Platform.OS === 'web'
-      ? window.confirm(`Activer l'abonnement de ${name} ?`)
+      ? window.confirm(`Activer ${label} pour ${name} ?`)
       : await new Promise<boolean>((resolve) =>
-          Alert.alert('Confirmer', `Activer l'abonnement de ${name} ?`, [
+          Alert.alert('Confirmer', `Activer ${label} pour ${name} ?`, [
             { text: 'Annuler', style: 'cancel', onPress: () => resolve(false) },
             { text: 'Activer', onPress: () => resolve(true) },
           ])
@@ -198,21 +215,28 @@ export default function AdminSubscriptionsScreen() {
     if (!confirmed) return;
 
     setActivating(id);
-    const result = await PaymentService.adminActivate(id);
-    setActivating(null);
-
-    if (result.success) {
-      // Mise à jour locale immédiate
-      setData((prev) =>
-        prev.map((s) =>
-          s.id === id
-            ? { ...s, status: 'active' as any, paymentProvider: 'manual', startDate: new Date().toISOString(), endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() }
-            : s,
-        ),
-      );
-    } else {
-      if (Platform.OS === 'web') window.alert(`Erreur : ${result.error}`);
-      else Alert.alert('Erreur', result.error);
+    try {
+      const result = await PaymentService.adminActivate(id);
+      if (result.success) {
+        const days = forfait?.days ?? 30;
+        setData((prev) =>
+          prev.map((s) =>
+            s.id === id
+              ? { ...s, status: 'active' as any, paymentProvider: 'manual',
+                  startDate: new Date().toISOString(),
+                  endDate: new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString() }
+              : s,
+          ),
+        );
+      } else {
+        if (Platform.OS === 'web') window.alert(`Erreur : ${result.error}`);
+        else Alert.alert('Erreur', result.error);
+      }
+    } catch {
+      if (Platform.OS === 'web') window.alert('Erreur réseau');
+      else Alert.alert('Erreur', 'Erreur réseau');
+    } finally {
+      setActivating(null);
     }
   }
 

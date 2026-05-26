@@ -11,6 +11,8 @@ export interface PWAInstallState {
   canShowNative: boolean;
   /** iOS Safari : afficher les instructions manuelles "Partager → Écran d'accueil" */
   canShowIOS: boolean;
+  /** WebView (Google App, Facebook, Instagram, etc.) : guider vers Chrome */
+  canShowWebView: boolean;
   /** L'app tourne déjà en mode standalone (installée) */
   isInstalled: boolean;
   install: () => Promise<void>;
@@ -31,11 +33,32 @@ function detectIOSSafari(): boolean {
   return isIOS && !isThirdPartyBrowser;
 }
 
+/**
+ * Détecte les WebViews qui ne supportent pas l'installation PWA :
+ * - Google App (GSA)
+ * - Facebook / Instagram / Messenger (FBAN/FBAV)
+ * - TikTok, Snapchat, Twitter/X
+ * - Android WebView générique
+ */
+function detectWebView(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent;
+  return (
+    /GSA\//.test(ua) ||           // Google App (Search)
+    /FBAN|FBAV/.test(ua) ||       // Facebook / Instagram
+    /Twitter/.test(ua) ||         // Twitter/X
+    /BytedanceWebview/.test(ua) || // TikTok
+    /Snapchat/.test(ua) ||        // Snapchat
+    (/wv/.test(ua) && /Android/.test(ua)) // Android WebView générique
+  );
+}
+
 export function usePWAInstall(): PWAInstallState {
   const [prompt,      setPrompt]      = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [dismissed,   setDismissed]   = useState(false);
   const [isIOSSafari, setIsIOSSafari] = useState(false);
+  const [isWebView,   setIsWebView]   = useState(false);
 
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof window === 'undefined') return;
@@ -54,7 +77,17 @@ export function usePWAInstall(): PWAInstallState {
     // ── Détection iOS Safari ──────────────────────────────────────────────────
     setIsIOSSafari(detectIOSSafari());
 
+    // ── Détection WebView (Google App, Facebook, etc.) ────────────────────────
+    setIsWebView(detectWebView());
+
     // ── Chrome / Edge : beforeinstallprompt ───────────────────────────────────
+    // L'event peut avoir été capturé avant le montage React (via +html.tsx)
+    const preCapture = (window as any).__pwaInstallPrompt;
+    if (preCapture) {
+      setPrompt(preCapture as BeforeInstallPromptEvent);
+      (window as any).__pwaInstallPrompt = null;
+    }
+
     function onBeforeInstall(e: Event) {
       e.preventDefault();
       setPrompt(e as BeforeInstallPromptEvent);
@@ -89,8 +122,9 @@ export function usePWAInstall(): PWAInstallState {
   }
 
   return {
-    canShowNative: Platform.OS === 'web' && prompt !== null && !isInstalled && !dismissed,
-    canShowIOS:    Platform.OS === 'web' && isIOSSafari     && !isInstalled && !dismissed,
+    canShowNative:  Platform.OS === 'web' && prompt !== null && !isInstalled && !dismissed,
+    canShowIOS:     Platform.OS === 'web' && isIOSSafari     && !isInstalled && !dismissed,
+    canShowWebView: Platform.OS === 'web' && isWebView       && !isInstalled && !dismissed,
     isInstalled,
     install,
     dismiss,

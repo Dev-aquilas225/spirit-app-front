@@ -123,7 +123,7 @@ export const PaymentService = {
         // Le backend utilise "endDate", le frontend "expiryDate"
         expiryDate: sub.endDate ?? sub.expiryDate ?? new Date().toISOString(),
         autoRenew: sub.autoRenew ?? false,
-        amount: sub.amount ?? 5000,
+        amount: sub.amount ?? (sub.plan === "weekly_plus" ? 3000 : 8000),
         currency: 'FCFA',
       };
     } catch {
@@ -137,7 +137,7 @@ export const PaymentService = {
       return result.map((item) => ({
         id: item.id ?? `${item.reference ?? 'payment'}-${item.createdAt ?? Date.now()}`,
         userId: item.userId ?? '',
-        amount: item.amount ?? 5000,
+        amount: item.amount ?? 0,
         currency: 'FCFA',
         method: (item.method as PaymentMethod) ?? 'card',
         status: item.status ?? 'pending',
@@ -180,7 +180,7 @@ export const PaymentService = {
    * Appelé toutes les 4 secondes par payment.tsx jusqu'à active|failed.
    */
   async getStatus(reference: string): Promise<{
-    status: 'pending' | 'active' | 'failed' | 'cancelled' | 'expired';
+    status: 'pending' | 'active' | 'success' | 'failed' | 'cancelled' | 'expired';
     subscription?: Subscription;
   }> {
     try {

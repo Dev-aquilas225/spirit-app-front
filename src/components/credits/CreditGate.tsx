@@ -8,7 +8,8 @@ import {
   ActivityIndicator, Linking, Modal, Platform,
   StyleSheet, Text, TouchableOpacity, View,
 } from 'react-native';
-import { Play, ShoppingBag, X, Zap } from 'lucide-react-native';
+import { Crown, Play, X, Zap } from 'lucide-react-native';
+import { router } from 'expo-router';
 import { useCreditsStore, CreditAction, CREDIT_COSTS, CREDIT_PACKS } from '../../store/credits.store';
 import { useTheme } from '../../theme';
 import { http } from '../../services/http.client';
@@ -44,12 +45,28 @@ export function CreditGate({ visible, action, onClose, onSuccess }: Props) {
       if (res?.authorization_url) {
         if (Platform.OS === 'web') window.open(res.authorization_url, '_blank');
         else await Linking.openURL(res.authorization_url);
-        setTimeout(async () => {
-          await purchase(packId, res.reference);
-          await fetchBalance();
-          setLoading(false);
-          if (useCreditsStore.getState().credits >= cost) onSuccess();
-        }, 5000);
+
+        // Polling toutes les 4s pendant 3 min pour détecter le paiement confirmé
+        let attempts = 0;
+        const maxAttempts = 45;
+        const poll = setInterval(async () => {
+          attempts++;
+          try {
+            const statusRes = await http.get<{ status: string }>(`/subscriptions/status/${res.reference}`);
+            if (statusRes?.status === 'success' || statusRes?.status === 'active') {
+              clearInterval(poll);
+              await purchase(packId, res.reference);
+              await fetchBalance();
+              setLoading(false);
+              if (useCreditsStore.getState().credits >= cost) onSuccess();
+              return;
+            }
+          } catch {}
+          if (attempts >= maxAttempts) {
+            clearInterval(poll);
+            setLoading(false);
+          }
+        }, 4000);
         return;
       }
     } catch {}
@@ -79,6 +96,26 @@ export function CreditGate({ visible, action, onClose, onSuccess }: Props) {
             <Text style={{ color: colors.text, fontWeight: '700' }}>{credits} crédits</Text>
           </Text>
 
+          {/* ── Option 1 : S'abonner (accès illimité) ── */}
+          <TouchableOpacity
+            style={[s.subBtn]}
+            onPress={() => { onClose(); router.push('/subscription'); }}
+            activeOpacity={0.85}
+          >
+            <Crown size={20} color="#FFFFFF" strokeWidth={2} />
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={s.subBtnTitle}>S'abonner — Accès illimité</Text>
+              <Text style={s.subBtnSub}>Dès 3 000 FCFA / semaine · Tous les services</Text>
+            </View>
+            <Text style={s.subBtnArrow}>→</Text>
+          </TouchableOpacity>
+
+          <View style={s.divider}>
+            <View style={[s.line, { backgroundColor: colors.border }]} />
+            <Text style={[s.dividerText, { color: colors.textSecondary }]}>ou acheter des crédits</Text>
+            <View style={[s.line, { backgroundColor: colors.border }]} />
+          </View>
+
           {/* Ad option */}
           {adsAvailable > 0 && (
             <TouchableOpacity
@@ -101,12 +138,6 @@ export function CreditGate({ visible, action, onClose, onSuccess }: Props) {
           )}
 
           {/* Divider */}
-          <View style={s.divider}>
-            <View style={[s.line, { backgroundColor: colors.border }]} />
-            <Text style={[s.dividerText, { color: colors.textSecondary }]}>ou acheter des crédits</Text>
-            <View style={[s.line, { backgroundColor: colors.border }]} />
-          </View>
-
           {/* Packs */}
           {CREDIT_PACKS.map((pack) => (
             <TouchableOpacity
@@ -142,9 +173,13 @@ const s = StyleSheet.create({
   adBtn: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderRadius: 14, padding: 14, marginBottom: 16 },
   adTitle: { fontSize: 15, fontWeight: '700' },
   adSub: { fontSize: 12, marginTop: 2 },
-  divider: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  line: { flex: 1, height: 1 },
+  divider:     { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+  line:        { flex: 1, height: 1 },
   dividerText: { fontSize: 12, marginHorizontal: 10 },
+  subBtn:      { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0B1628', borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: '#C9A84C' },
+  subBtnTitle: { fontSize: 14, fontWeight: '800', color: '#C9A84C' },
+  subBtnSub:   { fontSize: 11, color: 'rgba(201,168,76,0.65)', marginTop: 2 },
+  subBtnArrow: { fontSize: 18, color: '#C9A84C', fontWeight: '700' },
   pack: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderRadius: 14, padding: 14, marginBottom: 10 },
   packHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 },
   packName: { fontSize: 15, fontWeight: '700' },

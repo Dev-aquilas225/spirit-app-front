@@ -14,13 +14,13 @@ interface ThemeStore {
 }
 
 export const useThemeStore = create<ThemeStore>((set, get) => ({
-  mode: 'system',
+  mode: 'dark',
   isInitialized: false,
 
   initialize: async () => {
     const stored = await StorageService.get<ThemeMode>(STORAGE_KEYS.THEME);
     set({
-      mode: stored ?? 'system',
+      mode: stored ?? 'dark',
       isInitialized: true,
     });
   },

@@ -29,7 +29,7 @@ export default function AppLayout() {
       headerShown: false,
       animation: 'fade',
       gestureEnabled: true,
-      contentStyle: { backgroundColor: '#1A1A3E' },
+      contentStyle: { backgroundColor: 'transparent' },
     }}>
       <Stack.Screen name="(tabs)" options={{ gestureEnabled: false }} />
       <Stack.Screen name="complete-profile" options={{ gestureEnabled: false }} />

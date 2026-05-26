@@ -130,7 +130,7 @@ export const FormationsService = {
   ): Promise<{ data?: Formation; error?: string }> {
     try {
       const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
-      const data = await http.post<Formation>('/formations/admin/formations', payload, token ?? undefined);
+      const data = await http.post<Formation>('/formations', payload, token ?? undefined);
       return { data };
     } catch (e) {
       return { error: (e as ApiError)?.message ?? 'Erreur réseau' };
@@ -146,7 +146,7 @@ export const FormationsService = {
     try {
       const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
       const baseUrl = apiBaseUrl();
-      const lessonUrl = `${baseUrl}/formations/admin/formations/${formationId}/lessons`;
+      const lessonUrl = `${baseUrl}/formations/${formationId}/lessons`;
 
       if (file || payload.file) {
         const selectedFile = file ?? payload.file;
@@ -181,7 +181,7 @@ export const FormationsService = {
 
       // Sans fichier — JSON
       const data = await http.post<Lesson>(
-        `/formations/admin/formations/${formationId}/lessons`,
+        `/formations/${formationId}/lessons`,
         payload,
         token ?? undefined,
       );
@@ -198,7 +198,7 @@ export const FormationsService = {
   ): Promise<{ data?: Formation; error?: string }> {
     try {
       const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
-      const data = await http.patch<Formation>(`/formations/admin/formations/${id}`, payload, token ?? undefined);
+      const data = await http.patch<Formation>(`/formations/${id}`, payload, token ?? undefined);
       return { data };
     } catch (e) {
       return { error: (e as ApiError)?.message ?? 'Erreur réseau' };
@@ -209,7 +209,7 @@ export const FormationsService = {
   async adminPurgeFormation(id: string): Promise<{ error?: string }> {
     try {
       const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
-      await http.delete(`/formations/admin/formations/${id}/purge`, token ?? undefined);
+      await http.delete(`/formations/${id}`, token ?? undefined);
       return {};
     } catch (e) {
       return { error: (e as ApiError)?.message ?? 'Erreur réseau' };
@@ -220,7 +220,7 @@ export const FormationsService = {
   async adminDeleteFormation(id: string): Promise<{ error?: string }> {
     try {
       const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
-      await http.delete(`/formations/admin/formations/${id}`, token ?? undefined);
+      await http.delete(`/formations/${id}`, token ?? undefined);
       return {};
     } catch (e) {
       return { error: (e as ApiError)?.message ?? 'Erreur réseau' };
@@ -231,7 +231,7 @@ export const FormationsService = {
   async adminActivateFormation(id: string): Promise<{ error?: string }> {
     try {
       const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
-      await http.post(`/formations/admin/formations/${id}/activate`, {}, token ?? undefined);
+      await http.patch(`/formations/${id}`, { isActive: true }, token ?? undefined);
       return {};
     } catch (e) {
       return { error: (e as ApiError)?.message ?? 'Erreur réseau' };

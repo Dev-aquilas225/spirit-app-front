@@ -8,7 +8,7 @@ export type AIChatType = 'prophet' | 'consultation' | 'accompagnement' | 'dream'
 
 const CHAT_TYPE_TO_ACTION: Record<AIChatType, CreditAction> = {
   prophet:        'prophetic_consultation',
-  consultation:   'ai_chat',
+  consultation:   'prophetic_consultation',
   accompagnement: 'ai_chat',
   dream:          'dream_interpretation',
   prayer:         'prayer_generation',

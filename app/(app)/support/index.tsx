@@ -13,8 +13,8 @@ export default function SupportScreen() {
   const { colors, spacing } = useTheme();
   const { t } = useI18n();
   const supportOptions = [
-    { icon: Mail, label: t.support.email, value: 'tchingankonggeorges@gmail.com', action: () => Linking.openURL('mailto:tchingankonggeorges@gmail.com') },
-    { icon: Phone, label: 'Telegram', value: '+225 05 04 67 38 29', action: () => Linking.openURL('https://t.me/+2250504673829') },
+    { icon: Mail, label: t.support.email, value: 'tchingangankongeorges@gmail.com', action: () => Linking.openURL('mailto:tchingangankongeorges@gmail.com') },
+    { icon: Phone, label: 'Telegram', value: '+225 07 00 50 86 18', action: () => Linking.openURL('https://t.me/+2250700508618') },
     { icon: MessageCircle, label: t.support.liveChat, value: t.support.available, action: () => {} },
   ] satisfies { icon: LucideIcon; label: string; value: string; action: () => void }[];
 

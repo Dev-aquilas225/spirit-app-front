@@ -1,139 +1,113 @@
 /**
- * Paystack Callback Page — Oracle Plus
- *
- * Cette page est atteinte dans 2 cas :
- *
- * 1. VERSION WEB (navigateur) :
- * Paystack redirige ici → https://bo.oracle-plus.online/subscription/callback?reference=ORP-xxx
- * La page affiche un message de succès et tente de fermer l'onglet.
- *
- * 2. VERSION MOBILE (deep link) :
- * Si la variable PAYSTACK_CALLBACK_URL = oracleplus://subscription/callback,
- * expo-web-browser intercepte le redirect et ferme le navigateur AVANT que
- * cette page soit rendue. Cette page n'est donc jamais affichée sur mobile.
- * Elle sert de fallback si l'interception échoue.
+ * Paystack Callback — Oracle Plus
+ * Paystack redirige ici après paiement : /subscription/callback?reference=ORP-xxx
+ * Cette page vérifie le paiement, rafraîchit le profil et redirige vers /subscription/success
  */
 import React, { useEffect, useState } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { CheckCircle } from 'lucide-react-native';
+import { CheckCircle, XCircle } from 'lucide-react-native';
 import { useTheme } from '../../../src/theme';
 import { AppIcon } from '../../../src/components/common/AppIcon';
 import { Button } from '../../../src/components/common/Button';
+import { PaymentService } from '../../../src/services/payment.service';
+import { useAuthStore } from '../../../src/store/auth.store';
+import { useSubscriptionStore } from '../../../src/store/subscription.store';
+import { useCreditsStore } from '../../../src/store/credits.store';
+
+type Step = 'verifying' | 'success' | 'error';
 
 export default function PaystackCallbackScreen() {
   const { colors } = useTheme();
   const { reference, trxref } = useLocalSearchParams<{ reference?: string; trxref?: string }>();
-  const ref = reference || trxref || '';
-  const [countdown, setCountdown] = useState(3);
+  const ref = (reference || trxref || '').toString();
+  const [step, setStep] = useState<Step>('verifying');
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const refreshUser       = useAuthStore((s) => s.refreshUser);
+  const loadSubscription  = useSubscriptionStore((s) => s.loadSubscription);
+  const fetchBalance      = useCreditsStore((s) => s.fetchBalance);
 
   useEffect(() => {
-    // Sur web : tenter de fermer l'onglet après 9 secondes
-    const tick = setInterval(() => {
-      setCountdown((c) => {
-        if (c <= 1) {
-          clearInterval(tick);
-          tryReturn();
+    if (!ref) { setStep('error'); setErrorMsg('Référence manquante'); return; }
+
+    // Écrire dans localStorage pour que payment.tsx le lise si l'onglet est encore ouvert
+    if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
+      localStorage.setItem('paystack_result', JSON.stringify({ reference: ref, status: 'success' }));
+    }
+
+    verify();
+  }, [ref]);
+
+  async function verify() {
+    try {
+      // Attendre max 30s que le webhook Paystack traite le paiement
+      let attempts = 0;
+      let verified = false;
+      while (attempts < 8 && !verified) {
+        attempts++;
+        const res = await PaymentService.getStatus(ref).catch(() => null);
+        if (res?.status === 'success' || res?.status === 'active') {
+          verified = true;
+          break;
         }
-        return c - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(tick);
-  }, []);
-
-  function tryReturn() {
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      window.close();
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 500);
-    } else {
-      try {
-        const WebBrowser = require('expo-web-browser');
-        WebBrowser.dismissBrowser();
-      } catch (e) {
-        console.log("Navigateur déjà fermé");
+        if (res?.status === 'failed') {
+          setStep('error');
+          setErrorMsg('Paiement refusé par Paystack');
+          return;
+        }
+        await new Promise(r => setTimeout(r, 3500));
       }
-      router.replace('/subscription/success');
+
+      // Rafraîchir profil + abonnement + crédits
+      await Promise.all([refreshUser(), loadSubscription(), fetchBalance()]).catch(() => {});
+
+      setStep('success');
+      // Rediriger vers succès après 2s
+      setTimeout(() => router.replace('/subscription/success'), 2000);
+    } catch {
+      setStep('error');
+      setErrorMsg('Impossible de vérifier le paiement');
     }
   }
 
-  return (
-    <View style={[s.centered, { backgroundColor: colors.background }]}>
-      {/* Icône succès */}
-      <View style={s.iconWrap}>
-        <AppIcon icon={CheckCircle} size={64} color="#10B981" strokeWidth={1.6} />
-      </View>
+  if (step === 'verifying') return (
+    <View style={[s.root, { backgroundColor: colors.background }]}>
+      <ActivityIndicator size="large" color={colors.primary} />
+      <Text style={[s.title, { color: colors.text, marginTop: 24 }]}>Vérification du paiement…</Text>
+      <Text style={[s.sub, { color: colors.textTertiary }]}>Merci de patienter quelques secondes</Text>
+    </View>
+  );
 
-      {/* Titre */}
-      <Text style={[s.title, { color: colors.text }]}>Paiement reçu !</Text>
-
-      {/* Message */}
-      <Text style={[s.msg, { color: colors.textSecondary }]}>
-        Ton accès VIP Oracle Plus s'active automatiquement.{'\n'}
-        Retourne sur l'application pour continuer.
+  if (step === 'error') return (
+    <View style={[s.root, { backgroundColor: colors.background }]}>
+      <AppIcon icon={XCircle} size={64} color="#EF4444" strokeWidth={1.5} />
+      <Text style={[s.title, { color: colors.text }]}>Problème de vérification</Text>
+      <Text style={[s.sub, { color: colors.textTertiary }]}>{errorMsg}</Text>
+      <Text style={[s.sub, { color: colors.textTertiary, marginTop: 8 }]}>
+        Si vous avez été débité, contactez le support.{'\n'}Votre accès sera activé manuellement.
       </Text>
-
-      {/* Référence */}
-      {ref ? (
-        <View style={[s.refBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={{ color: colors.textTertiary, fontSize: 11 }}>Référence de paiement</Text>
-          <Text style={{ color: colors.text, fontSize: 13, fontWeight: '700', marginTop: 2 }}>
-            {ref}
-          </Text>
-        </View>
-      ) : null}
-
-      {/* Bouton retour */}
-      <View style={{ width: '100%', paddingHorizontal: 32, gap: 12, marginTop: 8 }}>
-        <Button
-          label={`Retour à Oracle Plus${countdown > 0 ? ` (${countdown}s)` : ''}`}
-          variant="gold"
-          fullWidth
-          onPress={tryReturn}
-        />
-        <Text style={{ color: colors.textTertiary, fontSize: 12, textAlign: 'center' }}>
-          L'onglet se fermera automatiquement dans {countdown > 0 ? `${countdown}s` : 'un instant'}…
-        </Text>
+      <View style={{ width: '100%', paddingHorizontal: 32, gap: 10, marginTop: 24 }}>
+        <Button label="Retour à l'accueil" variant="gold" fullWidth onPress={() => router.replace('/home')} />
+        <Button label="Contacter le support" variant="outline" fullWidth onPress={() => router.replace('/support')} />
       </View>
+    </View>
+  );
+
+  return (
+    <View style={[s.root, { backgroundColor: colors.background }]}>
+      <View style={s.iconWrap}>
+        <AppIcon icon={CheckCircle} size={64} color="#10B981" strokeWidth={1.5} />
+      </View>
+      <Text style={[s.title, { color: colors.text }]}>Paiement confirmé !</Text>
+      <Text style={[s.sub, { color: colors.textTertiary }]}>Votre accès est activé. Redirection…</Text>
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 32,
-    gap: 16,
-  },
-  iconWrap: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(16,185,129,0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '900',
-    textAlign: 'center',
-  },
-  msg: {
-    fontSize: 15,
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-  refBox: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    alignItems: 'center',
-    marginTop: 4,
-  },
+  root:    { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 16 },
+  iconWrap:{ width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(16,185,129,0.12)', alignItems: 'center', justifyContent: 'center' },
+  title:   { fontSize: 22, fontWeight: '900', textAlign: 'center' },
+  sub:     { fontSize: 14, textAlign: 'center', lineHeight: 22 },
 });

@@ -1,12 +1,15 @@
 import {
   ArrowUp,
+  Chrome,
   Download,
+  ExternalLink,
   MessageCircle,
   Share,
   X,
 } from "lucide-react-native";
 import React, { useState } from "react";
 import {
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -28,14 +31,130 @@ import { usePWAInstall } from "../../hooks/usePWAInstall";
  * • Invisible sur iOS Chrome/Firefox et sur native
  */
 export function PWAInstallBanner() {
-  const { canShowNative, canShowIOS, install, dismiss } = usePWAInstall();
+  const { canShowNative, canShowIOS, canShowWebView, install, dismiss } = usePWAInstall();
   const { width } = useWindowDimensions();
   const { t } = useI18n();
   const [showIOSModal, setShowIOSModal] = useState(false);
+  const [showWebViewModal, setShowWebViewModal] = useState(false);
 
   if (Platform.OS !== "web") return null;
 
   const isNarrow = width < 480;
+
+  // ── WebView banner (Google App, Facebook, Instagram, etc.) ──────────────────
+  if (canShowWebView) {
+    const currentUrl = typeof window !== 'undefined' ? window.location.href : 'https://oracle-plus.online';
+    return (
+      <>
+        <View style={styles.wrapper}>
+          <View style={styles.topAccent} />
+          <View style={styles.row}>
+            <View style={styles.iconWrap}>
+              <Chrome size={20} color="#C9A84C" strokeWidth={2} />
+            </View>
+            <View style={styles.texts}>
+              <Text style={styles.title} numberOfLines={1}>
+                Ouvrir dans Chrome
+              </Text>
+              {!isNarrow && (
+                <Text style={styles.sub} numberOfLines={1}>
+                  Pour installer Oracle Plus sur votre écran d'accueil
+                </Text>
+              )}
+            </View>
+            <View style={styles.actions}>
+              <TouchableOpacity
+                onPress={() => setShowWebViewModal(true)}
+                activeOpacity={0.8}
+                style={styles.installBtn}
+              >
+                <ExternalLink size={14} color="#1A1A3E" strokeWidth={2.5} />
+                <Text style={styles.installLabel}>Comment ?</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={dismiss}
+                activeOpacity={0.7}
+                style={styles.closeBtn}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <X size={16} color="rgba(255,255,255,0.45)" strokeWidth={2.5} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
+        {/* Modal instructions WebView */}
+        <Modal
+          visible={showWebViewModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowWebViewModal(false)}
+        >
+          <Pressable style={styles.overlay} onPress={() => setShowWebViewModal(false)}>
+            <Pressable style={styles.modal} onPress={() => {}}>
+              <View style={styles.modalHeader}>
+                <Chrome size={22} color="#C9A84C" strokeWidth={2} />
+                <Text style={styles.modalTitle}>Ouvrir dans Chrome</Text>
+              </View>
+
+              <Text style={styles.modalSub}>
+                Ce navigateur ne permet pas d'installer Oracle Plus. Suivez ces étapes :
+              </Text>
+
+              {/* Étape 1 */}
+              <View style={styles.step}>
+                <View style={styles.stepNum}><Text style={styles.stepNumText}>1</Text></View>
+                <View style={styles.stepContent}>
+                  <Text style={styles.stepText}>Appuyez sur les <Text style={styles.bold}>⋮</Text> (3 points) en haut à droite</Text>
+                </View>
+              </View>
+
+              {/* Étape 2 */}
+              <View style={styles.step}>
+                <View style={styles.stepNum}><Text style={styles.stepNumText}>2</Text></View>
+                <View style={styles.stepContent}>
+                  <Text style={styles.stepText}>Sélectionnez <Text style={styles.bold}>"Ouvrir dans Chrome"</Text></Text>
+                  <Text style={styles.stepHint}>ou "Ouvrir dans le navigateur"</Text>
+                </View>
+              </View>
+
+              {/* Étape 3 */}
+              <View style={styles.step}>
+                <View style={styles.stepNum}><Text style={styles.stepNumText}>3</Text></View>
+                <View style={styles.stepContent}>
+                  <Text style={styles.stepText}>Dans Chrome, appuyez sur <Text style={styles.bold}>"Installer"</Text> quand la bannière apparaît</Text>
+                </View>
+              </View>
+
+              {/* Bouton copier le lien */}
+              <TouchableOpacity
+                onPress={() => {
+                  if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                    navigator.clipboard.writeText(currentUrl);
+                  }
+                  Linking.openURL(`googlechrome://navigate?url=${encodeURIComponent(currentUrl)}`).catch(() => {
+                    Linking.openURL(currentUrl);
+                  });
+                }}
+                style={[styles.modalCloseBtn, { marginBottom: 10, backgroundColor: 'rgba(201,168,76,0.15)', borderWidth: 1, borderColor: '#C9A84C' }]}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.modalCloseBtnText, { color: '#C9A84C' }]}>Ouvrir directement dans Chrome</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => { setShowWebViewModal(false); dismiss(); }}
+                style={styles.modalCloseBtn}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.modalCloseBtnText}>J'ai compris</Text>
+              </TouchableOpacity>
+            </Pressable>
+          </Pressable>
+        </Modal>
+      </>
+    );
+  }
 
   // ── iOS Safari banner ────────────────────────────────────────────────────────
   if (canShowIOS) {

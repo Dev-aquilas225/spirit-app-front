@@ -21,7 +21,7 @@ export default function AdminUsers() {
   const filtered = users.filter(u => u.name?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase()));
 
   const addCredits = async (userId: string, amount: number) => {
-    await http.post('/admin/credits', { userId, amount }).catch(() => {});
+    await http.post(`/admin/users/${userId}/credits`, { amount }).catch(() => {});
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, credits: u.credits + amount } : u));
   };
 

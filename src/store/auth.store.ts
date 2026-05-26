@@ -45,6 +45,8 @@ interface AuthStore {
   completeProfile: (firstName: string, lastName: string, gender: Gender) => Promise<boolean>;
   logout: () => Promise<void>;
   updateUser: (updates: Partial<User>) => Promise<boolean>;
+  /** Rafraîchir le profil depuis le backend (rôle, crédits, subscriptionStatus) */
+  refreshUser: () => Promise<void>;
   /** Changer la langue (stockage local uniquement) */
   setLanguage: (lang: import('../types/auth.types').Language) => Promise<void>;
   clearError: () => void;
@@ -196,6 +198,21 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   },
 
   clearError: () => set({ error: null }),
+
+  refreshUser: async () => {
+    try {
+      const result = await AuthService.getProfile();
+      if (result.data) {
+        const storedGender = await StorageService.get<Gender>(STORAGE_KEYS.USER_GENDER);
+        const refreshed: User = {
+          ...result.data,
+          ...(storedGender ? { gender: storedGender } : {}),
+        };
+        set({ user: refreshed, isProfileComplete: isUserProfileComplete(refreshed) });
+        StorageService.set(STORAGE_KEYS.USER, refreshed);
+      }
+    } catch { /* silencieux */ }
+  },
 
   upgradeToSubscriber: () => {
     const { user } = get();

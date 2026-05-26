@@ -7,16 +7,23 @@ import { useI18n } from '../../../src/i18n';
 import { Button } from '../../../src/components/common/Button';
 import { AppIcon } from '../../../src/components/common/AppIcon';
 import { useSubscription } from '../../../src/hooks/useSubscription';
+import { useAuthStore } from '../../../src/store/auth.store';
+import { useCreditsStore } from '../../../src/store/credits.store';
 import { formatDate, formatCurrency } from '../../../src/utils/helpers';
 
 export default function PaymentSuccessScreen() {
   const { colors, spacing } = useTheme();
   const { t } = useI18n();
-  const { subscription, pendingReference } = useSubscription();
+  const { subscription, pendingReference, loadSubscription } = useSubscription();
+  const refreshUser = useAuthStore((s) => s.refreshUser);
+  const fetchBalance = useCreditsStore((s) => s.fetchBalance);
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    // Rafraîchir le profil, l'abonnement et les crédits dès l'arrivée sur cette page
+    Promise.all([refreshUser(), loadSubscription(), fetchBalance()]).catch(() => {});
+
     Animated.sequence([
       Animated.spring(scaleAnim, { toValue: 1, tension: 50, friction: 6, useNativeDriver: true }),
       Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),

@@ -160,3 +160,10 @@ self.addEventListener('notificationclick', (event) => {
     }),
   );
 });
+
+// ─── Message handler — SKIP_WAITING depuis le client ─────────────────────────
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
