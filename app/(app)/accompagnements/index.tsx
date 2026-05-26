@@ -104,7 +104,7 @@ export default function AccomppagnementsScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       {/* Header */}
       <View style={[s.header, { backgroundColor: '#1A1A3E' }]}>
-        <BackButton variant="dark" style={{ marginBottom: 12 }} fallback="/(app)/(tabs)/home"/>
+        <BackButton variant="dark" style={{ marginBottom: 12 }} fallback="/home"/>
         <Text style={s.headerTitle}>Accompagnements spirituels</Text>
         <Text style={s.headerSub}>
           Programmes de 7 jours avec suivi quotidien et 5 questions incluses
@@ -136,10 +136,10 @@ export default function AccomppagnementsScreen() {
               activeOpacity={0.82}
               onPress={() => {
                 if (locked) {
-                  router.push('/(app)/subscription');
+                  router.push('/subscription');
                   return;
                 }
-                router.push({ pathname: '/(app)/accompagnements/chat', params: { programme: prog.title, id: prog.id } });
+                router.push({ pathname: '/accompagnements/chat', params: { programme: prog.title, id: prog.id } });
               }}
             >
               <View style={[s.iconWrap, { backgroundColor: prog.color + '20' }]}>

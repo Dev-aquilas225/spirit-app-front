@@ -18,7 +18,7 @@ export default function TermsScreen() {
       
       {/* Header Premium - Inspire la confiance et le respect */}
       <View style={[styles.header, { backgroundColor: colors.deepBlue ?? '#1A1A3E', paddingTop: 56 }]}>
-        <BackButton variant="dark" style={{ marginBottom: 12 }} fallback="/(app)/(tabs)/profile" />
+        <BackButton variant="dark" style={{ marginBottom: 12 }} fallback="/profile" />
         <Text style={styles.headerTitle}>{t.legal.termsTitle}</Text>
         <Text style={styles.headerSubtitle}>
           {t.legal.updatedOn(dateMiseAJour)}

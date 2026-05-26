@@ -15,7 +15,7 @@ export function useRequireAuth() {
 
   return (): boolean => {
     if (isAuthenticated) return true;
-    router.push('/(auth)/login');
+    router.push('/login');
     return false;
   };
 }

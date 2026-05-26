@@ -16,6 +16,7 @@ import { BackButton } from '../../../src/components/common/BackButton';
 import { EmptyState } from '../../../src/components/common/EmptyState';
 import { LoadingSpinner } from '../../../src/components/common/LoadingSpinner';
 import { FadeInView } from '../../../src/components/common/FadeInView';
+import { CreditGate } from '../../../src/components/credits/CreditGate';
 import { useAIChat } from '../../../src/hooks/useAIChat';
 import { useAuthStore } from '../../../src/store/auth.store';
 import { useTheme } from '../../../src/theme';
@@ -39,6 +40,10 @@ export default function ConsultationChatScreen() {
     sendMessage,
     loadConversation,
     deleteConversation,
+    creditGateVisible,
+    creditAction,
+    onCreditSuccess,
+    closeCreditGate,
   } = useAIChat('consultation');
 
   const flatListRef = useRef<FlatList>(null);
@@ -73,7 +78,7 @@ export default function ConsultationChatScreen() {
       <View style={s.headerRow}>
         <BackButton
           variant="dark"
-          fallback="/(app)/(tabs)/home"
+          fallback="/home"
           style={{ marginRight: 8 }}
           onPress={view === 'history' ? () => setView('chat') : undefined}
         />
@@ -86,7 +91,7 @@ export default function ConsultationChatScreen() {
           </View>
           <Text style={s.headerSub}>
             {view === 'chat'
-              ? 'Consultation et orientation spirituelle'
+              ? 'Voyance et orientation spirituelle'
               : 'Historique de vos échanges'}
           </Text>
         </View>
@@ -212,6 +217,13 @@ export default function ConsultationChatScreen() {
         onSend={handleSend}
         loading={isSending}
         placeholder="Écrivez au Prophète Georges…"
+      />
+
+      <CreditGate
+        visible={creditGateVisible}
+        action={creditAction}
+        onClose={closeCreditGate}
+        onSuccess={onCreditSuccess}
       />
     </FadeInView>
   );

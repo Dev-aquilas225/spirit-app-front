@@ -45,13 +45,13 @@ export default function ConsultationFormScreen() {
     setLoading(false);
     // Naviguer vers l'écran de consultation (Prophète Georges — chatType: 'consultation')
     // PAS vers le guide /(app)/(tabs)/ai qui utilise un prompt différent
-    router.replace('/(app)/consultation/chat');
+    router.replace('/consultation/chat');
   }
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.background }} keyboardShouldPersistTaps="handled">
       <View style={{ padding: spacing.base }}>
-        <BackButton style={{ marginBottom: 24, marginTop: 56 }} fallback="/(app)/(tabs)/home"/>
+        <BackButton style={{ marginBottom: 24, marginTop: 56 }} fallback="/home"/>
 
         <Text style={{ fontSize: 22, fontWeight: '800', color: colors.text, marginBottom: 4 }}>
           {t.consultation.formTitle}

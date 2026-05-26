@@ -52,9 +52,7 @@ export default function Root({ children }: { children: React.ReactNode }) {
         {/* ── Icône navigateur (favicon dans public/) ──────────────────── */}
         <link rel="icon" type="image/png" href="/favicon.png" />
 
-        {/* ── Google Identity Services (GIS) ───────────────────────────── */}
-        {/* Chargé en async — ne bloque pas le rendu. Utilisé par login.tsx sur web. */}
-        <script src="https://accounts.google.com/gsi/client" async defer />
+        {/* Google Identity Services chargé dynamiquement dans LoginModal uniquement */}
 
         {/* ── Plein écran PWA + safe areas ─────────────────────────────── */}
         {/* Empêche l'espace blanc en bas quand l'app est installée en PWA     */}
@@ -91,28 +89,13 @@ export default function Root({ children }: { children: React.ReactNode }) {
         {/* ── Expo Router reset styles ─────────────────────────────────── */}
         <ScrollViewStyleReset />
 
-        {/* ── Enregistrement du Service Worker + mise à jour automatique ── */}
+        {/* Service Worker désactivé temporairement — évite les problèmes de cache */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
               if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function () {
-                  navigator.serviceWorker.register('/service-worker.js')
-                    .then(function(reg) {
-                      console.log('[SW] Enregistré :', reg.scope);
-                    })
-                    .catch(function(err) {
-                      console.warn('[SW] Échec :', err);
-                    });
-
-                  // Écouter le message SW_UPDATED envoyé par le nouveau Service Worker
-                  // Quand un nouveau déploiement est détecté, recharger la page automatiquement
-                  navigator.serviceWorker.addEventListener('message', function(event) {
-                    if (event.data && event.data.type === 'SW_UPDATED') {
-                      console.log('[SW] Nouvelle version détectée — rechargement...');
-                      window.location.reload();
-                    }
-                  });
+                navigator.serviceWorker.getRegistrations().then(function(regs) {
+                  regs.forEach(function(r) { r.unregister(); });
                 });
               }
             `,

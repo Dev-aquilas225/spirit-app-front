@@ -20,7 +20,7 @@ export default function SupportScreen() {
 
   return (
     <ScreenWrapper scrollable padded>
-      <BackButton style={{ marginBottom: 24 }} fallback="/(app)/(tabs)/profile"/>
+      <BackButton style={{ marginBottom: 24 }} fallback="/profile"/>
 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 24 }}>
         <AppIcon icon={MessageCircle} size={22} color={colors.text} strokeWidth={2.4} />

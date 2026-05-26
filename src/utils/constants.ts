@@ -1,17 +1,27 @@
 // App
 export const APP_NAME = 'Oracle Plus';
-export const APP_VERSION = '1.0.0';
+export const APP_VERSION = '2.0.0';
 
-// Subscription
-export const SUBSCRIPTION_PRICE = 5000;
+// ── Monétisation hybride ──────────────────────────────────────────────────────
+export const INITIAL_CREDITS = 1200;          // crédits offerts à l'inscription
+export const CREDITS_PER_FCFA = 2;            // 1000 FCFA = 2000 crédits
+export const AUDIO_PREVIEW_WORDS = 100;       // mots gratuits pour l'aperçu audio
+export const AUDIO_STANDARD_WORDS = 1000;     // mots pour l'audio standard (abonnés)
+
+// Subscription plans (FCFA)
+export const PLAN_WEEKLY_PRICE      = 1000;
+export const PLAN_WEEKLY_PLUS_PRICE = 3000;
+export const PLAN_MONTHLY_PRICE     = 8000;
+
+// Legacy (kept for compatibility)
+export const SUBSCRIPTION_PRICE = PLAN_MONTHLY_PRICE;
 export const SUBSCRIPTION_CURRENCY = 'FCFA';
 export const SUBSCRIPTION_PERIOD_DAYS = 30;
 
-// Guide spirituel — limite de questions par jour pour les utilisateurs gratuits
-// Au-delà : message automatique + invitation à s'abonner
-export const FREE_AI_DAILY_LIMIT = 5;
-export const FREE_AI_MESSAGE_LIMIT = 5;
-export const FREE_PRAYER_LIMIT = 3;
+// AI — no hard daily limit; access controlled by credits or subscription
+export const FREE_AI_DAILY_LIMIT = 999;
+export const FREE_AI_MESSAGE_LIMIT = 999;
+export const FREE_PRAYER_LIMIT = 999;
 
 // Notification times (hours in local time)
 export const NOTIFICATION_TIMES = [

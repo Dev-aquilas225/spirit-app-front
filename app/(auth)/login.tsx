@@ -1,8 +1,7 @@
 import { router } from "expo-router";
 import { ArrowRight, Lock, Mail, MessageCircle } from "lucide-react-native";
 import React, { useEffect, useRef, useState } from "react";
-import * as Google from "expo-auth-session/providers/google";
-import * as WebBrowser from "expo-web-browser";
+// expo-auth-session retiré — Google OAuth géré dans LoginModal uniquement
 import { AuthService } from "../../src/services/auth.service";
 import { useAuthStore } from "../../src/store/auth.store";
 import {
@@ -19,10 +18,7 @@ import { Button } from "../../src/components/common/Button";
 import { useI18n } from "../../src/i18n";
 import { useTheme } from "../../src/theme";
 
-// ── Native only : permet au navigateur natif de se refermer proprement ────────
-if (Platform.OS !== "web") {
-  WebBrowser.maybeCompleteAuthSession();
-}
+
 
 export default function LoginScreen() {
   const { colors, spacing, borderRadius: br } = useTheme();
@@ -56,9 +52,9 @@ export default function LoginScreen() {
     // Lire isProfileComplete depuis le store : il a déjà fusionné le genre stocké localement
     const profileComplete = useAuthStore.getState().isProfileComplete;
     if (!profileComplete) {
-      router.replace("/(app)/complete-profile");
+      router.replace("/complete-profile");
     } else {
-      router.replace("/(app)/(tabs)/home");
+      router.replace("/home");
     }
   }
 
@@ -147,43 +143,8 @@ export default function LoginScreen() {
     return () => ro.disconnect();
   }, [gsiReady]);
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // NATIVE : expo-auth-session (iOS / Android)
-  // ══════════════════════════════════════════════════════════════════════════
-  // On passe toujours webClientId pour éviter le crash "invariantClientId" du hook sur web.
-  // Sur web, le flow réel passe par GIS (google.accounts.id.renderButton), pas par promptAsync().
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB,
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS,
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_ANDROID,
-  });
-
-  useEffect(() => {
-    if (Platform.OS === "web" || !response) return;
-
-    if (response.type === "success") {
-      const idToken =
-        response.params?.id_token ??
-        (response.authentication as any)?.idToken;
-      if (idToken) {
-        handleGoogleToken(idToken);
-      } else {
-        setEmailError("Impossible de récupérer le token Google");
-        setGoogleLoading(false);
-      }
-    } else if (response.type === "error") {
-      setEmailError(response.error?.message ?? "Erreur Google OAuth");
-      setGoogleLoading(false);
-    } else if (response.type === "dismiss" || response.type === "cancel") {
-      setGoogleLoading(false);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [response]);
-
   async function handleNativeGooglePress() {
-    setEmailError(undefined);
-    setGoogleLoading(true);
-    await promptAsync();
+    setEmailError("Google OAuth non disponible sur cette plateforme");
   }
 
   // ── Magic link ────────────────────────────────────────────────────────────
@@ -207,15 +168,13 @@ export default function LoginScreen() {
       return;
     }
 
-    router.push({ pathname: "/(auth)/email-sent", params: { email: cleaned } });
+    router.push({ pathname: "/email-sent", params: { email: cleaned } });
   }
 
   // ── Rendu ─────────────────────────────────────────────────────────────────
   const clientConfigured =
-    Platform.OS === "web"
-      ? !!(process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB &&
-          !process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB.startsWith("YOUR_"))
-      : !!(request);
+    !!(process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB &&
+       !process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB?.startsWith("YOUR_"));
 
   return (
     <KeyboardAvoidingView
@@ -276,7 +235,7 @@ export default function LoginScreen() {
                 fullWidth
                 size="lg"
                 loading={googleLoading}
-                disabled={!request || googleLoading}
+                disabled={googleLoading}
                 onPress={handleNativeGooglePress}
                 icon={!googleLoading ? <GoogleLogoNative /> : undefined}
                 iconPosition="left"

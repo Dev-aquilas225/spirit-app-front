@@ -9,5 +9,5 @@ export default function ConsultationIndex() {
   if (!isPremium) {
     return <PremiumGuard featureName="Consultation">{null}</PremiumGuard>;
   }
-  return <Redirect href="/(app)/consultation/chat" />;
+  return <Redirect href="/consultation/chat" />;
 }

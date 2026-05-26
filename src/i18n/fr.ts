@@ -117,7 +117,7 @@ const fr = {
     quickAccess: 'Accès rapide',
     actions: {
       prayer: 'Prière et suivi spirituel',
-      ai: 'Guide spirituel',
+      ai: 'Voyance',
       library: 'Bibliothèque et formations',
       consultation: 'Se former spirituellement',
       dreams: 'Interpréter mon rêve',
@@ -128,7 +128,7 @@ const fr = {
 
   tabs: {
     home: 'Accueil',
-    consultation: 'Guide',
+    consultation: 'Voyance',
     library: 'Livres',
     profile: 'Profil',
   },
@@ -154,7 +154,7 @@ const fr = {
   },
 
   ai: {
-    headerChat: 'Guide spirituel',
+    headerChat: 'Voyance',
     headerHistory: 'Historique',
     historySubtitle: 'Vos échanges précédents',
     badgeUnlimited: 'Messages illimités',

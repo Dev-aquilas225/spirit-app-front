@@ -12,7 +12,7 @@ import { router } from 'expo-router';
 
 export default function FormationDetailRedirect() {
   useEffect(() => {
-    router.replace('/(app)/formations');
+    router.replace('/formations');
   }, []);
 
   return null;

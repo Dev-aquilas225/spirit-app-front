@@ -55,7 +55,7 @@ export default function PaystackCallbackScreen() {
       } catch (e) {
         console.log("Navigateur déjà fermé");
       }
-      router.replace('/(app)/subscription/success');
+      router.replace('/subscription/success');
     }
   }
 

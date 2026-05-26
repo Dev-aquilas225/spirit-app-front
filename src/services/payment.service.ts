@@ -3,7 +3,7 @@
  */
 import { http, ApiError } from './http.client';
 
-export type SubscriptionPlan = 'monthly' | 'yearly';
+export type SubscriptionPlan = 'weekly_plus' | 'monthly';
 export type SubscriptionStatus = 'active' | 'expired' | 'cancelled' | 'pending';
 export type PaymentMethod = 'card' | 'mobile_money' | 'orange_money' | 'mtn_money';
 
@@ -69,6 +69,36 @@ export interface InitiateResult {
   currency: string;
   plan: SubscriptionPlan;
 }
+
+// Static plan definitions (prices in FCFA)
+export const SUBSCRIPTION_PLANS: {
+  id: SubscriptionPlan;
+  name: string;
+  price: number;
+  priceLabel: string;
+  durationDays: number;
+  badge?: string;
+  features: string[];
+}[] = [
+  {
+    id: 'weekly_plus',
+    name: 'Offre Hebdomadaire',
+    price: 3000,
+    priceLabel: '3 000 FCFA',
+    durationDays: 7,
+    badge: '⭐ Populaire',
+    features: ['Accès illimité 7 jours', 'Voyance & rêves illimités', 'Audio illimité', 'Réponses prioritaires'],
+  },
+  {
+    id: 'monthly',
+    name: 'Offre Mensuelle',
+    price: 8000,
+    priceLabel: '8 000 FCFA',
+    durationDays: 30,
+    badge: '🏆 Meilleure valeur',
+    features: ['Accès illimité 30 jours', 'Toutes les fonctionnalités', 'Audio illimité', 'Priorité maximale', 'Historique complet'],
+  },
+];
 
 export const PaymentService = {
   async getPlans(): Promise<SubscriptionPlanInfo[]> {

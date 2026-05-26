@@ -1,256 +1,116 @@
 import React, { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { CheckCircle, Edit3, RefreshCw, Save } from 'lucide-react-native';
-import { AppIcon } from '../../../src/components/common/AppIcon';
-import { BackButton } from '../../../src/components/common/BackButton';
-import { Button } from '../../../src/components/common/Button';
-import { AIService } from '../../../src/services/ai.service';
-import { useAuthStore } from '../../../src/store/auth.store';
-import { useTheme } from '../../../src/theme';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Switch } from 'react-native';
 import { router } from 'expo-router';
+import { ChevronLeft, Save, RotateCcw } from 'lucide-react-native';
+import { AppIcon } from '../../../src/components/common/AppIcon';
+import { useAIPromptsStore, AIPrompt, DEFAULT_PROMPTS } from '../../../src/store/ai-prompts.store';
+import { useTheme } from '../../../src/theme';
 
-interface AiSetting {
-  id: number;
-  section_name: string;
-  system_prompt: string;
-  updated_at: string;
-}
+export default function AISettings() {
+  const { colors } = useTheme();
+  const { prompts, init, updatePrompt, saveToBackend, isSaving } = useAIPromptsStore();
+  const [selected, setSelected] = useState<AIPrompt | null>(null);
+  const [draft, setDraft] = useState('');
+  const [draftTemp, setDraftTemp] = useState('0.7');
+  const [draftTokens, setDraftTokens] = useState('500');
 
-const SECTION_LABELS: Record<string, { label: string; color: string; description: string }> = {
-  guide:          { label: 'Guide spirituel',         color: '#6366F1', description: 'Tunnel de conversion vers l\'abonnement' },
-  consultation:   { label: 'Consultation',            color: '#C9A84C', description: 'Canal du Prophète Georges — voyance et programme' },
-  accompagnement: { label: 'Accompagnement',          color: '#10B981', description: 'Accompagnement spirituel vivant et adaptatif' },
-  prayer:         { label: 'Prière et suivi',         color: '#EC4899', description: 'Programme de prière progressif (3, 7 ou 9 jours)' },
-  dream:          { label: 'Interprétation des rêves', color: '#7C3AED', description: 'Lecture spirituelle et symbolique des rêves' },
-};
+  useEffect(() => { init(); }, []);
 
-export default function AdminAiSettingsScreen() {
-  const { colors, spacing } = useTheme();
-  const user = useAuthStore((s) => s.user);
-  const [settings, setSettings] = useState<AiSetting[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [editingSection, setEditingSection] = useState<string | null>(null);
-  const [editedPrompt, setEditedPrompt] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [savedSection, setSavedSection] = useState<string | null>(null);
+  const select = (p: AIPrompt) => {
+    setSelected(p);
+    setDraft(p.systemPrompt);
+    setDraftTemp(String(p.temperature));
+    setDraftTokens(String(p.maxTokens));
+  };
 
-  // Rediriger si pas admin
-  useEffect(() => {
-    if (user && user.role !== 'admin') {
-      Alert.alert('Accès refusé', 'Cette section est réservée aux administrateurs.');
-      router.back();
-    }
-  }, [user]);
+  const save = async () => {
+    if (!selected) return;
+    const updated: AIPrompt = { ...selected, systemPrompt: draft, temperature: parseFloat(draftTemp) || 0.7, maxTokens: parseInt(draftTokens) || 500 };
+    await saveToBackend(updated);
+    setSelected(updated);
+  };
 
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  async function loadSettings() {
-    setLoading(true);
-    const data = await AIService.getAdminSettings();
-    setSettings(data);
-    setLoading(false);
-  }
-
-  function startEdit(setting: AiSetting) {
-    setEditingSection(setting.section_name);
-    setEditedPrompt(setting.system_prompt);
-  }
-
-  function cancelEdit() {
-    setEditingSection(null);
-    setEditedPrompt('');
-  }
-
-  async function handleSave(section: string) {
-    if (!editedPrompt.trim()) {
-      Alert.alert('Erreur', 'Le prompt ne peut pas être vide.');
-      return;
-    }
-    setSaving(true);
-    try {
-      await AIService.updateAdminSetting(section, editedPrompt.trim());
-      setSettings((prev) =>
-        prev.map((s) =>
-          s.section_name === section
-            ? { ...s, system_prompt: editedPrompt.trim(), updated_at: new Date().toISOString() }
-            : s,
-        ),
-      );
-      setEditingSection(null);
-      setEditedPrompt('');
-      setSavedSection(section);
-      setTimeout(() => setSavedSection(null), 3000);
-    } catch (err) {
-      Alert.alert('Erreur', 'Impossible de sauvegarder. Vérifiez votre connexion.');
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function formatDate(iso: string) {
-    const d = new Date(iso);
-    return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-  }
+  const reset = () => {
+    if (!selected) return;
+    const def = DEFAULT_PROMPTS.find(p => p.id === selected.id);
+    if (def) { setDraft(def.systemPrompt); setDraftTemp(String(def.temperature)); setDraftTokens(String(def.maxTokens)); }
+  };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: colors.background }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      {/* Header */}
-      <View style={[s.header, { backgroundColor: '#1A1A3E' }]}>
-        <BackButton variant="dark" style={{ marginBottom: 12 }} fallback="/(app)/(tabs)/profile" />
-        <Text style={s.headerTitle}>Tableau de bord — Prompts IA</Text>
-        <Text style={s.headerSub}>
-          Modifiez les instructions système de chaque section directement depuis ici.
-          Les changements sont appliqués immédiatement.
-        </Text>
+    <View style={{ flex:1, backgroundColor: colors.background }}>
+      <View style={[st.header, { borderBottomColor: colors.border }]}>
+        <TouchableOpacity onPress={() => router.back()} style={st.back}><AppIcon icon={ChevronLeft} size={22} color={colors.text} strokeWidth={2.5} /></TouchableOpacity>
+        <Text style={[st.title, { color: colors.text }]}>Prompts IA</Text>
+        {isSaving && <ActivityIndicator size="small" color="#C9A84C" />}
       </View>
 
-      {loading ? (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator size="large" color="#C9A84C" />
-          <Text style={{ color: colors.textSecondary, marginTop: 12 }}>Chargement des prompts...</Text>
-        </View>
-      ) : (
-        <ScrollView contentContainerStyle={{ padding: spacing.base, gap: 16, paddingBottom: 48 }}>
-
-          {/* Notice */}
-          <View style={[s.notice, { backgroundColor: '#C9A84C18', borderColor: '#C9A84C' }]}>
-            <Text style={{ color: '#C9A84C', fontSize: 13, lineHeight: 20 }}>
-              Chaque section utilise son propre prompt indépendant.
-              Modifiez le texte et appuyez sur Enregistrer.
-              L'IA applique le nouveau prompt dès le prochain message.
-            </Text>
-          </View>
-
-          {/* Rafraîchir */}
-          <TouchableOpacity onPress={loadSettings} style={[s.refreshBtn, { borderColor: colors.border }]}>
-            <AppIcon icon={RefreshCw} size={16} color={colors.textSecondary} strokeWidth={2.2} />
-            <Text style={{ color: colors.textSecondary, fontSize: 13 }}>Recharger depuis le serveur</Text>
-          </TouchableOpacity>
-
-          {settings.map((setting) => {
-            const meta = SECTION_LABELS[setting.section_name];
-            const isEditing = editingSection === setting.section_name;
-            const isSaved = savedSection === setting.section_name;
-
-            return (
-              <View
-                key={setting.section_name}
-                style={[s.card, { backgroundColor: colors.surface, borderColor: meta?.color ?? colors.border }]}
-              >
-                {/* En-tête section */}
-                <View style={s.cardHeader}>
-                  <View style={[s.sectionDot, { backgroundColor: (meta?.color ?? '#888') + '30' }]}>
-                    <View style={[s.sectionDotInner, { backgroundColor: meta?.color ?? '#888' }]} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[s.sectionLabel, { color: colors.text }]}>
-                      {meta?.label ?? setting.section_name}
-                    </Text>
-                    <Text style={[s.sectionDesc, { color: colors.textSecondary }]}>
-                      {meta?.description ?? ''}
-                    </Text>
-                    <Text style={[s.sectionDate, { color: colors.textTertiary }]}>
-                      Modifié le {formatDate(setting.updated_at)}
-                    </Text>
-                  </View>
-                  {isSaved && (
-                    <AppIcon icon={CheckCircle} size={20} color="#10B981" strokeWidth={2.4} />
-                  )}
-                </View>
-
-                {/* Éditeur */}
-                {isEditing ? (
-                  <View style={{ gap: 10 }}>
-                    <TextInput
-                      style={[s.promptEditor, { color: colors.text, backgroundColor: colors.background, borderColor: meta?.color ?? colors.border }]}
-                      value={editedPrompt}
-                      onChangeText={setEditedPrompt}
-                      multiline
-                      textAlignVertical="top"
-                      autoFocus
-                      placeholder="Entrez le prompt système..."
-                      placeholderTextColor={colors.textTertiary}
-                    />
-                    <Text style={{ color: colors.textTertiary, fontSize: 11 }}>
-                      {editedPrompt.length} caractères
-                    </Text>
-                    <View style={{ flexDirection: 'row', gap: 10 }}>
-                      <TouchableOpacity
-                        onPress={cancelEdit}
-                        style={[s.cancelBtn, { borderColor: colors.border, flex: 1 }]}
-                      >
-                        <Text style={{ color: colors.textSecondary, fontWeight: '600', textAlign: 'center' }}>
-                          Annuler
-                        </Text>
-                      </TouchableOpacity>
-                      <Button
-                        label={saving ? 'Enregistrement...' : 'Enregistrer'}
-                        variant="gold"
-                        loading={saving}
-                        onPress={() => handleSave(setting.section_name)}
-                        style={{ flex: 2 }}
-                      />
-                    </View>
-                  </View>
-                ) : (
-                  <View style={{ gap: 8 }}>
-                    <View style={[s.promptPreview, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                      <Text style={{ color: colors.textSecondary, fontSize: 12, lineHeight: 18 }} numberOfLines={4}>
-                        {setting.system_prompt}
-                      </Text>
-                    </View>
-                    <TouchableOpacity
-                      onPress={() => startEdit(setting)}
-                      style={[s.editBtn, { borderColor: meta?.color ?? colors.border }]}
-                    >
-                      <AppIcon icon={Edit3} size={14} color={meta?.color ?? '#888'} strokeWidth={2.4} />
-                      <Text style={{ color: meta?.color ?? '#888', fontWeight: '600', fontSize: 13 }}>
-                        Modifier ce prompt
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-            );
-          })}
-
+      <View style={{ flex:1, flexDirection:'row' }}>
+        <ScrollView style={[st.sidebar, { borderRightColor: colors.border }]}>
+          {prompts.map(p => (
+            <TouchableOpacity key={p.id} style={[st.sideItem, selected?.id === p.id && st.sideItemActive, { borderBottomColor: colors.border }]} onPress={() => select(p)}>
+              <Text style={[st.sideLabel, { color: selected?.id === p.id ? '#C9A84C' : colors.text }]} numberOfLines={2}>{p.label}</Text>
+              <View style={[st.dot, { backgroundColor: p.enabled ? '#34D399' : '#EF4444' }]} />
+            </TouchableOpacity>
+          ))}
         </ScrollView>
-      )}
-    </KeyboardAvoidingView>
+
+        {selected ? (
+          <ScrollView style={{ flex:1, padding:16 }} contentContainerStyle={{ gap:14 }}>
+            <View style={st.row}>
+              <Text style={[st.lbl, { color: colors.textSecondary }]}>Activé</Text>
+              <Switch value={selected.enabled} onValueChange={v => { updatePrompt(selected.id, { enabled: v }); setSelected({ ...selected, enabled: v }); }} trackColor={{ true: '#34D399' }} />
+            </View>
+            <View>
+              <Text style={[st.lbl, { color: colors.textSecondary }]}>Prompt système</Text>
+              <TextInput
+                value={draft}
+                onChangeText={setDraft}
+                multiline
+                style={[st.textarea, { color: colors.text, backgroundColor: colors.surface, borderColor: colors.border }]}
+                placeholderTextColor={colors.textTertiary}
+              />
+            </View>
+            <View style={st.row}>
+              <View style={{ flex:1 }}>
+                <Text style={[st.lbl, { color: colors.textSecondary }]}>Température (0-1)</Text>
+                <TextInput value={draftTemp} onChangeText={setDraftTemp} keyboardType="decimal-pad" style={[st.input, { color: colors.text, backgroundColor: colors.surface, borderColor: colors.border }]} />
+              </View>
+              <View style={{ flex:1, marginLeft:12 }}>
+                <Text style={[st.lbl, { color: colors.textSecondary }]}>Max tokens</Text>
+                <TextInput value={draftTokens} onChangeText={setDraftTokens} keyboardType="number-pad" style={[st.input, { color: colors.text, backgroundColor: colors.surface, borderColor: colors.border }]} />
+              </View>
+            </View>
+            <View style={st.btnRow}>
+              <TouchableOpacity style={st.resetBtn} onPress={reset}><AppIcon icon={RotateCcw} size={16} color="#9CA3AF" strokeWidth={2} /><Text style={st.resetTxt}>Réinitialiser</Text></TouchableOpacity>
+              <TouchableOpacity style={st.saveBtn} onPress={save} disabled={isSaving}><AppIcon icon={Save} size={16} color="#fff" strokeWidth={2} /><Text style={st.saveTxt}>Sauvegarder</Text></TouchableOpacity>
+            </View>
+          </ScrollView>
+        ) : (
+          <View style={{ flex:1, alignItems:'center', justifyContent:'center' }}>
+            <Text style={{ color: colors.textSecondary }}>Sélectionnez un prompt</Text>
+          </View>
+        )}
+      </View>
+    </View>
   );
 }
 
-const s = StyleSheet.create({
-  header: { paddingHorizontal: 16, paddingTop: 56, paddingBottom: 20 },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 8 },
-  headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.65)', lineHeight: 20 },
-  notice: { borderRadius: 12, borderWidth: 1, padding: 14 },
-  refreshBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 10, padding: 12 },
-  card: { borderRadius: 16, borderWidth: 1.5, padding: 16, gap: 12 },
-  cardHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  sectionDot: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
-  sectionDotInner: { width: 12, height: 12, borderRadius: 6 },
-  sectionLabel: { fontSize: 16, fontWeight: '800', marginBottom: 2 },
-  sectionDesc: { fontSize: 12, lineHeight: 18 },
-  sectionDate: { fontSize: 10, marginTop: 4 },
-  promptPreview: { borderRadius: 10, borderWidth: 1, padding: 12 },
-  promptEditor: { borderWidth: 1.5, borderRadius: 12, padding: 14, fontSize: 13, lineHeight: 20, minHeight: 300 },
-  editBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1.5, borderRadius: 10, padding: 12, justifyContent: 'center' },
-  cancelBtn: { borderWidth: 1, borderRadius: 10, padding: 12 },
+const st = StyleSheet.create({
+  header:{ flexDirection:'row', alignItems:'center', gap:12, padding:16, borderBottomWidth:1 },
+  back:{ width:36, height:36, borderRadius:18, alignItems:'center', justifyContent:'center' },
+  title:{ flex:1, fontSize:18, fontWeight:'800' },
+  sidebar:{ width:140, borderRightWidth:1 },
+  sideItem:{ padding:12, borderBottomWidth:1, flexDirection:'row', alignItems:'center', justifyContent:'space-between' },
+  sideItemActive:{ backgroundColor:'rgba(201,168,76,0.08)' },
+  sideLabel:{ fontSize:12, fontWeight:'600', flex:1 },
+  dot:{ width:8, height:8, borderRadius:4, marginLeft:6 },
+  lbl:{ fontSize:12, fontWeight:'600', marginBottom:6 },
+  textarea:{ borderWidth:1, borderRadius:12, padding:12, fontSize:13, lineHeight:20, minHeight:200, textAlignVertical:'top' },
+  input:{ borderWidth:1, borderRadius:10, padding:10, fontSize:14 },
+  row:{ flexDirection:'row', alignItems:'center', justifyContent:'space-between', gap:12 },
+  btnRow:{ flexDirection:'row', gap:12 },
+  resetBtn:{ flex:1, flexDirection:'row', alignItems:'center', justifyContent:'center', gap:8, padding:12, borderRadius:12, backgroundColor:'rgba(156,163,175,0.12)', borderWidth:1, borderColor:'rgba(156,163,175,0.2)' },
+  resetTxt:{ color:'#9CA3AF', fontWeight:'700', fontSize:14 },
+  saveBtn:{ flex:1, flexDirection:'row', alignItems:'center', justifyContent:'center', gap:8, padding:12, borderRadius:12, backgroundColor:'#C9A84C' },
+  saveTxt:{ color:'#fff', fontWeight:'800', fontSize:14 },
 });

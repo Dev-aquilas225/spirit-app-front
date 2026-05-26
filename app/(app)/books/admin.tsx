@@ -789,7 +789,7 @@ export default function AdminBooksScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: '#1A1A3E', paddingTop: 56 }]}>
-        <BackButton variant="dark" style={{ alignSelf: 'flex-start', marginBottom: 16 }} fallback="/(app)/(tabs)/profile" />
+        <BackButton variant="dark" style={{ alignSelf: 'flex-start', marginBottom: 16 }} fallback="/profile" />
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <AppIcon icon={BookOpen} size={28} color="#C9A84C" strokeWidth={2} />
           <View>

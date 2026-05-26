@@ -26,7 +26,7 @@ export default function ProphetScreen() {
   const [expanded, setExpanded] = useState(false);
   const [imgError, setImgError] = useState(false);
 
-  const bioParagraphs: string[] = t.prophetPage.bio;
+  const bioParagraphs: string[] = [...t.prophetPage.bio];
   const visibleParagraphs = expanded ? bioParagraphs : bioParagraphs.slice(0, 2);
 
   return (
@@ -54,7 +54,7 @@ export default function ProphetScreen() {
 
         {/* Bouton retour */}
         <View style={styles.backBtnWrap}>
-          <BackButton variant="dark" fallback="/(app)/(tabs)/profile" />
+          <BackButton variant="dark" fallback="/profile" />
         </View>
 
         {/* Nom sur la photo */}

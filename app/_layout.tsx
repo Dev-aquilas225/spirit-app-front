@@ -7,6 +7,8 @@ import 'react-native-reanimated';
 import { useAuthStore }  from '../src/store/auth.store';
 import { useThemeStore } from '../src/store/theme.store';
 import { PWAInstallBanner } from '../src/components/common/PWAInstallBanner';
+import { NudgeToast } from '../src/components/common/NudgeToast';
+import { useSmartNudges } from '../src/hooks/useSmartNudges';
 
 /**
  * Root Layout — Point d'entrée de l'application.
@@ -14,14 +16,23 @@ import { PWAInstallBanner } from '../src/components/common/PWAInstallBanner';
  * • Enregistre le Service Worker sur web.
  * • Affiche le bandeau PWA d'installation en haut de chaque écran web.
  */
+function NudgeLayer() {
+  useSmartNudges();
+  return <NudgeToast />;
+}
+
 export default function RootLayout() {
-  const initializeAuth  = useAuthStore((s) => s.initialize);
+  // initialize() est lancé depuis index.tsx (splash) pour éviter le double appel.
+  // On initialise uniquement le thème ici.
   const initializeTheme = useThemeStore((s) => s.initialize);
+  const initializeAuth  = useAuthStore((s) => s.initialize);
   const language = useAuthStore((s) => s.user?.language ?? 'fr');
 
   useEffect(() => {
-    initializeAuth();
     initializeTheme();
+    // Appel de secours : si l'utilisateur arrive directement sur une route profonde
+    // sans passer par le splash, initialize() doit quand même être appelé.
+    initializeAuth().catch(() => {});
   }, []);
 
   // Enregistrement du Service Worker + rechargement automatique lors d'une mise à jour
@@ -53,20 +64,25 @@ export default function RootLayout() {
   }, [language]);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#1A1A3E' }}>
       <SafeAreaProvider>
-        {/* Bandeau PWA — affiché uniquement sur web quand l'app est installable */}
         <PWAInstallBanner />
+        {/* Smart nudges — non-blocking behavioral toasts */}
+        <NudgeLayer />
 
-        <Stack screenOptions={{
-          headerShown: false,
-          animation: 'fade',
-          animationDuration: 350,
-        }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(app)" />
-          <Stack.Screen name="auth" />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            animation: 'fade',
+            animationDuration: 300,
+            // Fond uniforme pendant les transitions — évite l'éclair bleu/blanc
+            contentStyle: { backgroundColor: '#1A1A3E' },
+          }}
+        >
+          <Stack.Screen name="index" options={{ contentStyle: { backgroundColor: '#1A1A3E' } }} />
+          <Stack.Screen name="(auth)" options={{ contentStyle: { backgroundColor: '#1A1A3E' } }} />
+          <Stack.Screen name="(app)" options={{ contentStyle: { backgroundColor: '#1A1A3E' } }} />
+          <Stack.Screen name="auth" options={{ contentStyle: { backgroundColor: '#1A1A3E' } }} />
         </Stack>
       </SafeAreaProvider>
     </GestureHandlerRootView>

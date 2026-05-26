@@ -4,7 +4,7 @@ export default function AuthLayout() {
   return (
     <Stack screenOptions={{
       headerShown: false,
-      animation: 'ios',
+      animation: 'slide_from_right',
       animationDuration: 320,
     }}>
       <Stack.Screen name="splash" options={{ animation: 'fade', animationDuration: 400 }} />

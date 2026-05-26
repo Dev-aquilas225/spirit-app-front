@@ -103,7 +103,7 @@ const en: Translations = {
     quickAccess: 'Quick access',
     actions: {
       prayer: 'Prayer & spiritual guidance',
-      ai: 'Spiritual guide',
+      ai: 'Voyance',
       library: 'Library & courses',
       consultation: 'Spiritual training',
       dreams: 'Interpret my dream',
@@ -114,7 +114,7 @@ const en: Translations = {
 
   tabs: {
     home: 'Home',
-    consultation: 'Guide',
+    consultation: 'Voyance',
     library: 'Books',
     profile: 'Profile',
   },
@@ -139,7 +139,7 @@ const en: Translations = {
   },
 
   ai: {
-    headerChat: 'Spiritual guide',
+    headerChat: 'Voyance',
     headerHistory: 'History',
     historySubtitle: 'Your previous exchanges',
     badgeUnlimited: 'Unlimited messages',

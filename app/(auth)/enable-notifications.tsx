@@ -23,9 +23,11 @@ async function requestPermission(): Promise<boolean> {
       return result === 'granted';
     }
     // Native iOS / Android
-    const { status: existing } = await ExpoNotifications.getPermissionsAsync();
+    const existingPerms = await ExpoNotifications.getPermissionsAsync();
+    const existing = (existingPerms as any).status ?? 'undetermined';
     if (existing === 'granted') return true;
-    const { status } = await ExpoNotifications.requestPermissionsAsync();
+    const newPerms = await ExpoNotifications.requestPermissionsAsync();
+    const status = (newPerms as any).status ?? 'undetermined';
     return status === 'granted';
   } catch {
     return false;
@@ -51,15 +53,15 @@ export default function EnableNotificationsScreen() {
     setLoading(false);
     if (ok) {
       setGranted(true);
-      setTimeout(() => router.replace('/(auth)/login'), 1400);
+      setTimeout(() => router.replace('/login'), 1400);
     } else {
-      router.replace('/(auth)/login');
+      router.replace('/login');
     }
   }
 
   async function handleSkip() {
     await StorageService.set(STORAGE_KEYS.NOTIFICATIONS_ASKED, true);
-    router.replace('/(auth)/login');
+    router.replace('/login');
   }
 
   // ─── Écran de confirmation ────────────────────────────────────────────────

@@ -154,14 +154,14 @@ export default function AccompagnementDetailScreen() {
         'Vous avez atteint votre limite de questions gratuites. Abonnez-vous pour un accès illimité.',
         [
           { text: 'Annuler', style: 'cancel' },
-          { text: "S'abonner", onPress: () => router.push('/(app)/subscription') },
+          { text: "S'abonner", onPress: () => router.push('/subscription') },
         ],
       );
       return;
     }
     // Naviguer vers le chat accompagnement dédié (Prophète Georges — Accompagnement)
     router.push({
-      pathname: '/(app)/accompagnements/chat',
+      pathname: '/accompagnements/chat',
       params: { programme: programme?.title ?? id },
     });
   }
@@ -183,7 +183,7 @@ export default function AccompagnementDetailScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       {/* Header */}
       <View style={[s.header, { backgroundColor: programme.color + 'CC' }]}>
-        <BackButton variant="dark" style={{ marginBottom: 12 }} fallback="/(app)/accompagnements"/>
+        <BackButton variant="dark" style={{ marginBottom: 12 }} fallback="/accompagnements"/>
         <Text style={s.headerTitle}>{programme.title}</Text>
         <Text style={s.headerSub}>Programme spirituel de 7 jours</Text>
 
@@ -282,7 +282,7 @@ export default function AccompagnementDetailScreen() {
         {/* ─ Activer les rappels ─ */}
         <TouchableOpacity
           style={[s.notifRow, { backgroundColor: colors.surface, borderColor: colors.border }]}
-          onPress={() => router.push('/(app)/notifications')}
+          onPress={() => router.push('/notifications')}
         >
           <AppIcon icon={Bell} size={18} color={colors.primary} strokeWidth={2.2} />
           <Text style={{ flex: 1, color: colors.text, fontSize: 13, fontWeight: '500' }}>

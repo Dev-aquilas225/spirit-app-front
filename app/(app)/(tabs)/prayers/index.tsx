@@ -288,3 +288,18 @@ ou
 npx expo install expo-clipboard
 
 ──────────────────────────────────────────────────────── */
+const styles = StyleSheet.create({
+  backdrop:       { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+  sheet:          { borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '90%' },
+  handle:         { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginVertical: 12 },
+  modalHeader:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 12 },
+  periodBadge:    { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
+  periodLabel:    { fontSize: 13, fontWeight: '700' },
+  periodDate:     { fontSize: 11, marginTop: 2 },
+  modalTheme:     { fontSize: 16, fontWeight: '700', paddingHorizontal: 20, marginBottom: 8 },
+  section:        { paddingHorizontal: 20, paddingBottom: 16 },
+  sectionTitleRow:{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  sectionTitle:   { fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8 },
+  copyIconBtn:    { padding: 6 },
+  prayerText:     { fontSize: 15, lineHeight: 26 },
+});

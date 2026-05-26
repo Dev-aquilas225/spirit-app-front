@@ -48,7 +48,7 @@ export default function VerifyMagicLinkScreen() {
     setStatus('success');
     // Rediriger vers l'app principale après un court délai
     setTimeout(() => {
-      router.replace('/(app)/(tabs)/home');
+      router.replace('/home');
     }, 800);
   }
 
@@ -77,7 +77,7 @@ export default function VerifyMagicLinkScreen() {
       <XCircle size={64} color="#EF4444" strokeWidth={1.5} />
       <Text style={styles.title}>Lien invalide</Text>
       <Text style={styles.errorText}>{errorMessage}</Text>
-      <TouchableOpacity style={styles.button} onPress={() => router.replace('/(auth)/login')}>
+      <TouchableOpacity style={styles.button} onPress={() => router.replace('/login')}>
         <Text style={styles.buttonText}>Retour à la connexion</Text>
       </TouchableOpacity>
     </View>

@@ -36,7 +36,7 @@ export default function MyConsultationsScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <View style={[styles.header, { backgroundColor: colors.deepBlue ?? '#1A1A3E', paddingTop: 56 }]}>
-        <BackButton variant="dark" style={{ marginBottom: 12, alignSelf: 'flex-start' }} fallback="/(app)/consultation"/>
+        <BackButton variant="dark" style={{ marginBottom: 12, alignSelf: 'flex-start' }} fallback="/consultation"/>
         <Text style={styles.headerTitle}>{t.consultation.myConsults}</Text>
       </View>
 
@@ -46,7 +46,7 @@ export default function MyConsultationsScreen() {
           title={t.consultation.emptyTitle}
           message={t.consultation.emptyMsg}
           actionLabel={t.consultation.emptyCta}
-          onAction={() => router.push('/(app)/consultation/form')}
+          onAction={() => router.push('/consultation/form')}
         />
       ) : (
         <FlatList

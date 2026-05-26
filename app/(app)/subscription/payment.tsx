@@ -185,7 +185,7 @@ export default function PaymentScreen() {
 
         await loadSubscription();
         setStep('vip');
-        setTimeout(() => router.replace('/(app)/subscription/success'), VIP_DISPLAY_MS);
+        setTimeout(() => router.replace('/subscription/success'), VIP_DISPLAY_MS);
         return;
       }
 
@@ -258,8 +258,8 @@ export default function PaymentScreen() {
         )}
         <View style={{ width: '100%', gap: 10, paddingHorizontal: 32, marginTop: 8 }}>
           <Button label="Réessayer" variant="gold" fullWidth onPress={launch} />
-          <Button label="Contacter le support" variant="outline" fullWidth onPress={() => router.replace('/(app)/support')} />
-          <Button label="Retour" variant="ghost" fullWidth onPress={() => router.replace('/(app)/(tabs)/home')} />
+          <Button label="Contacter le support" variant="outline" fullWidth onPress={() => router.replace('/support')} />
+          <Button label="Retour" variant="ghost" fullWidth onPress={() => router.replace('/home')} />
         </View>
       </View>
     );

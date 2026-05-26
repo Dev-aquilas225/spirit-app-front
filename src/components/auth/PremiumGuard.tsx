@@ -55,7 +55,7 @@ export function PremiumGuard({ children, inline = false, featureName }: PremiumG
           variant="gold"
           fullWidth
           style={{ marginTop: spacing.md }}
-          onPress={() => router.push('/(app)/subscription')}
+          onPress={() => router.push('/subscription')}
         />
       </GoldCard>
     );
@@ -77,7 +77,7 @@ export function PremiumGuard({ children, inline = false, featureName }: PremiumG
           label={t.premiumGuard.discover}
           variant="gold"
           fullWidth
-          onPress={() => router.push('/(app)/subscription')}
+          onPress={() => router.push('/subscription')}
         />
         <Button
           label={t.common.back}

@@ -43,7 +43,7 @@ export function usePremiumAccess() {
         if (onBlocked) {
           onBlocked();
         } else {
-          router.push('/(app)/subscription');
+          router.push('/subscription');
         }
       }
     },
@@ -55,7 +55,7 @@ export function usePremiumAccess() {
    */
   const requirePremium = useCallback((): boolean => {
     if (!isPremium) {
-      router.push('/(app)/subscription');
+      router.push('/subscription');
       return false;
     }
     return true;

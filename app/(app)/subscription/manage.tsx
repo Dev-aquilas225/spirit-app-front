@@ -38,7 +38,7 @@ export default function ManageSubscriptionScreen() {
 
   return (
     <ScreenWrapper scrollable padded>
-      <BackButton style={{ marginBottom: 24 }} fallback="/(app)/subscription"/>
+      <BackButton style={{ marginBottom: 24 }} fallback="/subscription"/>
 
       <Text style={{ fontSize: 24, fontWeight: '800', color: colors.text, marginBottom: 24 }}>
         {t.subscription.manage}
@@ -77,7 +77,7 @@ export default function ManageSubscriptionScreen() {
         variant="gold"
         fullWidth
         style={{ marginBottom: spacing.md }}
-        onPress={() => router.push('/(app)/subscription/payment')}
+        onPress={() => router.push('/subscription/payment')}
       />
 
       {subscription.status === 'active' && (

@@ -315,7 +315,7 @@ function FormationsContent() {
   const { user } = useAuth();
   // Double vérification : rôle JWT + email (fallback si le JWT est antérieur à ADMIN_EMAILS)
   const adminEmails = (process.env.EXPO_PUBLIC_ADMIN_EMAIL ?? '')
-    .split(',').map((e) => e.trim()).filter(Boolean);
+    .split(',').map((e: string) => e.trim()).filter(Boolean);
   const isAdmin = user?.role === 'admin' || adminEmails.includes(user?.email ?? '');
 
   const [view, setView] = useState<FormationsView>('list');
@@ -462,7 +462,7 @@ function FormationsContent() {
     if (!selectedFormation) return;
     setSelectedLesson(lesson);
     if (lesson.isLocked) {
-      router.push('/(app)/subscription');
+      router.push('/subscription');
       return;
     }
     setReaderAttempt((n) => n + 1);
@@ -664,7 +664,7 @@ function FormationsContent() {
       <View
         style={[s.header, { backgroundColor: '#1A1A3E', padding: spacing.base, paddingTop: 56 }]}
       >
-        <BackButton variant="dark" style={{ marginBottom: 12 }} fallback="/(app)/(tabs)/home" />
+        <BackButton variant="dark" style={{ marginBottom: 12 }} fallback="/home" />
         <View style={s.headerTitleRow}>
           <AppIcon icon={GraduationCap} size={24} color="#fff" strokeWidth={2.2} />
           <Text style={s.headerTitle}>Se former spirituellement</Text>

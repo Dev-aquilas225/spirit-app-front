@@ -1,19 +1,7 @@
-import { useEffect } from 'react';
-import { router } from 'expo-router';
-import { useAuthStore } from '../src/store/auth.store';
+import { Redirect } from 'expo-router';
 
-/**
- * Écran d'entrée — Accès immédiat au dashboard.
- * L'utilisateur arrive directement sur le home sans login forcé.
- * La connexion est demandée uniquement au moment du paiement.
- */
+// La page racine redirige vers /home.
+// Le splash est géré dans home/index.tsx en overlay — évite la navigation inter-pages statiques.
 export default function Index() {
-  const isInitialized = useAuthStore((s) => s.isInitialized);
-
-  useEffect(() => {
-    if (!isInitialized) return;
-    router.replace('/(app)/(tabs)/home');
-  }, [isInitialized]);
-
-  return null;
+  return <Redirect href="/home" />;
 }

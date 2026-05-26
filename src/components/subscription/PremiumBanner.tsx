@@ -17,7 +17,7 @@ export function PremiumBanner({ compact = false }: PremiumBannerProps) {
   if (compact) {
     return (
       <TouchableOpacity
-        onPress={() => router.push("/(app)/subscription")}
+        onPress={() => router.push("/subscription")}
         style={[
           styles.compact,
           {
@@ -45,7 +45,7 @@ export function PremiumBanner({ compact = false }: PremiumBannerProps) {
 
   return (
     <TouchableOpacity
-      onPress={() => router.push("/(app)/subscription")}
+      onPress={() => router.push("/subscription")}
       activeOpacity={0.85}
       style={[
         styles.banner,

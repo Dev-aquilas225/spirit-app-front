@@ -24,7 +24,7 @@ function getStoredToken(): string | null {
 }
 const VAPID_PUBLIC_KEY =
   process.env.EXPO_PUBLIC_VAPID_PUBLIC_KEY ??
-  'BKTtn0UqR8p4hYnDIuNZIbSQ7EQjQuczKSGB6YTCcdMrIlGm0inM14fhL2KGufB9Mihr1SOEzWIJJDlwwHr7lC4';
+  'BEQwtf07gPJiqmexHC_nqXSVK7kb63QqGnnQV8IN6vp89T-CW5EAe8Jf3Pt8cVe1heDgbYEJrmW0aMTUeqeDHh4';
 
 /** Convertit une clé VAPID base64url en Uint8Array */
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
@@ -65,7 +65,7 @@ export const NotificationService = {
       // 3. S'abonner
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as unknown as BufferSource,
       });
 
       // 4. Enregistrer la subscription côté backend

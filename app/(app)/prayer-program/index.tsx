@@ -139,7 +139,7 @@ export default function PrayerProgramScreen() {
       <View style={s.headerRow}>
         <BackButton
           variant="dark"
-          fallback="/(app)/(tabs)/home"
+          fallback="/home"
           style={{ marginRight: 8 }}
           onPress={
             view === "history"

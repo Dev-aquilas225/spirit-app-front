@@ -38,9 +38,9 @@ export default function AuthCallbackScreen() {
         // Lire isProfileComplete depuis le store : il a déjà fusionné le genre local
         const profileComplete = useAuthStore.getState().isProfileComplete;
         if (!profileComplete) {
-          router.replace("/(app)/complete-profile");
+          router.replace("/complete-profile");
         } else {
-          router.replace("/(app)/(tabs)/home");
+          router.replace("/home");
         }
       } else {
         setErrorMsg("Connexion échouée. Veuillez redemander un lien de connexion.");
@@ -78,7 +78,7 @@ export default function AuthCallbackScreen() {
       </Text>
       <Text
         style={[styles.link, { color: colors.primary }]}
-        onPress={() => router.replace("/(auth)/login")}
+        onPress={() => router.replace("/login")}
       >
         Retour à l'écran de connexion
       </Text>

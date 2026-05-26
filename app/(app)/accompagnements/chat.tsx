@@ -100,7 +100,7 @@ export default function AccompagnementChatScreen() {
       <View style={s.headerRow}>
         <BackButton
           variant="dark"
-          fallback="/(app)/accompagnements"
+          fallback="/accompagnements"
           style={{ marginRight: 8 }}
           onPress={view === 'history' ? () => setView('chat') : undefined}
         />

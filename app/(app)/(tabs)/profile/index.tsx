@@ -25,13 +25,13 @@ import { Gender, Language } from "../../../../src/types/auth.types";
 
 /* ─── Config genre (même palette que complete-profile) ─────────────────────── */
 
-interface GenderCfg { bg: string; fg: string }
+interface GenderCfg { bg: string; fg: string; emoji: string }
 const GENDER_CFG: Record<Gender, GenderCfg> = {
-  male:   { bg: '#DBEAFE', fg: '#1D4ED8' },
-  female: { bg: '#FCE7F3', fg: '#BE185D' },
-  other:  { bg: '#EDE9FE', fg: '#6D28D9' },
+  male:   { bg: '#DBEAFE', fg: '#1D4ED8', emoji: '\u{1F468}' },
+  female: { bg: '#FCE7F3', fg: '#BE185D', emoji: '\u{1F469}' },
+  other:  { bg: '#EDE9FE', fg: '#6D28D9', emoji: '\u{1F9D1}' },
 };
-const DEFAULT_CFG: GenderCfg = { bg: 'rgba(255,255,255,0.15)', fg: '#fff' };
+const DEFAULT_CFG: GenderCfg = { bg: 'rgba(255,255,255,0.15)', fg: '#fff', emoji: '\u{1F9D1}' };
 
 /* ─── Avatar ────────────────────────────────────────────────────────────────── */
 
@@ -451,7 +451,7 @@ export default function ProfileScreen() {
   // Admin détecté via le rôle JWT (mis par le backend depuis ADMIN_EMAILS)
   // Fallback : vérification email côté client si le rôle n'est pas encore synchronisé
   const adminEmails = (process.env.EXPO_PUBLIC_ADMIN_EMAIL ?? '')
-    .split(',').map((e) => e.trim()).filter(Boolean);
+    .split(',').map((e: string) => e.trim()).filter(Boolean);
   const isAdmin =
     user?.role === 'admin' ||
     adminEmails.includes(user?.email ?? '');
@@ -470,7 +470,7 @@ export default function ProfileScreen() {
       );
       if (!confirmed) return;
       await logout();
-      router.replace('/(auth)/login');
+      router.replace('/login');
       return;
     }
 
@@ -484,7 +484,7 @@ export default function ProfileScreen() {
           style: 'destructive',
           onPress: async () => {
             await logout();
-            router.replace('/(auth)/login');
+            router.replace('/login');
           },
         },
       ],
@@ -509,7 +509,7 @@ export default function ProfileScreen() {
             ? `${user.firstName} ${user.lastName}`
             : user?.name ?? t.common.loading}
         </Text>
-        <Text style={styles.phone}>{user?.phone}</Text>
+        <Text style={styles.phone}>{(user as any)?.phone ?? ''}</Text>
         {user?.gender && (
           <Text style={styles.genderTag}>
             {genderLabels[user.gender]}
@@ -527,7 +527,7 @@ export default function ProfileScreen() {
           </View>
         ) : (
           <TouchableOpacity
-            onPress={() => router.push('/(app)/subscription')}
+            onPress={() => router.push('/subscription')}
             style={[styles.premiumBadge, { backgroundColor: 'rgba(201,168,76,0.2)', borderColor: '#C9A84C' }]}
           >
             <View style={styles.premiumRow}>
@@ -544,7 +544,7 @@ export default function ProfileScreen() {
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t.profile.sectionAccount}</Text>
           <Card padding="none">
             <MenuItem icon={Pencil}  label={t.profile.editProfile}    onPress={() => setEditVisible(true)} />
-            <MenuItem icon={Bell}    label={t.profile.notifications}  onPress={() => router.push('/(app)/notifications')} />
+            <MenuItem icon={Bell}    label={t.profile.notifications}  onPress={() => router.push('/notifications')} />
             <MenuItem
               icon={Globe}
               label={t.profile.language}
@@ -559,18 +559,18 @@ export default function ProfileScreen() {
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t.profile.sectionSubscription}</Text>
           <Card padding="none">
             {!isPremium && (
-              <MenuItem icon={Crown}   label={t.profile.subscribeCta} onPress={() => router.push('/(app)/subscription')} badge={t.common.premium.toUpperCase()} />
+              <MenuItem icon={Crown}   label={t.profile.subscribeCta} onPress={() => router.push('/subscription')} badge={t.common.premium.toUpperCase()} />
             )}
             {isPremium && (
-              <MenuItem icon={Settings} label={t.profile.manageSubscription} onPress={() => router.push('/(app)/subscription/manage')} />
+              <MenuItem icon={Settings} label={t.profile.manageSubscription} onPress={() => router.push('/subscription/manage')} />
             )}
-            <MenuItem icon={CreditCard} label={t.profile.paymentHistory} onPress={() => router.push('/(app)/subscription/history')} />
+            <MenuItem icon={CreditCard} label={t.profile.paymentHistory} onPress={() => router.push('/subscription/history')} />
           </Card>
         </View>
 
         {/* Découvrir le prophète */}
         <TouchableOpacity
-          onPress={() => router.push('/(app)/prophet')}
+          onPress={() => router.push('/prophet')}
           style={[styles.prophetCard, { backgroundColor: '#1A1A3E' }]}
           activeOpacity={0.85}
         >
@@ -596,29 +596,9 @@ export default function ProfileScreen() {
             <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>ADMINISTRATION</Text>
             <Card padding="none">
               <MenuItem
-                icon={BookOpen}
-                label="Gérer les livres PDF"
-                onPress={() => router.push('/(app)/books/admin')}
-              />
-              <MenuItem
-                icon={BookOpen}
-                label="Gérer les formations"
-                onPress={() => router.push('/(app)/formations/admin')}
-              />
-              <MenuItem
-                icon={CreditCard}
-                label="Gérer les abonnements"
-                onPress={() => router.push('/(app)/subscription/admin')}
-              />
-              <MenuItem
-                icon={Bell}
-                label="Notifications push"
-                onPress={() => router.push('/(app)/push/admin')}
-              />
-              <MenuItem
-                icon={Settings}
-                label="Prompts IA — Tableau de bord"
-                onPress={() => router.push('/(app)/admin/ai-settings')}
+                icon={ShieldCheck}
+                label="Admin Panel — Contrôle total"
+                onPress={() => router.push('/admin')}
               />
             </Card>
           </View>
@@ -628,8 +608,8 @@ export default function ProfileScreen() {
         <View>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t.profile.sectionCommunity}</Text>
           <Card padding="none">
-            <MenuItem icon={Gift}          label={t.profile.referral} onPress={() => router.push('/(app)/referral')} />
-            <MenuItem icon={MessageCircle} label={t.profile.support}  onPress={() => router.push('/(app)/support')} />
+            <MenuItem icon={Gift}          label={t.profile.referral} onPress={() => router.push('/referral')} />
+            <MenuItem icon={MessageCircle} label={t.profile.support}  onPress={() => router.push('/support')} />
           </Card>
         </View>
 
@@ -637,8 +617,8 @@ export default function ProfileScreen() {
         <View>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t.profile.sectionLegal}</Text>
           <Card padding="none">
-            <MenuItem icon={FileText}    label={t.profile.terms}   onPress={() => router.push('/(app)/legal/terms')} />
-            <MenuItem icon={ShieldCheck} label={t.profile.privacy} onPress={() => router.push('/(app)/legal/privacy')} />
+            <MenuItem icon={FileText}    label={t.profile.terms}   onPress={() => router.push('/legal/terms')} />
+            <MenuItem icon={ShieldCheck} label={t.profile.privacy} onPress={() => router.push('/legal/privacy')} />
           </Card>
         </View>
 

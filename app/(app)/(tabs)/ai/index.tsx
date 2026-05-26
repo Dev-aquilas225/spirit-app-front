@@ -1,405 +1,140 @@
-import { router } from "expo-router";
-import { Ban, Crown, History, MessageCircle } from "lucide-react-native";
-import React, { useEffect, useRef, useState } from "react";
-import {
-  Alert,
-  FlatList,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { ChatBubble } from "../../../../src/components/ai/ChatBubble";
-import { ChatInput } from "../../../../src/components/ai/ChatInput";
-import { LimitBanner } from "../../../../src/components/ai/LimitBanner";
-import { AppIcon } from "../../../../src/components/common/AppIcon";
-import { BackButton } from "../../../../src/components/common/BackButton";
-import { EmptyState } from "../../../../src/components/common/EmptyState";
-import { LoadingSpinner } from "../../../../src/components/common/LoadingSpinner";
-import { useAIChat } from "../../../../src/hooks/useAIChat";
-import { useI18n } from "../../../../src/i18n";
-import { useAuthStore } from "../../../../src/store/auth.store";
-import { useTheme } from "../../../../src/theme";
-import { FadeInView } from "../../../../src/components/common/FadeInView";
-import { AIConversation } from "../../../../src/types/content.types";
-import { FREE_AI_DAILY_LIMIT } from "../../../../src/utils/constants";
-import { formatDate, truncateText } from "../../../../src/utils/helpers";
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Send, Sparkles, RotateCcw } from 'lucide-react-native';
+import { AppIcon } from '../../../../src/components/common/AppIcon';
+import { useTheme } from '../../../../src/theme';
+import { useAccess } from '../../../../src/hooks/useAccess';
+import { useCreditsStore, INITIAL_CREDITS } from '../../../../src/store/credits.store';
+import { useGamificationStore } from '../../../../src/store/gamification.store';
+import { askOpenAI } from '../../../../src/services/openai.service';
+import { useAIPromptsStore } from '../../../../src/store/ai-prompts.store';
 
-type AIView = "chat" | "history";
+interface Msg { id: string; role: 'user'|'ai'; text: string; ts: number; }
 
 export default function AIScreen() {
-  const { colors, spacing } = useTheme();
-  const { t } = useI18n();
-  const user = useAuthStore((s) => s.user);
-  const firstName = user?.firstName?.trim() || user?.name?.split(" ")[0] || "";
-  const [view, setView] = useState<AIView>("chat");
+  const { colors } = useTheme();
+  const { hasSubscription, credits } = useAccess();
+  const { spend, spendWords } = useCreditsStore();
+  const { completeMission } = useGamificationStore();
+  const { init } = useAIPromptsStore();
+  const [msgs, setMsgs] = useState<Msg[]>([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const listRef = useRef<FlatList>(null);
 
-  const {
-    messages,
-    conversations,
-    remainingQuestions,
-    isPremium,
-    isLoading,
-    isSending,
-    limitReached,
-    startNewConversation,
-    sendMessage,
-    loadConversation,
-    deleteConversation,
-  } = useAIChat();
+  useEffect(() => { init(); }, []);
 
-  const flatListRef = useRef<FlatList>(null);
-
-  useEffect(() => {
-    startNewConversation();
-  }, []);
-
-  useEffect(() => {
-    if (messages.length > 0) {
-      setTimeout(
-        () => flatListRef.current?.scrollToEnd({ animated: true }),
-        100,
-      );
-    }
-  }, [messages.length]);
-
-  async function handleSend(text: string) {
-    if (limitReached) {
-      Alert.alert(
-        t.ai.limitAlertTitle,
-        t.ai.limitAlertMsg(FREE_AI_DAILY_LIMIT),
-        [
-          { text: t.common.cancel, style: "cancel" },
-          {
-            text: t.common.subscribe,
-            onPress: () => router.push("/(app)/subscription"),
-          },
-        ],
-      );
-      return;
-    }
-    await sendMessage(text);
-  }
-
-  function handleDeleteConv(conv: AIConversation) {
-    Alert.alert(t.ai.deleteTitle, t.ai.deleteMsg, [
-      { text: t.common.cancel, style: "cancel" },
-      {
-        text: t.common.delete,
-        style: "destructive",
-        onPress: () => deleteConversation(conv.id),
-      },
-    ]);
-  }
-
-  // ─── Header ───────────────────────────────────────────────────────────────
-  const HeaderBlock = (
-    <View style={[s.header, { backgroundColor: "#1A1A3E" }]}>
-      <View style={s.headerRow}>
-        {view === "history" && (
-          <BackButton
-            variant="dark"
-            onPress={() => setView("chat")}
-            style={{ marginRight: 8 }}
-          />
-        )}
-        <View style={{ flex: 1 }}>
-          <View style={s.headerTitleRow}>
-            <AppIcon
-              icon={view === "chat" ? MessageCircle : History}
-              size={20}
-              color="#fff"
-              strokeWidth={2.4}
-            />
-            <Text style={s.headerTitle}>
-              {view === "chat" ? t.ai.headerChat : t.ai.headerHistory}
-            </Text>
-          </View>
-          <Text style={s.headerSub}>
-            {view === "chat" ? "" : t.ai.historySubtitle}
-          </Text>
-        </View>
-        {view === "chat" && (
-          <TouchableOpacity
-            onPress={() => setView("history")}
-            style={[s.iconBtn, { backgroundColor: "rgba(255,255,255,0.15)" }]}
-          >
-            <AppIcon icon={History} size={18} color="#fff" strokeWidth={2.4} />
-          </TouchableOpacity>
-        )}
-      </View>
-      {view === "chat" && (
-        <View
-          style={[
-            s.badge,
-            {
-              backgroundColor:
-                remainingQuestions === 0 && !isPremium
-                  ? "rgba(239,68,68,0.2)"
-                  : "rgba(201,168,76,0.2)",
-              borderColor:
-                remainingQuestions === 0 && !isPremium ? "#EF4444" : "#C9A84C",
-            },
-          ]}
-        >
-          <View style={s.badgeTextRow}>
-            <AppIcon
-              icon={
-                isPremium
-                  ? Crown
-                  : remainingQuestions === 0
-                    ? Ban
-                    : MessageCircle
-              }
-              size={14}
-              color={
-                remainingQuestions === 0 && !isPremium ? "#EF4444" : "#C9A84C"
-              }
-              strokeWidth={2.6}
-            />
-            <Text
-              style={{
-                fontSize: 12,
-                fontWeight: "600",
-                color:
-                  remainingQuestions === 0 && !isPremium
-                    ? "#EF4444"
-                    : "#C9A84C",
-              }}
-            >
-              {isPremium
-                ? t.ai.badgeUnlimited
-                : remainingQuestions === 0
-                  ? t.ai.badgeLimitReached
-                  : t.ai.badgeRemaining(remainingQuestions, FREE_AI_DAILY_LIMIT)}
-            </Text>
-          </View>
-        </View>
-      )}
-    </View>
-  );
-
-  // ─── Vue Historique ───────────────────────────────────────────────────────
-  if (view === "history") {
-    return (
-      <FadeInView style={{ backgroundColor: colors.background }}>
-        {HeaderBlock}
-        {conversations.length === 0 ? (
-          <EmptyState
-            icon={
-              <AppIcon
-                icon={MessageCircle}
-                size={48}
-                color={colors.primary}
-                strokeWidth={2}
-              />
-            }
-            title={t.ai.emptyHistoryTitle}
-            message={t.ai.emptyHistoryMsg}
-            actionLabel={t.ai.newConversation}
-            onAction={() => setView("chat")}
-          />
-        ) : (
-          <FlatList
-            data={conversations}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={{ padding: spacing.base }}
-            renderItem={({ item }) => {
-              // Titre = premier message de l'utilisateur (champ title envoyé par le backend)
-              const preview =
-                (item as any).title?.trim() ||
-                item.messages.find((m) => m.role === "user")?.content?.trim() ||
-                item.messages[0]?.content?.trim();
-              return (
-                <TouchableOpacity
-                  onPress={() => {
-                    loadConversation(item.id);
-                    setView("chat");
-                  }}
-                  onLongPress={() => handleDeleteConv(item)}
-                  style={[
-                    s.convCard,
-                    {
-                      backgroundColor: colors.surface,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                >
-                  <View style={{ marginRight: 10 }}>
-                    <AppIcon
-                      icon={MessageCircle}
-                      size={20}
-                      color={colors.primary}
-                      strokeWidth={2.2}
-                    />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text
-                      style={{
-                        fontWeight: "600",
-                        color: colors.text,
-                        fontSize: 14,
-                      }}
-                    >
-                      {preview
-                        ? truncateText(preview, 50)
-                        : t.ai.newConversation}
-                    </Text>
-                    <Text
-                      style={{
-                        color: colors.textTertiary,
-                        fontSize: 12,
-                        marginTop: 2,
-                      }}
-                    >
-                      {t.ai.messagesCount(item.messages.length, formatDate(item.updatedAt))}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            }}
-          />
-        )}
-      </FadeInView>
-    );
-  }
-
-  // ─── Vue Chat ─────────────────────────────────────────────────────────────
-  return (
-    <FadeInView style={{ backgroundColor: colors.background }}>
-      {HeaderBlock}
-      {/* Le guide spirituel est sans limite — LimitBanner désactivé */}
-
-      {isLoading ? (
-        <LoadingSpinner fullScreen message={t.common.loading} />
-      ) : messages.length === 0 ? (
-        <View style={s.emptyChat}>
-          <View style={{ marginBottom: 16 }}>
-            <AppIcon
-              icon={MessageCircle}
-              size={48}
-              color={colors.primary}
-              strokeWidth={1.9}
-            />
-          </View>
-          <Text style={[s.emptyTitle, { color: colors.text }]}>
-            {firstName ? `Bonjour ${firstName}, comment vas-tu ?` : t.ai.emptyChatTitle}
-          </Text>
-          <Text style={[s.emptySub, { color: colors.textSecondary }]}>
-            {t.ai.emptyChatSubtitle}
-          </Text>
-          <View style={{ marginTop: 24, width: "100%", gap: 8 }}>
-            {t.ai.suggestions.map((q) => (
-              <TouchableOpacity
-                key={q}
-                onPress={() => handleSend(q)}
-                style={[
-                  s.suggestion,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <View style={s.suggestionRow}>
-                  <AppIcon
-                    icon={MessageCircle}
-                    size={16}
-                    color={colors.textSecondary}
-                    strokeWidth={2.2}
-                  />
-                  <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-                    {q}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      ) : (
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <ChatBubble message={item} />}
-          contentContainerStyle={{ paddingVertical: 16 }}
-        />
-      )}
-
-      {isSending && (
-        <View style={[s.typing, { backgroundColor: colors.surface }]}>
-          <View style={s.typingRow}>
-            <AppIcon
-              icon={MessageCircle}
-              size={16}
-              color={colors.textSecondary}
-              strokeWidth={2.2}
-            />
-            <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-              {t.ai.typing}
-            </Text>
-          </View>
-        </View>
-      )}
-
-      <ChatInput
-        onSend={handleSend}
-        loading={isSending}
-        disabled={limitReached}
-        placeholder={
-          limitReached
-            ? t.ai.inputLimited
-            : t.ai.inputPlaceholder
+  const send = async () => {
+    const txt = input.trim();
+    if (!txt || loading) return;
+    if (!hasSubscription && credits < 50) return;
+    setInput('');
+    const userMsg: Msg = { id: Date.now().toString(), role: 'user', text: txt, ts: Date.now() };
+    setMsgs(prev => [...prev, userMsg]);
+    setLoading(true);
+    try {
+      const r = await askOpenAI('consultation', txt);
+      // 1 credit = 1 word — deduct based on actual response length
+      if (!hasSubscription) {
+        const wordCount = r.text.trim().split(/\s+/).length;
+        const ok = await spendWords(wordCount);
+        if (!ok) {
+          setMsgs(prev => [...prev, { id: (Date.now()+1).toString(), role: 'ai', text: "Crédits insuffisants. Rechargez votre solde pour continuer.", ts: Date.now() }]);
+          setLoading(false);
+          return;
         }
+      }
+      const aiMsg: Msg = { id: (Date.now()+1).toString(), role: 'ai', text: r.text, ts: Date.now() };
+      setMsgs(prev => [...prev, aiMsg]);
+      await completeMission('ai_question');
+    } catch {
+      setMsgs(prev => [...prev, { id: (Date.now()+1).toString(), role: 'ai', text: "Désolé, une erreur s'est produite. Réessayez.", ts: Date.now() }]);
+    } finally {
+      setLoading(false);
+      setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
+    }
+  };
+
+  return (
+    <KeyboardAvoidingView style={{ flex:1, backgroundColor: '#0D0D2B' }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <View style={[s.header, { borderBottomColor: 'rgba(255,255,255,0.08)' }]}>
+        <View style={s.headerIcon}><AppIcon icon={Sparkles} size={22} color="#34D399" strokeWidth={2} /></View>
+        <View>
+          <Text style={[s.headerTitle, { color: '#fff' }]}>Assistant Prophétique</Text>
+          <Text style={[s.headerSub, { color: 'rgba(255,255,255,0.55)' }]}>{hasSubscription ? 'Illimité' : `${credits} crédits · 1 crédit = 1 mot`}</Text>
+        </View>
+        <TouchableOpacity onPress={() => setMsgs([])} style={s.clearBtn}><AppIcon icon={RotateCcw} size={18} color="rgba(255,255,255,0.4)" strokeWidth={2} /></TouchableOpacity>
+      </View>
+
+      {msgs.length === 0 && (
+        <View style={s.empty}>
+          <Text style={s.emptyIcon}>🔮</Text>
+          <Text style={[s.emptyTitle, { color: '#fff' }]}>Posez votre question</Text>
+          <Text style={[s.emptySub, { color: 'rgba(255,255,255,0.55)' }]}>Le prophète vous guidera spirituellement</Text>
+          {[
+            'Interprète mon rêve de cette nuit',
+            'Donne-moi une prophétie pour aujourd\'hui',
+            'Comment surmonter cette épreuve ?',
+          ].map(q => (
+            <TouchableOpacity key={q} style={[s.suggestion, { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.12)' }]} onPress={() => setInput(q)}>
+              <Text style={[s.suggestionTxt, { color: 'rgba(255,255,255,0.8)' }]}>{q}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
+      <FlatList ref={listRef} data={msgs} keyExtractor={m => m.id} contentContainerStyle={{ padding:16, gap:12 }}
+        renderItem={({ item: m }) => (
+          <View style={[s.bubble, m.role === 'user' ? s.userBubble : s.aiBubble]}>
+            {m.role === 'ai' && <View style={s.aiAvatar}><Text style={{ fontSize:14 }}>🔮</Text></View>}
+            <View style={[s.bubbleInner, m.role === 'user' ? s.userInner : s.aiInner]}>
+              <Text style={[s.bubbleTxt, { color: m.role === 'user' ? '#fff' : 'rgba(255,255,255,0.9)' }]}>{m.text}</Text>
+            </View>
+          </View>
+        )}
       />
-    </FadeInView>
+
+      {loading && (
+        <View style={[s.typingWrap, { backgroundColor: 'rgba(255,255,255,0.06)' }]}>
+          <ActivityIndicator size="small" color="#34D399" />
+          <Text style={[s.typingTxt, { color: 'rgba(255,255,255,0.55)' }]}>Oracle consulte les astres...</Text>
+        </View>
+      )}
+
+      <View style={[s.inputBar, { backgroundColor: 'rgba(255,255,255,0.05)', borderTopColor: 'rgba(255,255,255,0.08)' }]}>
+        <TextInput value={input} onChangeText={setInput} placeholder="Posez votre question spirituelle..." placeholderTextColor="rgba(255,255,255,0.3)" style={[s.input, { color: '#fff' }]} multiline onSubmitEditing={send} />
+        <TouchableOpacity style={[s.sendBtn, (!input.trim() || loading) && s.sendDisabled]} onPress={send} disabled={!input.trim() || loading}>
+          <AppIcon icon={Send} size={18} color="#fff" strokeWidth={2.5} />
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const s = StyleSheet.create({
-  header: { paddingHorizontal: 16, paddingTop: 56, paddingBottom: 12 },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: 8,
-    gap: 8,
-  },
-  headerTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  headerTitle: { fontSize: 22, fontWeight: "800", color: "#fff" },
-  headerSub: { fontSize: 12, color: "rgba(255,255,255,0.6)", marginTop: 2 },
-  iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  badge: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  badgeTextRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  convCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginBottom: 8,
-  },
-  emptyChat: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 32,
-  },
-  emptyTitle: { fontSize: 18, fontWeight: "700", textAlign: "center" },
-  emptySub: { fontSize: 14, textAlign: "center", marginTop: 8, lineHeight: 22 },
-  suggestion: { padding: 12, borderRadius: 10, borderWidth: 1 },
-  suggestionRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  typing: { paddingHorizontal: 16, paddingVertical: 8, borderTopWidth: 1 },
-  typingRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  header:{ flexDirection:'row', alignItems:'center', gap:12, padding:16, borderBottomWidth:1 },
+  headerIcon:{ width:44, height:44, borderRadius:22, backgroundColor:'rgba(52,211,153,0.12)', alignItems:'center', justifyContent:'center' },
+  headerTitle:{ fontSize:16, fontWeight:'800' },
+  headerSub:{ fontSize:12, marginTop:1 },
+  clearBtn:{ marginLeft:'auto', padding:8 },
+  empty:{ flex:1, alignItems:'center', justifyContent:'center', padding:24, gap:12 },
+  emptyIcon:{ fontSize:48 },
+  emptyTitle:{ fontSize:20, fontWeight:'800' },
+  emptySub:{ fontSize:14, textAlign:'center' },
+  suggestion:{ width:'100%', borderRadius:12, borderWidth:1, padding:12 },
+  suggestionTxt:{ fontSize:14 },
+  bubble:{ flexDirection:'row', gap:8 },
+  userBubble:{ justifyContent:'flex-end' },
+  aiBubble:{ justifyContent:'flex-start' },
+  aiAvatar:{ width:32, height:32, borderRadius:16, backgroundColor:'rgba(52,211,153,0.12)', alignItems:'center', justifyContent:'center', marginTop:4 },
+  bubbleInner:{ maxWidth:'80%', borderRadius:16, padding:12 },
+  userInner:{ backgroundColor:'#C9A84C', borderBottomRightRadius:4 },
+  aiInner:{ borderWidth:1, borderBottomLeftRadius:4, backgroundColor:'rgba(255,255,255,0.07)', borderColor:'rgba(255,255,255,0.12)' },
+  bubbleTxt:{ fontSize:14, lineHeight:22 },
+  typingWrap:{ flexDirection:'row', alignItems:'center', gap:10, margin:16, padding:12, borderRadius:12 },
+  typingTxt:{ fontSize:13 },
+  inputBar:{ flexDirection:'row', alignItems:'flex-end', gap:10, padding:12, borderTopWidth:1 },
+  input:{ flex:1, fontSize:14, maxHeight:100, paddingVertical:8 },
+  sendBtn:{ width:44, height:44, borderRadius:22, backgroundColor:'#C9A84C', alignItems:'center', justifyContent:'center' },
+  sendDisabled:{ opacity:0.4 },
 });

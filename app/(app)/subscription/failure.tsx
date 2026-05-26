@@ -15,7 +15,7 @@ export default function PaymentFailureScreen() {
 
   function handleRetry() {
     clearPaymentError();
-    router.replace('/(app)/subscription/payment');
+    router.replace('/subscription/payment');
   }
 
   return (
@@ -39,7 +39,7 @@ export default function PaymentFailureScreen() {
 
       <View style={{ width: '100%', padding: spacing.xl, gap: spacing.md }}>
         <Button label={t.common.retry} variant="gold" fullWidth size="lg" onPress={handleRetry} />
-        <Button label={t.common.back} variant="ghost" fullWidth onPress={() => router.replace('/(app)/subscription')} />
+        <Button label={t.common.back} variant="ghost" fullWidth onPress={() => router.replace('/subscription')} />
       </View>
     </View>
   );

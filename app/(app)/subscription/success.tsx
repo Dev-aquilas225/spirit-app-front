@@ -66,13 +66,13 @@ export default function PaymentSuccessScreen() {
           variant="gold"
           fullWidth
           size="lg"
-          onPress={() => router.replace('/(app)/(tabs)/home')}
+          onPress={() => router.replace('/home')}
         />
         <Button
           label={t.subscription.successManage}
           variant="outline"
           fullWidth
-          onPress={() => router.replace('/(app)/subscription')}
+          onPress={() => router.replace('/subscription')}
         />
       </View>
     </View>

@@ -233,9 +233,9 @@ export default function OnboardingScreen() {
     // Si les notifications n'ont pas encore été demandées, afficher l'écran dédié
     const alreadyAsked = await StorageService.get<boolean>(STORAGE_KEYS.NOTIFICATIONS_ASKED);
     if (alreadyAsked) {
-      router.replace("/(auth)/login");
+      router.replace("/login");
     } else {
-      router.replace("/(auth)/enable-notifications");
+      router.replace("/enable-notifications");
     }
   }
 

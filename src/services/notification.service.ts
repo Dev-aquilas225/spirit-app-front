@@ -22,10 +22,12 @@ export const NotificationService = {
   async requestPermissions(): Promise<boolean> {
     if (Platform.OS === 'web') return false;
 
-    const { status: existing } = await Notifications.getPermissionsAsync();
+    const existingPerms = await Notifications.getPermissionsAsync();
+    const existing = (existingPerms as any).status ?? 'undetermined';
     if (existing === 'granted') return true;
 
-    const { status } = await Notifications.requestPermissionsAsync();
+    const newPerms = await Notifications.requestPermissionsAsync();
+    const status = (newPerms as any).status ?? 'undetermined';
     return status === 'granted';
   },
 

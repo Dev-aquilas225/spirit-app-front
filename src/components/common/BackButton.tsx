@@ -21,7 +21,7 @@ export function BackButton({
   variant = 'light',
   style,
   disabled,
-  fallback = '/(app)/(tabs)/home',
+  fallback = '/home',
 }: BackButtonProps) {
   const { colors } = useTheme();
   const { t } = useI18n();
