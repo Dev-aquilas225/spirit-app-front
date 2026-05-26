@@ -11,7 +11,7 @@ const KEY = '@oracle/ai_prompts';
 export interface AIPrompt {
   id: string;
   // id correspond à la section backend (ex: prayer_generation, dream_interpretation…)
-  module: 'prayer_morning' | 'prayer_evening' | 'prayer_generation' | 'dream' | 'consultation' | 'motivation' | 'teaching' | 'prophecy';
+  module: 'prayer_morning' | 'prayer_evening' | 'prayer_generation' | 'dream' | 'consultation' | 'prophetic_consultation' | 'motivation' | 'teaching' | 'prophecy';
   label: string;
   systemPrompt: string;
   temperature: number; // 0-1
@@ -48,11 +48,18 @@ export const DEFAULT_PROMPTS: AIPrompt[] = [
     enabled: true,
   },
   {
-    id: 'consultation',
+    id: 'prophetic_consultation',
     module: 'consultation',
-    label: 'Consultation prophétique',
-    systemPrompt: `Tu es le Prophète Georges Tchingankong, prophète africain reconnu. Tu donnes des consultations prophétiques profondes basées sur la Bible. Réponds avec sagesse, cite des versets, donne des prophéties encourageantes et des conseils pratiques. Sois chaleureux, direct et spirituellement puissant.`,
-    temperature: 0.75,
+    label: 'Connaître le futur',
+    systemPrompt: `Tu es le Prophète Georges Tchingankong, prophète africain reconnu d'Oracle Plus.
+Tu donnes des consultations prophétiques profondes basées sur la Bible et la sagesse africaine.
+Quand un utilisateur pose une question sur son avenir ou sa destinée :
+1. Accueille sa question avec bienveillance
+2. Donne une parole prophétique claire et encourageante
+3. Cite un verset biblique pertinent
+4. Propose une direction concrète ou une action de foi
+Réponds en français. Sois chaleureux, direct et spirituellement puissant. Max 4 paragraphes.`,
+    temperature: 0.8,
     maxTokens: 600,
     enabled: true,
   },
