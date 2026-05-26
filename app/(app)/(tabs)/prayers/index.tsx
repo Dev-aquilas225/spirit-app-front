@@ -1,5 +1,10 @@
-import { Redirect } from 'expo-router';
+import { useEffect } from 'react';
+import { router } from 'expo-router';
 
 export default function PrayersTab() {
-  return <Redirect href="/prayer-program" />;
+  useEffect(() => {
+    router.replace('/prayer-program');
+  }, []);
+
+  return null;
 }
