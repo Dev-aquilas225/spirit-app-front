@@ -1,4 +1,4 @@
-import { Eye, History, MessageCircle, Sparkles } from 'lucide-react-native';
+import { Eye, History, MessageCircle } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -175,41 +175,7 @@ export default function FuturScreen() {
         {isLoading ? (
           <LoadingSpinner fullScreen message="Connexion prophétique..." />
         ) : messages.length === 0 ? (
-          <ScrollView contentContainerStyle={s.emptyChat} keyboardShouldPersistTaps="handled">
-            <View style={s.illustrationCircle}>
-              <AppIcon icon={Eye} size={44} color="#34D399" strokeWidth={1.8} />
-            </View>
-
-            <Text style={[s.emptyTitle, { color: colors.text }]}>
-              {firstName ? `Bienvenue, ${firstName}` : 'Guidance prophétique'}
-            </Text>
-
-            <Text style={[s.emptySub, { color: colors.textSecondary }]}>
-              Posez votre question au prophète pour recevoir une révélation spirituelle, une direction divine ou une parole prophétique.
-            </Text>
-
-            <View style={{ marginTop: 20, width: '100%', gap: 10 }}>
-              {[
-                'Que me réserve l\'avenir dans ma vie amoureuse ?',
-                'Quelle est la direction divine pour ma carrière ?',
-                'Comment surmonter les obstacles qui bloquent ma destinée ?',
-              ].map((suggestion) => (
-                <TouchableOpacity
-                  key={suggestion}
-                  onPress={() => sendMessage(suggestion)}
-                  style={[s.suggestion, { backgroundColor: colors.surface, borderColor: colors.border }]}
-                  activeOpacity={0.85}
-                >
-                  <View style={s.suggestionRow}>
-                    <View style={[s.bullet, { backgroundColor: '#34D399' }]} />
-                    <Text style={{ color: colors.textSecondary, fontSize: 13, flex: 1, fontWeight: '500' }}>
-                      {suggestion}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
+          <View style={{ flex: 1 }} />
         ) : (
           <FlatList
             ref={flatListRef}
