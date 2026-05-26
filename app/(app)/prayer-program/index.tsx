@@ -1,7 +1,6 @@
 import { Heart, History, MessageCircle } from "lucide-react-native";
 import React, { useEffect, useRef, useState } from "react";
-import { usePremiumAccess } from "../../../src/hooks/usePremiumAccess";
-import { PremiumGuard } from "../../../src/components/auth/PremiumGuard";
+import { useAccess } from "../../../src/hooks/useAccess";
 
 import {
   FlatList,
@@ -47,7 +46,8 @@ export default function PrayerProgramScreen() {
 
   const [view, setView] = useState<PrayerView>("chat");
 
-  const { isPremium } = usePremiumAccess();
+  const { hasSubscription, canPerform } = useAccess();
+  const canAccess = hasSubscription || canPerform('prayer_generation');
 
   const {
     messages,
@@ -115,11 +115,17 @@ export default function PrayerProgramScreen() {
   // ─────────────────────────────────────────────
   // Guard Premium
   // ─────────────────────────────────────────────
-  if (!isPremium) {
+  if (!canAccess) {
     return (
-      <PremiumGuard featureName="Prière & Suivi spirituel">
-        {null}
-      </PremiumGuard>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, backgroundColor: colors.deepBlue ?? '#1A1A3E' }}>
+        <AppIcon icon={Heart} size={52} color="#C9A84C" strokeWidth={1.6} />
+        <Text style={{ color: '#fff', fontSize: 20, fontWeight: '800', marginTop: 20, textAlign: 'center' }}>
+          Crédits insuffisants
+        </Text>
+        <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 14, marginTop: 10, textAlign: 'center', lineHeight: 22 }}>
+          Rechargez vos crédits pour accéder à l'accompagnement de prière.
+        </Text>
+      </View>
     );
   }
 

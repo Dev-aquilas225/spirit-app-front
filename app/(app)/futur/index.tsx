@@ -13,7 +13,6 @@ import {
   View,
 } from 'react-native';
 
-import { PremiumGuard } from '../../../src/components/auth/PremiumGuard';
 import { ChatBubble } from '../../../src/components/ai/ChatBubble';
 import { ChatInput } from '../../../src/components/ai/ChatInput';
 import { AppIcon } from '../../../src/components/common/AppIcon';
@@ -22,7 +21,7 @@ import { FadeInView } from '../../../src/components/common/FadeInView';
 import { LoadingSpinner } from '../../../src/components/common/LoadingSpinner';
 
 import { useAIChat } from '../../../src/hooks/useAIChat';
-import { usePremiumAccess } from '../../../src/hooks/usePremiumAccess';
+import { useAccess } from '../../../src/hooks/useAccess';
 import { useAuthStore } from '../../../src/store/auth.store';
 import { useTheme } from '../../../src/theme';
 import { AIConversation } from '../../../src/types/content.types';
@@ -35,7 +34,9 @@ export default function FuturScreen() {
   const user = useAuthStore((s) => s.user);
   const firstName = user?.firstName?.trim() || user?.name?.split(' ')[0] || '';
   const [view, setView] = useState<View>('chat');
-  const { isPremium } = usePremiumAccess();
+  const { hasSubscription, canPerform } = useAccess();
+  // Accès autorisé si abonné OU si l'utilisateur a assez de crédits
+  const canAccess = hasSubscription || canPerform('prophetic_consultation');
 
   const {
     messages,
@@ -66,8 +67,18 @@ export default function FuturScreen() {
     ]);
   }
 
-  if (!isPremium) {
-    return <PremiumGuard featureName="Connaître le futur">{null}</PremiumGuard>;
+  if (!canAccess) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, backgroundColor: '#0D1B2A' }}>
+        <AppIcon icon={Eye} size={52} color="#34D399" strokeWidth={1.6} />
+        <Text style={{ color: '#fff', fontSize: 20, fontWeight: '800', marginTop: 20, textAlign: 'center' }}>
+          Crédits insuffisants
+        </Text>
+        <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 14, marginTop: 10, textAlign: 'center', lineHeight: 22 }}>
+          Rechargez vos crédits pour accéder à la guidance prophétique.
+        </Text>
+      </View>
+    );
   }
 
   // ── Header ──────────────────────────────────────────────────────────────────
