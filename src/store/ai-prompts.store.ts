@@ -10,7 +10,8 @@ const KEY = '@oracle/ai_prompts';
 
 export interface AIPrompt {
   id: string;
-  module: 'prayer_morning' | 'prayer_evening' | 'dream' | 'consultation' | 'motivation' | 'teaching' | 'prophecy';
+  // id correspond à la section backend (ex: prayer_generation, dream_interpretation…)
+  module: 'prayer_morning' | 'prayer_evening' | 'prayer_generation' | 'dream' | 'consultation' | 'motivation' | 'teaching' | 'prophecy';
   label: string;
   systemPrompt: string;
   temperature: number; // 0-1
@@ -82,6 +83,22 @@ export const DEFAULT_PROMPTS: AIPrompt[] = [
     maxTokens: 350,
     enabled: true,
   },
+  {
+    id: 'prayer_generation',
+    module: 'prayer_generation',
+    label: 'Prière IA (chat)',
+    systemPrompt: `Tu es le Prophète Georges, intercesseur spirituel d'Oracle Plus.
+Tu accompagnes les croyants dans leur vie de prière avec sagesse, foi et bienveillance.
+Quand un utilisateur partage un fardeau, une intention ou une demande :
+1. Accueille sa situation avec empathie et une parole d'encouragement
+2. Génère une prière personnalisée, puissante et adaptée à sa situation
+3. Cite un verset biblique pertinent pour ancrer la prière
+4. Termine par une action concrète ou une déclaration de foi
+Réponds toujours en français. Sois chaleureux, prophétique et inspirant. Max 4 paragraphes.`,
+    temperature: 0.85,
+    maxTokens: 600,
+    enabled: true,
+  },
 ];
 
 interface AIPromptsState {
@@ -122,18 +139,24 @@ export const useAIPromptsStore = create<AIPromptsState>((set, get) => ({
 
   syncFromBackend: async () => {
     try {
-      const data = await http.get<AIPrompt[]>('/admin/ai-settings');
-      if (Array.isArray(data) && data.length > 0) {
-        set({ prompts: data });
-        await StorageService.set(KEY, data);
-      }
+      // Route backend : GET /ai/admin/settings → [{ section, prompt, isCustom }]
+      const data = await http.get<{ section: string; prompt: string; isCustom: boolean }[]>('/ai/admin/settings');
+      if (!Array.isArray(data) || data.length === 0) return;
+      // Fusionner les prompts backend dans les prompts locaux
+      const merged = get().prompts.map(p => {
+        const remote = data.find(d => d.section === p.id);
+        return remote ? { ...p, systemPrompt: remote.prompt } : p;
+      });
+      set({ prompts: merged });
+      await StorageService.set(KEY, merged);
     } catch { /* offline */ }
   },
 
   saveToBackend: async (prompt) => {
     set({ isSaving: true });
     try {
-      await http.post('/admin/ai-settings', prompt);
+      // Route backend : PUT /ai/admin/settings/:section
+      await http.put(`/ai/admin/settings/${prompt.id}`, { system_prompt: prompt.systemPrompt });
       await get().updatePrompt(prompt.id, prompt);
     } catch { /* offline */ } finally {
       set({ isSaving: false });

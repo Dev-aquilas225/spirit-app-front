@@ -33,6 +33,7 @@ export const NOTIFICATION_TIMES = [
 // Storage keys
 export const STORAGE_KEYS = {
   AUTH_TOKEN: '@spirit/auth_token',
+  REFRESH_TOKEN: '@spirit/refresh_token',
   USER: '@spirit/user',
   SUBSCRIPTION: '@spirit/subscription',
   AI_USAGE: '@spirit/ai_usage',

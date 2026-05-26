@@ -34,13 +34,13 @@ async function getLanguage(): Promise<string> {
 }
 
 async function getRefreshToken(): Promise<string | null> {
-  return StorageService.get<string>('refresh_token');
+  return StorageService.get<string>(STORAGE_KEYS.REFRESH_TOKEN);
 }
 
 async function saveTokens(accessToken: string, refreshToken: string) {
   await Promise.all([
     StorageService.set(STORAGE_KEYS.AUTH_TOKEN, accessToken),
-    StorageService.set('refresh_token', refreshToken),
+    StorageService.set(STORAGE_KEYS.REFRESH_TOKEN, refreshToken),
   ]);
 }
 
@@ -92,7 +92,7 @@ export async function request<T>(
 
       if (!newToken) {
         // Refresh échoué → déconnecter
-        await StorageService.multiRemove([STORAGE_KEYS.AUTH_TOKEN, 'refresh_token', STORAGE_KEYS.USER]);
+        await StorageService.multiRemove([STORAGE_KEYS.AUTH_TOKEN, STORAGE_KEYS.REFRESH_TOKEN, STORAGE_KEYS.USER]);
         throw { statusCode: 401, message: 'Session expirée' } as ApiError;
       }
 

@@ -19,18 +19,20 @@ export interface ServiceResult<T> {
 
 function mapApiUser(u: any, gender?: import('../types/auth.types').Gender): User {
   return {
-    id: u.id,
-    name: [u.firstName, u.lastName].filter(Boolean).join(' ') || 'Utilisateur',
-    firstName: u.firstName ?? '',
-    lastName: u.lastName ?? '',
-    gender: gender ?? u.gender,   // priorité au param local, sinon valeur backend
-    email: u.email ?? '',
-    country: u.country ?? 'CI',
-    language: u.language ?? 'fr',
-    role: u.role === 'admin' ? 'admin' : (u.subscriptionStatus === 'active' ? 'subscriber' : 'free'),
-    avatar: u.avatar,
-    createdAt: u.createdAt,
-    referralCode: u.referralCode ?? '',
+    id:                 u.id,
+    name:               [u.firstName, u.lastName].filter(Boolean).join(' ') || 'Utilisateur',
+    firstName:          u.firstName ?? '',
+    lastName:           u.lastName ?? '',
+    gender:             gender ?? u.gender,
+    email:              u.email ?? '',
+    country:            u.country ?? 'CI',
+    language:           u.language ?? 'fr',
+    role:               u.role === 'admin' ? 'admin' : (u.subscriptionStatus === 'active' ? 'subscriber' : 'free'),
+    avatar:             u.avatar,
+    createdAt:          u.createdAt,
+    referralCode:       u.referralCode ?? '',
+    credits:            u.credits ?? 2000,
+    subscriptionStatus: u.subscriptionStatus ?? 'pending',
   };
 }
 
@@ -98,7 +100,7 @@ export const AuthService = {
     try { await http.post('/auth/logout'); } catch {}
     await StorageService.multiRemove([
       STORAGE_KEYS.AUTH_TOKEN,
-      'refresh_token',
+      STORAGE_KEYS.REFRESH_TOKEN,
       STORAGE_KEYS.USER,
       // USER_GENDER intentionnellement conservé : permet de ne plus afficher
       // complete-profile quand l'utilisateur se reconnecte sur le même appareil.
@@ -142,12 +144,33 @@ export const AuthService = {
     }
   },
 
-  /** Restaurer la session depuis le stockage local */
+  /** Restaurer la session depuis le stockage local.
+   *  Valide le token en appelant /users/me — si 401, tente un refresh automatique.
+   */
   async restoreSession(): Promise<{ user: User; token: string } | null> {
     const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
     const user  = await StorageService.get<User>(STORAGE_KEYS.USER);
     if (!token || !user) return null;
-    return { token, user };
+
+    try {
+      // Vérifier que le token est encore valide
+      const fresh = await http.get<User>('/users/me');
+      if (fresh) {
+        // Mettre à jour le profil local avec les données fraîches (crédits, etc.)
+        const updated = { ...user, ...(fresh as any) };
+        await StorageService.set(STORAGE_KEYS.USER, updated);
+        return { token, user: updated };
+      }
+      return { token, user };
+    } catch {
+      // Token invalide — nettoyer la session
+      await StorageService.multiRemove([
+        STORAGE_KEYS.AUTH_TOKEN,
+        STORAGE_KEYS.REFRESH_TOKEN,
+        STORAGE_KEYS.USER,
+      ]);
+      return null;
+    }
   },
 
   /** Supprimer le compte */

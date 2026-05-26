@@ -15,6 +15,8 @@ export interface User {
   avatar?: string;
   createdAt: string;
   referralCode: string;
+  credits?: number;
+  subscriptionStatus?: string;
 }
 
 export interface AuthState {
