@@ -46,10 +46,25 @@ jobs:
           EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS: ${{ secrets.EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS }}
           EXPO_PUBLIC_GOOGLE_CLIENT_ID_ANDROID: ${{ secrets.EXPO_PUBLIC_GOOGLE_CLIENT_ID_ANDROID }}
 
-      # ── 5. Vérifier que le build a produit index.html ─────────────────────
-      - name: Verify build output
+      # ── 5. Post-process : inject __ENV__ + redirect racine ───────────────
+      - name: Post-process dist
         run: |
-          test -f dist/index.html || (echo "❌ dist/index.html manquant" && exit 1)
+          API_URL="${{ secrets.EXPO_PUBLIC_API_BASE_URL }}"
+          VAPID_KEY="${{ secrets.VAPID_PUBLIC_KEY }}"
+          ENV_JSON="{\"EXPO_PUBLIC_API_BASE_URL\":\"${API_URL}\",\"EXPO_PUBLIC_VAPID_PUBLIC_KEY\":\"${VAPID_KEY}\"}"
+          ENV_SCRIPT="<script>window.__ENV__=${ENV_JSON};</script>"
+
+          # Injecter dans tous les fichiers HTML
+          find dist -name "*.html" | while read f; do
+            sed -i "s|</head>|${ENV_SCRIPT}</head>|" "$f"
+          done
+
+          # Remplacer index.html par une redirection vers /home
+          cat > dist/index.html << HTMLEOF
+          <!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Oracle Plus</title><script>window.__ENV__=${ENV_JSON};</script><script>window.location.replace('/home');</script></head><body></body></html>
+          HTMLEOF
+
+          test -f dist/home/index.html || (echo "❌ dist/home/index.html manquant" && exit 1)
           echo "✅ Build OK — $(du -sh dist | cut -f1)"
 
       # ── 6. Configurer la clé SSH ──────────────────────────────────────────
