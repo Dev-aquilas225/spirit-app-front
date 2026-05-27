@@ -4,14 +4,28 @@ export declare class AuthController {
     constructor(svc: AuthService);
     googleSignIn(body: {
         idToken: string;
-    }): Promise<any>;
+    }): Promise<{
+        accessToken: string;
+        refreshToken: string;
+        user: any;
+    }>;
     sendMagicLink(body: {
         email: string;
-    }): Promise<any>;
-    verifyMagicLink(token: string): any;
+    }): Promise<{
+        message: string;
+    }>;
+    verifyMagicLink(token: string): Promise<{
+        accessToken: string;
+        refreshToken: string;
+        user: any;
+    }>;
     refresh(body: {
         refreshToken: string;
-    }): any;
+    }): Promise<{
+        accessToken: string;
+        refreshToken: string;
+        user: any;
+    }>;
     logout(): {
         message: string;
     };
