@@ -1,4 +1,5 @@
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { showApiError } from '../../../src/hooks/useApiError';
 /**
  * Dreams — Interprétation des rêves avec système de crédits
  * 80 crédits par interprétation (gratuit si abonnement actif)
@@ -62,8 +63,8 @@ function InterpretTab({ onSuccess }: { onSuccess: () => void }) {
       setDate(new Date().toISOString());
       setDream('');
       onSuccess();
-    } catch {
-      Alert.alert('Erreur', 'Service indisponible');
+    } catch (err) {
+      showApiError(err);
     } finally {
       setLoading(false);
     }
@@ -171,7 +172,7 @@ function HistoryTab({ conversations, loading, loadHistory }: any) {
           aiInterpretation: safe.find(m => m.role === 'assistant')?.content ?? 'Aucune interprétation',
         },
       }));
-    } catch { Alert.alert('Erreur', 'Impossible de charger'); }
+    } catch (err) { showApiError(err); }
     finally { setLoadingId(null); }
   }
 
@@ -181,7 +182,7 @@ function HistoryTab({ conversations, loading, loadHistory }: any) {
       await loadHistory();
       setCache(prev => { const c = { ...prev }; delete c[item.id]; return c; });
       if (expanded === item.id) setExpanded(null);
-    } catch { Alert.alert('Erreur', 'Suppression impossible'); }
+    } catch (err) { showApiError(err, 'Suppression impossible'); }
   }
 
   if (loading) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator size="large" color="#C9A84C" /></View>;

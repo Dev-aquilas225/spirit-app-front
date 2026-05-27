@@ -165,15 +165,10 @@ function SubscriptionsTab() {
   const PLAN_ICONS = { weekly: Clock, weekly_plus: Star, monthly: Crown } as const;
   const PLAN_COLORS = { weekly: '#3B82F6', weekly_plus: '#8B5CF6', monthly: '#C9A84C' } as const;
 
-  const handleSubscribe = async (plan: SubscriptionPlan) => {
-    setLoading(plan);
-    const result = await initiatePayment(plan);
-    setLoading(null);
-    if (result?.authorization_url) {
-      if (Platform.OS === 'web') window.open(result.authorization_url, '_blank');
-      else await Linking.openURL(result.authorization_url);
-      router.push('/subscription/payment');
-    }
+  const handleSubscribe = (plan: SubscriptionPlan) => {
+    // payment.tsx handles initiation + polling + VIP animation
+    setSelected(plan);
+    router.push({ pathname: '/subscription/payment', params: { plan } });
   };
 
   return (

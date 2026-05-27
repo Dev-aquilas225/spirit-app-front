@@ -17,7 +17,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { Crown, ExternalLink, XCircle } from 'lucide-react-native';
 import { useTheme } from '../../../src/theme';
@@ -136,6 +136,8 @@ function VipAnimation() {
 /* ─── Écran principal ───────────────────────────────────────────────────── */
 export default function PaymentScreen() {
   const { colors } = useTheme();
+  const { plan: planParam } = useLocalSearchParams<{ plan?: string }>();
+  const plan = (planParam === 'weekly_plus' ? 'weekly_plus' : 'monthly') as 'monthly' | 'weekly_plus';
   const { initiatePayment, paymentError, clearPaymentError, loadSubscription } = useSubscription();
   const refreshUser = useAuthStore((s) => s.refreshUser);
 
@@ -163,7 +165,7 @@ export default function PaymentScreen() {
     setStep('initiating');
     setRemaining(TIMEOUT_MS);
 
-    const result = await initiatePayment('monthly');
+    const result = await initiatePayment(plan);
     if (!result) {
       setError(paymentError ?? 'Impossible d\'initier le paiement.');
       setStep('error');

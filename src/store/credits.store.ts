@@ -107,7 +107,7 @@ export const useCreditsStore = create<CreditsState>((set, get) => ({
     try {
       const res = await http.post<{ credits: number }>('/credits/add', { amount: 100 });
       if (res?.credits !== undefined) {
-        set({ credits: res.credits, adsAvailable: res.adsRemaining });
+        set({ credits: res.credits, adsAvailable: (res as any).adsRemaining ?? get().adsAvailable });
         await StorageService.set(CREDITS_KEY, res.credits);
         return;
       }
@@ -119,12 +119,10 @@ export const useCreditsStore = create<CreditsState>((set, get) => ({
   },
 
   purchase: async (packId, reference) => {
+    // After Paystack callback, re-fetch balance from backend (source of truth)
+    // The backend credits the account via webhook; we just sync the balance.
     try {
-      const res = await http.post<{ credits: number }>('/credits/add', { amount: packId === 'starter' ? 500 : packId === 'standard' ? 2000 : 5000 });
-      if (res?.credits !== undefined) {
-        set({ credits: res.credits });
-        await StorageService.set(CREDITS_KEY, res.credits);
-      }
+      await get().fetchBalance();
     } catch {}
   },
 

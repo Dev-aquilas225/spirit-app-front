@@ -169,7 +169,8 @@ export default function LoginScreen() {
         tokenEndpoint: 'https://oauth2.googleapis.com/token',
       };
 
-      const { WebBrowser } = await import('expo-web-browser');
+      const WebBrowserModule = await import('expo-web-browser');
+      const WebBrowser = WebBrowserModule.default ?? WebBrowserModule;
       const result = await WebBrowser.openAuthSessionAsync(
         `https://accounts.google.com/o/oauth2/v2/auth?` +
         `client_id=${encodeURIComponent(clientId)}` +

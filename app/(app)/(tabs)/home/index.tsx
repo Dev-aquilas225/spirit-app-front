@@ -25,6 +25,7 @@ import { useAuthStore } from '../../../../src/store/auth.store';
 import { AIConversation } from '../../../../src/types/content.types';
 import { formatDate } from '../../../../src/utils/helpers';
 import { useTypingText } from '../../../../src/hooks/useTypingText';
+import { showApiError } from '../../../../src/hooks/useApiError';
 
 type DreamTab = 'interpret' | 'history';
 
@@ -59,8 +60,8 @@ function InterpretTab({ onSuccess }: { onSuccess: () => void }) {
       setDream('');
       setDate(new Date().toISOString());
       onSuccess();
-    } catch {
-      Alert.alert('Erreur', 'Service indisponible');
+    } catch (err) {
+      showApiError(err);
     } finally {
       setLoading(false);
     }
@@ -144,7 +145,7 @@ function HistoryTab({ conversations, loading, loadHistory }: any) {
       const messages = await AIService.getConversationHistory(item.id);
       const safe = Array.isArray(messages) ? messages : [];
       setCache(prev => ({ ...prev, [item.id]: { userDream: safe.find(m => m.role === 'user')?.content ?? 'Rêve indisponible', aiInterpretation: safe.find(m => m.role === 'assistant')?.content ?? 'Aucune interprétation' } }));
-    } catch { Alert.alert('Erreur', 'Impossible de charger'); }
+    } catch (err) { showApiError(err); }
     finally { setLoadingId(null); }
   }
 
@@ -154,7 +155,7 @@ function HistoryTab({ conversations, loading, loadHistory }: any) {
       await loadHistory();
       setCache(prev => { const c = { ...prev }; delete c[item.id]; return c; });
       if (expanded === item.id) setExpanded(null);
-    } catch { Alert.alert('Erreur', 'Suppression impossible'); }
+    } catch (err) { showApiError(err, 'Suppression impossible'); }
   }
 
   if (loading) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator size="large" color="#C9A84C" /></View>;

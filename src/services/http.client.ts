@@ -73,6 +73,11 @@ export async function request<T>(
   path: string,
   options: RequestInit & { token?: string } = {},
 ): Promise<T> {
+  // Timeout 15s + gestion offline
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  options = { ...options, signal: controller.signal };
+
   const token = options.token ?? (await getAccessToken());
   const language = await getLanguage();
   const headers: Record<string, string> = {
@@ -82,7 +87,18 @@ export async function request<T>(
   };
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  const res = await fetch(`${baseUrl()}${path}`, { ...options, headers });
+  let res: Response;
+  try {
+    res = await fetch(`${baseUrl()}${path}`, { ...options, headers });
+  } catch (err: unknown) {
+    clearTimeout(timeoutId);
+    const isAbort = err instanceof Error && err.name === 'AbortError';
+    throw {
+      statusCode: isAbort ? 408 : 0,
+      message: isAbort ? 'Délai dépassé. Vérifiez votre connexion.' : 'Impossible de joindre le serveur. Vérifiez votre connexion.',
+    } as ApiError;
+  }
+  clearTimeout(timeoutId);
 
   // Token expiré → refresh
   if (res.status === 401) {
@@ -98,13 +114,27 @@ export async function request<T>(
         await StorageService.multiRemove([STORAGE_KEYS.AUTH_TOKEN, STORAGE_KEYS.REFRESH_TOKEN, STORAGE_KEYS.USER]);
         // Rejouer sans token — les routes publiques passeront,
         // les routes protégées retourneront 401 avec le message du backend
-        const retryRes = await fetch(`${baseUrl()}${path}`, {
-          ...options,
-          headers: {
-            'Content-Type': 'application/json',
-            ...(options.headers as Record<string, string>),
-          },
-        });
+        const retryController = new AbortController();
+        const retryTimeout = setTimeout(() => retryController.abort(), 15000);
+        let retryRes: Response;
+        try {
+          retryRes = await fetch(`${baseUrl()}${path}`, {
+            ...options,
+            signal: retryController.signal,
+            headers: {
+              'Content-Type': 'application/json',
+              ...(options.headers as Record<string, string>),
+            },
+          });
+        } catch (err: unknown) {
+          clearTimeout(retryTimeout);
+          const isAbort = err instanceof Error && err.name === 'AbortError';
+          throw {
+            statusCode: isAbort ? 408 : 0,
+            message: isAbort ? 'Délai dépassé. Vérifiez votre connexion.' : 'Impossible de joindre le serveur.',
+          } as ApiError;
+        }
+        clearTimeout(retryTimeout);
         if (!retryRes.ok) {
           const body = await retryRes.json().catch(() => ({}));
           throw { statusCode: retryRes.status, message: body?.message ?? `Erreur ${retryRes.status}` } as ApiError;

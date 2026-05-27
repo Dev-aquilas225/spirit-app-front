@@ -26,8 +26,10 @@ export default function AdminHome() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!user) { router.replace('/home'); return; }
+    if (user.role !== 'admin') { router.replace('/home'); return; }
     http.get<Stats>('/admin/stats').then(d => { setStats(d as any); setLoading(false); }).catch(() => setLoading(false));
-  }, []);
+  }, [user]);
 
   return (
     <ScrollView style={{ flex:1, backgroundColor: colors.background }} contentContainerStyle={{ padding:20, gap:20 }}>
