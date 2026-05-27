@@ -2,7 +2,8 @@
  * Onglet Rêves — Interprétation des rêves avec IA
  * Premier onglet principal selon le CDC Oracle Plus.
  */
-import { CloudMoon, History, MessageCircle, Trash2, Zap } from 'lucide-react-native';
+import { router } from 'expo-router';
+import { CloudMoon, History, MessageCircle, Trash2, User, Zap } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator, Alert, FlatList, Pressable, ScrollView,
@@ -212,6 +213,13 @@ export default function DreamsTabScreen() {
             <Text style={[st.headerTitle, { color: colors.text }]}>Interprétation des Rêves</Text>
             <Text style={[st.headerSub, { color: colors.textSecondary }]}>Sagesse spirituelle africaine</Text>
           </View>
+          <TouchableOpacity
+            onPress={() => router.push('/profile')}
+            style={[st.profileBtn, { backgroundColor: colors.primaryPale, borderColor: colors.primary + '40' }]}
+            activeOpacity={0.8}
+          >
+            <AppIcon icon={User} size={18} color={colors.primary} strokeWidth={2.2} />
+          </TouchableOpacity>
         </View>
       </View>
       <View style={[st.tabBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
@@ -251,4 +259,5 @@ const st = StyleSheet.create({
   resultLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   divider:        { height: 1, marginVertical: 14 },
   histCard:       { borderWidth: 1, padding: 14, borderRadius: 14, marginBottom: 10 },
+  profileBtn:     { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5 },
 });

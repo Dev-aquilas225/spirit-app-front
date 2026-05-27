@@ -1,4 +1,5 @@
-import { Eye, History, MessageCircle } from 'lucide-react-native';
+import { router } from 'expo-router';
+import { Eye, History, MessageCircle, User } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -119,6 +120,14 @@ export default function FuturScreen() {
             <AppIcon icon={MessageCircle} size={18} color="#fff" strokeWidth={2.2} />
           </TouchableOpacity>
         )}
+
+        <TouchableOpacity
+          onPress={() => router.push('/profile')}
+          style={[s.iconBtn, { backgroundColor: 'rgba(255,255,255,0.10)', marginLeft: 4 }]}
+          activeOpacity={0.8}
+        >
+          <AppIcon icon={User} size={18} color="#fff" strokeWidth={2.2} />
+        </TouchableOpacity>
       </View>
     </View>
   );
