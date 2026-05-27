@@ -30,6 +30,7 @@ function buildEnvConfig() {
     EXPO_PUBLIC_API_BASE_URL: process.env.EXPO_PUBLIC_API_BASE_URL ?? '',
     EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB ?? '',
     EXPO_PUBLIC_VAPID_PUBLIC_KEY: process.env.EXPO_PUBLIC_VAPID_PUBLIC_KEY ?? '',
+    EXPO_PUBLIC_ADMIN_EMAIL: process.env.EXPO_PUBLIC_ADMIN_EMAIL ?? '',
   };
   return `window.__ENV__ = ${JSON.stringify(env)};`;
 }
@@ -107,8 +108,16 @@ function createServer() {
       if (resolvedFile.endsWith('.html')) {
         const html = fs.readFileSync(resolvedFile, 'utf-8');
         const body = injectEnvScript(html);
-        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
         res.end(body);
+        return;
+      }
+      // Service worker : no-cache pour que le navigateur vérifie les mises à jour
+      if (requestedPath === '/service-worker.js') {
+        const extension = path.extname(resolvedFile).toLowerCase();
+        const contentType = mimeTypes[extension] || 'application/javascript; charset=utf-8';
+        res.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': 'no-cache' });
+        fs.createReadStream(resolvedFile).pipe(res);
         return;
       }
       serveFile(res, resolvedFile);

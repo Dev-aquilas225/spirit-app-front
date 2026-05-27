@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { AIConversation, AIMessage } from '../types/content.types';
+import { useCreditsStore } from './credits.store';
 import { AIService } from '../services/ai.service';
 import { generateId } from '../utils/helpers';
 import { useAuthStore } from './auth.store';
@@ -150,6 +151,14 @@ export const useAIStore = create<AIStore>((set, get) => ({
         isSending: false,
         limitReached: error === 'limit_reached',
       }));
+
+      // Déduire 1 crédit par mot généré (uniquement si pas abonné)
+      if (!isPremium && aiMessage.content) {
+        const wordCount = aiMessage.content.trim().split(/\s+/).filter(Boolean).length;
+        if (wordCount > 0) {
+          useCreditsStore.getState().spendWords(wordCount).catch(() => {});
+        }
+      }
 
       // Rafraîchir le compteur d'utilisation (non bloquant)
       get().refreshUsage().catch(() => {});

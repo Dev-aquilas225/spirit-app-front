@@ -44,17 +44,13 @@ export function useAIChat(chatType: AIChatType = 'prophet') {
 
   const sendMessage = async (content: string) => {
     if (!hasSubscription) {
+      // Vérifier que l'utilisateur a au moins 1 crédit disponible avant d'envoyer
       if (!canPerform(creditAction)) {
         setPendingMessage(content);
         setCreditGateVisible(true);
         return;
       }
-      const ok = await spend(creditAction);
-      if (!ok) {
-        setPendingMessage(content);
-        setCreditGateVisible(true);
-        return;
-      }
+      // Les crédits sont déduits mot par mot après réception de la réponse (ai.store.ts)
     }
     await _sendMessage(content, chatType);
   };
@@ -64,8 +60,7 @@ export function useAIChat(chatType: AIChatType = 'prophet') {
     if (pendingMessage) {
       const msg = pendingMessage;
       setPendingMessage(null);
-      const ok = await spend(creditAction);
-      if (ok) await _sendMessage(msg, chatType);
+      await _sendMessage(msg, chatType);
     }
   };
 

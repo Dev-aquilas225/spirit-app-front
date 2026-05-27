@@ -23,6 +23,7 @@ import { Crown, ExternalLink, XCircle } from 'lucide-react-native';
 import { useTheme } from '../../../src/theme';
 import { useSubscription } from '../../../src/hooks/useSubscription';
 import { useAuthStore } from '../../../src/store/auth.store';
+import { useCreditsStore } from '../../../src/store/credits.store';
 import { PaymentService } from '../../../src/services/payment.service';
 import { AppIcon } from '../../../src/components/common/AppIcon';
 import { Button } from '../../../src/components/common/Button';
@@ -139,7 +140,8 @@ export default function PaymentScreen() {
   const { plan: planParam } = useLocalSearchParams<{ plan?: string }>();
   const plan = (planParam === 'weekly_plus' ? 'weekly_plus' : 'monthly') as 'monthly' | 'weekly_plus';
   const { initiatePayment, paymentError, clearPaymentError, loadSubscription } = useSubscription();
-  const refreshUser = useAuthStore((s) => s.refreshUser);
+  const refreshUser    = useAuthStore((s) => s.refreshUser);
+  const fetchBalance   = useCreditsStore((s) => s.fetchBalance);
 
   const [step, setStep]         = useState<Step>('initiating');
   const [reference, setRef]     = useState<string | null>(null);
@@ -192,7 +194,7 @@ export default function PaymentScreen() {
           console.log("Erreur fermeture navigateur");
         }
 
-        await Promise.all([loadSubscription(), refreshUser()]);
+        await Promise.all([loadSubscription(), refreshUser(), fetchBalance()]);
         setStep('vip');
         setTimeout(() => router.replace('/subscription/success'), VIP_DISPLAY_MS);
         return;
@@ -238,7 +240,7 @@ export default function PaymentScreen() {
             if (ref === result.reference && (st === 'success' || st === 'active')) {
               localStorage.removeItem('paystack_result');
               stopAll();
-              await Promise.all([loadSubscription(), refreshUser()]);
+              await Promise.all([loadSubscription(), refreshUser(), fetchBalance()]);
               setStep('vip');
               setTimeout(() => router.replace('/subscription/success'), VIP_DISPLAY_MS);
               return;
@@ -249,7 +251,7 @@ export default function PaymentScreen() {
         const { status: s } = await PaymentService.getStatus(result.reference);
         if (s === 'success' || s === 'active') {
           stopAll();
-          await Promise.all([loadSubscription(), refreshUser()]);
+          await Promise.all([loadSubscription(), refreshUser(), fetchBalance()]);
           setStep('vip');
           setTimeout(() => router.replace('/subscription/success'), VIP_DISPLAY_MS);
         }

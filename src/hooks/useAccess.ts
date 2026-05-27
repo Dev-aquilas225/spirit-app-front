@@ -23,9 +23,13 @@ export function useAccess() {
   /**
    * Returns true if the user can perform the action.
    * Subscribers bypass credit check entirely.
+   * For AI chat actions, only 1 credit minimum is required (billed per word after response).
    */
   const canPerform = (action: CreditAction): boolean => {
     if (hasSubscription) return true;
+    // Chat actions: just need at least 1 credit (per-word billing happens after response)
+    const chatActions: CreditAction[] = ['ai_chat', 'prophetic_consultation', 'prayer_generation'];
+    if (chatActions.includes(action)) return credits >= 1;
     return canAfford(action);
   };
 

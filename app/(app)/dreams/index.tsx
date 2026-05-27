@@ -39,7 +39,8 @@ function InterpretTab({ onSuccess }: { onSuccess: () => void }) {
   const [date, setDate] = useState<string | null>(null);
   const [gateVisible, setGateVisible] = useState(false);
 
-  const { displayed: typedInterpretation, isDone: typingDone, skip: skipTyping } = useTypingText(interpretation, 14, !!interpretation);
+  // Typing effect désactivé sur Rêves — affichage immédiat du texte
+  const { displayed: typedInterpretation, isDone: typingDone, skip: skipTyping } = useTypingText(interpretation, 14, false);
 
   const handleInterpret = async () => {
     if (!dream || dream.trim().length < 20) {

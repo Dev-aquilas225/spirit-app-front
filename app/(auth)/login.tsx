@@ -17,6 +17,7 @@ import { AppIcon } from "../../src/components/common/AppIcon";
 import { Button } from "../../src/components/common/Button";
 import { useI18n } from "../../src/i18n";
 import { useTheme } from "../../src/theme";
+import { Env } from "../../src/utils/env";
 
 
 
@@ -48,6 +49,15 @@ export default function LoginScreen() {
 
     if (!ok) {
       setEmailError("Erreur lors de la connexion");
+      return;
+    }
+
+    // Vérifier si l'utilisateur est admin (rôle backend OU email dans la liste)
+    const currentUser = useAuthStore.getState().user;
+    const isAdmin = currentUser?.role === 'admin' ||
+      Env.ADMIN_EMAILS().includes((currentUser?.email ?? '').toLowerCase());
+    if (isAdmin) {
+      router.replace('/admin');
       return;
     }
 

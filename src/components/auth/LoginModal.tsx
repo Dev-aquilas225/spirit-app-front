@@ -14,8 +14,7 @@ import { AppIcon } from '../common/AppIcon';
 import { AuthService } from '../../services/auth.service';
 import { useAuthStore } from '../../store/auth.store';
 import { useTheme } from '../../theme';
-
-const ADMIN_EMAILS = (process.env.EXPO_PUBLIC_ADMIN_EMAIL ?? '').split(',').map((e: string) => e.trim());
+import { Env } from '../../utils/env';
 
 interface Props {
   visible: boolean;
@@ -39,7 +38,7 @@ export function LoginModal({ visible, onClose }: Props) {
 
   const handlePostLogin = (email?: string | null, role?: string) => {
     onClose();
-    const isAdmin = role === 'admin' || ADMIN_EMAILS.includes(email ?? '');
+    const isAdmin = role === 'admin' || Env.ADMIN_EMAILS().includes((email ?? '').toLowerCase());
     if (isAdmin) {
       router.push('/admin');
     } else {

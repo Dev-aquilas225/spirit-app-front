@@ -6,6 +6,7 @@ import { AppIcon } from '../../../src/components/common/AppIcon';
 import { useAuth } from '../../../src/hooks/useAuth';
 import { useTheme } from '../../../src/theme';
 import { http } from '../../../src/services/http.client';
+import { Env } from '../../../src/utils/env';
 
 interface Stats { totalUsers: number; activeSubscriptions: number; totalCreditsDistributed: number; totalConversations: number; }
 
@@ -27,7 +28,8 @@ export default function AdminHome() {
 
   useEffect(() => {
     if (!user) { router.replace('/home'); return; }
-    if (user.role !== 'admin') { router.replace('/home'); return; }
+    const isAdmin = user.role === 'admin' || Env.ADMIN_EMAILS().includes((user.email ?? '').toLowerCase());
+    if (!isAdmin) { router.replace('/home'); return; }
     http.get<Stats>('/admin/stats').then(d => { setStats(d as any); setLoading(false); }).catch(() => setLoading(false));
   }, [user]);
 
