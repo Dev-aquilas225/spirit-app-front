@@ -46,7 +46,7 @@ export default function VerifyMagicLinkScreen() {
 
     setStatus('success');
     setTimeout(() => {
-      router.replace('/home');
+      router.replace('/dashboard');
     }, 800);
   }
 

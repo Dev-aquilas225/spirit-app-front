@@ -303,7 +303,7 @@ export default function PaymentScreen() {
         <View style={{ width: '100%', gap: 10, paddingHorizontal: 32, marginTop: 8 }}>
           <Button label="Réessayer" variant="gold" fullWidth onPress={launch} />
           <Button label="Contacter le support" variant="outline" fullWidth onPress={() => router.replace('/support')} />
-          <Button label="Retour" variant="ghost" fullWidth onPress={() => router.replace('/home')} />
+          <Button label="Retour" variant="ghost" fullWidth onPress={() => router.replace('/dashboard')} />
         </View>
       </View>
     );

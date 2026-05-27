@@ -48,7 +48,7 @@ export default function VerifyMagicLinkScreen() {
     setStatus('success');
     // Rediriger vers l'app principale après un court délai
     setTimeout(() => {
-      router.replace('/home');
+      router.replace('/dashboard');
     }, 800);
   }
 

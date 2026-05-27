@@ -25,7 +25,7 @@ export default function OnboardingConfirmScreen() {
 
   async function handleDone() {
     await StorageService.set(STORAGE_KEYS.ONBOARDING_DONE, true);
-    router.replace('/home');
+    router.replace('/dashboard');
   }
 
   return (

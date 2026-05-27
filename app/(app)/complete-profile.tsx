@@ -84,7 +84,7 @@ export default function CompleteProfileScreen() {
     clearError();
     const success = await completeProfile(firstName.trim(), lastName.trim(), gender);
     if (success) {
-      router.replace('/home');
+      router.replace('/dashboard');
     }
   }
 

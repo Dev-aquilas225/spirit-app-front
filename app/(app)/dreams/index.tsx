@@ -249,7 +249,7 @@ export default function DreamsScreen() {
       <View style={[styles.header, { backgroundColor: '#1A1A3E' }]}>
         <View style={styles.deco1} /><View style={styles.deco2} />
         <View style={styles.headerRow}>
-          <BackButton variant="dark" fallback="/home" />
+          <BackButton variant="dark" fallback="/dashboard" />
           <View style={{ flex: 1, marginLeft: 8 }}>
             <Text style={styles.headerTitle}>Interprétation des Rêves</Text>
             <Text style={styles.headerSub}>Sagesse spirituelle africaine</Text>

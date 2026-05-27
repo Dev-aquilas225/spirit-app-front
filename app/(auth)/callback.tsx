@@ -67,7 +67,7 @@ export default function AuthCallbackScreen() {
     if (!profileComplete) {
       router.replace("/complete-profile");
     } else {
-      router.replace("/home");
+      router.replace("/dashboard");
     }
   }
 

@@ -69,7 +69,7 @@ export default function LoginScreen() {
       // Venir de l'onboarding → afficher la confirmation 2000 crédits
       router.replace('/onboarding-confirm');
     } else {
-      router.replace("/home");
+      router.replace("/dashboard");
     }
   }
 

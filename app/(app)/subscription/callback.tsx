@@ -88,7 +88,7 @@ export default function PaystackCallbackScreen() {
         Si vous avez été débité, contactez le support.{'\n'}Votre accès sera activé manuellement.
       </Text>
       <View style={{ width: '100%', paddingHorizontal: 32, gap: 10, marginTop: 24 }}>
-        <Button label="Retour à l'accueil" variant="gold" fullWidth onPress={() => router.replace('/home')} />
+        <Button label="Retour à l'accueil" variant="gold" fullWidth onPress={() => router.replace('/dashboard')} />
         <Button label="Contacter le support" variant="outline" fullWidth onPress={() => router.replace('/support')} />
       </View>
     </View>

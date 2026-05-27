@@ -27,9 +27,9 @@ export default function AdminHome() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) { router.replace('/home'); return; }
+    if (!user) { router.replace('/dashboard'); return; }
     const isAdmin = user.role === 'admin' || Env.ADMIN_EMAILS().includes((user.email ?? '').toLowerCase());
-    if (!isAdmin) { router.replace('/home'); return; }
+    if (!isAdmin) { router.replace('/dashboard'); return; }
     http.get<Stats>('/admin/stats').then(d => { setStats(d as any); setLoading(false); }).catch(() => setLoading(false));
   }, [user]);
 

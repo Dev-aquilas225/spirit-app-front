@@ -21,7 +21,7 @@ export function BackButton({
   variant = 'light',
   style,
   disabled,
-  fallback = '/home',
+  fallback = '/dashboard',
 }: BackButtonProps) {
   const { colors } = useTheme();
   const { t } = useI18n();

@@ -73,7 +73,7 @@ export default function PaymentSuccessScreen() {
           variant="gold"
           fullWidth
           size="lg"
-          onPress={() => router.replace('/home')}
+          onPress={() => router.replace('/dashboard')}
         />
         <Button
           label={t.subscription.successManage}

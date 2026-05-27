@@ -25,7 +25,7 @@ class ErrorBoundary extends Component<{ children: React.ReactNode }, EBState> {
         <Text style={eb.icon}>✦</Text>
         <Text style={eb.title}>Une erreur est survenue</Text>
         <Text style={eb.msg}>{this.state.error?.message ?? 'Erreur inconnue'}</Text>
-        <TouchableOpacity style={eb.btn} onPress={() => { this.setState({ hasError: false }); router.replace('/home'); }}>
+        <TouchableOpacity style={eb.btn} onPress={() => { this.setState({ hasError: false }); router.replace('/dashboard'); }}>
           <Text style={eb.btnTxt}>Retour à l'accueil</Text>
         </TouchableOpacity>
       </View>

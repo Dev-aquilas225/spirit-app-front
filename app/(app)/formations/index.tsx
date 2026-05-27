@@ -665,7 +665,7 @@ function FormationsContent() {
       <View
         style={[s.header, { backgroundColor: '#1A1A3E', padding: spacing.base, paddingTop: 0 }]}
       >
-        <BackButton variant="dark" style={{ marginBottom: 12 }} fallback="/home" />
+        <BackButton variant="dark" style={{ marginBottom: 12 }} fallback="/dashboard" />
         <View style={s.headerTitleRow}>
           <AppIcon icon={GraduationCap} size={24} color="#fff" strokeWidth={2.2} />
           <Text style={s.headerTitle}>Se former spirituellement</Text>

@@ -66,7 +66,7 @@ export default function ReferralScreen() {
       <View style={[s.header, { backgroundColor: '#1A1A3E' }]}>
         <View style={s.deco1} /><View style={s.deco2} />
         <View style={s.headerRow}>
-          <BackButton variant="dark" fallback="/home" />
+          <BackButton variant="dark" fallback="/dashboard" />
           <View style={{ flex: 1, marginLeft: 8 }}>
             <Text style={s.headerTitle}>Parrainage</Text>
             <Text style={s.headerSub}>Invitez et gagnez ensemble</Text>
