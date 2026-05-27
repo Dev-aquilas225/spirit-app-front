@@ -82,7 +82,7 @@ export default function LoginScreen() {
   useEffect(() => {
     if (Platform.OS !== "web") return;
 
-    const clientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB;
+    const clientId = Env.GOOGLE_CLIENT_ID_WEB();
     if (!clientId || clientId.startsWith("YOUR_")) return;
 
     function initGsi() {
@@ -162,7 +162,7 @@ export default function LoginScreen() {
     setGoogleLoading(true);
     setEmailError(undefined);
     try {
-      const clientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB;
+      const clientId = Env.GOOGLE_CLIENT_ID_WEB();
       if (!clientId) {
         setEmailError("Google OAuth non configuré");
         setGoogleLoading(false);
@@ -233,8 +233,8 @@ export default function LoginScreen() {
 
   // ── Rendu ─────────────────────────────────────────────────────────────────
   const clientConfigured =
-    !!(process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB &&
-       !process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB?.startsWith("YOUR_"));
+    !!(Env.GOOGLE_CLIENT_ID_WEB() &&
+       !Env.GOOGLE_CLIENT_ID_WEB().startsWith("YOUR_"));
 
   return (
     <KeyboardAvoidingView

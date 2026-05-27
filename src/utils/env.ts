@@ -19,6 +19,7 @@ function getEnv(key: string, fallback = ''): string {
 
 export const Env = {
   API_BASE_URL: () => getEnv('EXPO_PUBLIC_API_BASE_URL', 'http://localhost:4200'),
+  GOOGLE_CLIENT_ID_WEB: () => getEnv('EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB', ''),
   ADMIN_EMAILS: () => getEnv('EXPO_PUBLIC_ADMIN_EMAIL', '')
     .split(',')
     .map((e) => e.trim().toLowerCase())

@@ -73,7 +73,7 @@ export function LoginModal({ visible, onClose }: Props) {
 
   useEffect(() => {
     if (Platform.OS !== 'web' || !visible) return;
-    const clientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB;
+    const clientId = Env.GOOGLE_CLIENT_ID_WEB();
     if (!clientId || clientId.startsWith('YOUR_')) return;
 
     function initGsi() {
