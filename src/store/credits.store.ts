@@ -61,7 +61,7 @@ export const useCreditsStore = create<CreditsState>((set, get) => ({
 
   fetchBalance: async () => {
     try {
-      const res = await http.get<{ credits: number; adsAvailable: number }>('/credits');
+      const res = await http.get<{ credits: number; adsAvailable: number }>('/credits/me');
       if (res?.credits !== undefined) {
         set({ credits: res.credits, adsAvailable: res.adsAvailable ?? 3 });
         await StorageService.set(CREDITS_KEY, res.credits);
@@ -73,7 +73,7 @@ export const useCreditsStore = create<CreditsState>((set, get) => ({
     const cost = CREDIT_COSTS[action];
     if (get().credits < cost) return false;
     try {
-      const res = await http.post<{ credits: number }>('/credits/spend', { amount: cost, description: action });
+      const res = await http.post<{ credits: number }>('/credits/deduct', { amount: cost, action });
       const next = res?.credits ?? (get().credits - cost);
       set({ credits: next });
       await StorageService.set(CREDITS_KEY, next);
@@ -90,7 +90,7 @@ export const useCreditsStore = create<CreditsState>((set, get) => ({
     if (wordCount <= 0) return true;
     if (get().credits < wordCount) return false;
     try {
-      const res = await http.post<{ credits: number }>('/credits/spend', { amount: wordCount, description: 'word_generation' });
+      const res = await http.post<{ credits: number }>('/credits/deduct', { amount: wordCount, action: 'word_generation' });
       const next = res?.credits ?? (get().credits - wordCount);
       set({ credits: next });
       await StorageService.set(CREDITS_KEY, next);
@@ -105,7 +105,7 @@ export const useCreditsStore = create<CreditsState>((set, get) => ({
 
   adReward: async () => {
     try {
-      const res = await http.post<{ credits: number; adsRemaining: number }>('/credits/ad-reward', {});
+      const res = await http.post<{ credits: number }>('/credits/add', { amount: 100 });
       if (res?.credits !== undefined) {
         set({ credits: res.credits, adsAvailable: res.adsRemaining });
         await StorageService.set(CREDITS_KEY, res.credits);
@@ -120,7 +120,7 @@ export const useCreditsStore = create<CreditsState>((set, get) => ({
 
   purchase: async (packId, reference) => {
     try {
-      const res = await http.post<{ credits: number }>('/credits/purchase', { pack: packId, reference });
+      const res = await http.post<{ credits: number }>('/credits/add', { amount: packId === 'starter' ? 500 : packId === 'standard' ? 2000 : 5000 });
       if (res?.credits !== undefined) {
         set({ credits: res.credits });
         await StorageService.set(CREDITS_KEY, res.credits);

@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { CloudMoon, Eye, Sparkles } from 'lucide-react-native';
+import { BookOpen, CloudMoon, Eye, Sparkles, User as UserIcon } from 'lucide-react-native';
 import React, { useRef, useEffect } from 'react';
 import { Animated, Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -76,8 +76,14 @@ export default function TabsLayout() {
         options={{ tabBarLabel: 'Prière', tabBarIcon: ({ color, focused }) => <TabIcon icon={Sparkles} focused={focused} color={color} /> }}
       />
       {/* Onglets cachés — accessibles via navigation directe depuis le profil/menu */}
-      <Tabs.Screen name="library/index" options={{ href: null }} />
-      <Tabs.Screen name="profile/index" options={{ href: null }} />
+      <Tabs.Screen
+        name="library/index"
+        options={{ tabBarLabel: 'Bibliothèque', tabBarIcon: ({ color, focused }) => <TabIcon icon={BookOpen} focused={focused} color={color} /> }}
+      />
+      <Tabs.Screen
+        name="profile/index"
+        options={{ tabBarLabel: 'Profil', tabBarIcon: ({ color, focused }) => <TabIcon icon={UserIcon} focused={focused} color={color} /> }}
+      />
     </Tabs>
   );
 }
