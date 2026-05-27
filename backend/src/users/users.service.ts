@@ -12,6 +12,7 @@ export class UsersService {
   findByEmail(email: string) { return this.repo.findOne({ where: { email } }); }
   findByGoogleId(googleId: string) { return this.repo.findOne({ where: { googleId } }); }
   findByReferralCode(code: string) { return this.repo.findOne({ where: { referralCode: code } }); }
+  findByMagicToken(token: string) { return this.repo.findOne({ where: { magicLinkToken: token } }); }
 
   async create(data: Partial<User>): Promise<User> {
     const user = this.repo.create({
