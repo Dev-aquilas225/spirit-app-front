@@ -6,9 +6,10 @@ import { router } from 'expo-router';
 import { CloudMoon, History, MessageCircle, Trash2, User, Zap } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator, Alert, FlatList, Pressable, ScrollView,
+  ActivityIndicator, Alert, FlatList, Platform, Pressable, ScrollView,
   StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../../../../src/components/common/AppIcon';
 import { Button } from '../../../../src/components/common/Button';
 import { Card } from '../../../../src/components/common/Card';
@@ -189,6 +190,7 @@ export default function DreamsTabScreen() {
   const { colors } = useTheme();
   const { t } = useI18n();
   const user = useAuthStore(s => s.user);
+  const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<DreamTab>('interpret');
   const [conversations, setConversations] = useState<AIConversation[]>([]);
   const [loading, setLoading] = useState(false);
@@ -205,7 +207,7 @@ export default function DreamsTabScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <View style={[st.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+      <View style={[st.header, { backgroundColor: colors.surface, borderBottomColor: colors.border, paddingTop: insets.top + 12 }]}>
         <View style={st.deco1} /><View style={st.deco2} />
         <View style={st.headerInner}>
           <AppIcon icon={CloudMoon} size={26} color="#C9A84C" strokeWidth={1.8} />
@@ -241,7 +243,7 @@ export default function DreamsTabScreen() {
 }
 
 const st = StyleSheet.create({
-  header:         { paddingTop: 56, paddingBottom: 18, borderBottomWidth: 1, overflow: 'hidden', position: 'relative' },
+  header:         { paddingBottom: 18, borderBottomWidth: 1, overflow: 'hidden', position: 'relative' },
   deco1:          { position: 'absolute', width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(201,168,76,0.06)', top: -50, right: -30 },
   deco2:          { position: 'absolute', width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(92,47,181,0.07)', bottom: -30, left: -20 },
   headerInner:    { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20 },

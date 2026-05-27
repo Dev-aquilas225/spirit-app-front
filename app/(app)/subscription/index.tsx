@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 /**
  * Boutique Oracle Plus — Crédits + Abonnements
  * Deux onglets : Crédits (freemium) et Abonnements (illimité 24h/24)
@@ -282,6 +283,7 @@ function SubscriptionsTab() {
 
 /* ─── Main ────────────────────────────────────────────────────────────────── */
 export default function BoutiqueScreen() {
+  const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const [tab, setTab] = useState<Tab>('subscriptions');
 
@@ -307,7 +309,7 @@ export default function BoutiqueScreen() {
 }
 
 const s = StyleSheet.create({
-  header: { paddingTop: 56, paddingBottom: 24, backgroundColor: '#1A1A3E', overflow: 'hidden', position: 'relative' },
+  header: { paddingTop: 0, paddingBottom: 24, backgroundColor: '#1A1A3E', overflow: 'hidden', position: 'relative' },
   deco1: { position: 'absolute', width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(201,168,76,0.12)', top: -60, right: -40 },
   deco2: { position: 'absolute', width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(124,58,237,0.15)', bottom: -30, left: -20 },
   headerContent: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20 },

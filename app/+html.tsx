@@ -30,7 +30,7 @@ export default function Root({ children }: { children: React.ReactNode }) {
 
         {/* ── Apple PWA (iOS Safari) ───────────────────────────────────── */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Oracle Plus" />
         {/* Icône principale iOS — 180x180 obligatoire */}
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -97,11 +97,7 @@ export default function Root({ children }: { children: React.ReactNode }) {
             overflow: hidden;
             overscroll-behavior: none;
             background-color: #0B1628;
-            /* Safe areas iOS (notch, home indicator) */
-            padding-top: env(safe-area-inset-top);
-            padding-bottom: env(safe-area-inset-bottom);
-            padding-left: env(safe-area-inset-left);
-            padding-right: env(safe-area-inset-right);
+            /* Safe areas gérées par useSafeAreaInsets dans React Native */
           }
           #root {
             height: 100%;
@@ -142,8 +138,11 @@ export default function Root({ children }: { children: React.ReactNode }) {
                     })
                     .catch(function(err) { console.warn('[SW] Erreur:', err); });
 
-                  // Recharger la page quand le SW prend le contrôle
+                  // Recharger une seule fois quand le SW prend le contrôle
+                  var refreshing = false;
                   navigator.serviceWorker.addEventListener('controllerchange', function() {
+                    if (refreshing) return;
+                    refreshing = true;
                     window.location.reload();
                   });
                 });

@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -23,6 +24,7 @@ interface PushStats {
 }
 
 export default function AdminPushScreen() {
+  const insets = useSafeAreaInsets();
   const { colors, spacing } = useTheme();
   const [stats,   setStats]   = useState<PushStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -67,7 +69,7 @@ export default function AdminPushScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
 
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: '#1A1A3E', paddingTop: 56 }]}>
+      <View style={[styles.header, { backgroundColor: '#1A1A3E', paddingTop: insets.top + 12 }]}>
         <BackButton variant="dark" style={{ alignSelf: 'flex-start', marginBottom: 16 }} fallback="/profile" />
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <AppIcon icon={Bell} size={28} color="#C9A84C" strokeWidth={2} />

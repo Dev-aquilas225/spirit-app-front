@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert,
@@ -299,7 +300,7 @@ export default function AccompagnementDetailScreen() {
 const s = StyleSheet.create({
   header: {
     paddingHorizontal: 16,
-    paddingTop: 56,
+    paddingTop: 0,
     paddingBottom: 20,
   },
   headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 4 },

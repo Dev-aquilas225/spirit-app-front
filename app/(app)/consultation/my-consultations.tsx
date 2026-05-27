@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
@@ -14,6 +15,7 @@ import { Consultation } from '../../../src/types/content.types';
 import { formatDate } from '../../../src/utils/helpers';
 
 export default function MyConsultationsScreen() {
+  const insets = useSafeAreaInsets();
   const { colors, spacing } = useTheme();
   const { user } = useAuth();
   const { t } = useI18n();
@@ -35,7 +37,7 @@ export default function MyConsultationsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <View style={[styles.header, { backgroundColor: colors.deepBlue ?? '#1A1A3E', paddingTop: 56 }]}>
+      <View style={[styles.header, { backgroundColor: colors.deepBlue ?? '#1A1A3E', paddingTop: insets.top + 12 }]}>
         <BackButton variant="dark" style={{ marginBottom: 12, alignSelf: 'flex-start' }} fallback="/consultation"/>
         <Text style={styles.headerTitle}>{t.consultation.myConsults}</Text>
       </View>

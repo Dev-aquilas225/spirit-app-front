@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from "expo-router";
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -438,6 +439,7 @@ function LanguageModal({ visible, onClose }: { visible: boolean; onClose: () => 
 /* ─── Écran principal ───────────────────────────────────────────────────────── */
 
 export default function ProfileScreen() {
+  const insets = useSafeAreaInsets();
   const { colors, spacing } = useTheme();
   const { user, logout } = useAuth();
   const { isPremium } = usePremiumAccess();
@@ -495,7 +497,7 @@ export default function ProfileScreen() {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.background }} showsVerticalScrollIndicator={false}>
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.deepBlue ?? '#1A1A3E', paddingTop: 56 }]}>
+      <View style={[styles.header, { backgroundColor: colors.deepBlue ?? '#1A1A3E', paddingTop: insets.top + 12 }]}>
         <AvatarDisplay
           avatarUri={user?.avatar}
           firstName={user?.firstName}

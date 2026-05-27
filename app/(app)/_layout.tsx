@@ -28,44 +28,67 @@ export default function AppLayout() {
     <Stack screenOptions={{
       headerShown: false,
       animation: 'fade',
+      animationDuration: 220,
       gestureEnabled: true,
-      contentStyle: { backgroundColor: 'transparent' },
     }}>
+      {/* Tabs principaux */}
       <Stack.Screen name="(tabs)" options={{ gestureEnabled: false }} />
+
+      {/* Auth post-login */}
       <Stack.Screen name="complete-profile" options={{ gestureEnabled: false }} />
+
+      {/* IA & Spirituel */}
+      <Stack.Screen name="dreams/index" />
+      <Stack.Screen name="futur/index" />
+      <Stack.Screen name="prayer-program/index" />
+      <Stack.Screen name="prophet/index" />
+      <Stack.Screen name="accompagnements/index" />
+      <Stack.Screen name="accompagnements/[id]" />
+      <Stack.Screen name="accompagnements/chat" />
+
+      {/* Consultation */}
       <Stack.Screen name="consultation/index" />
+      <Stack.Screen name="consultation/chat" />
+      <Stack.Screen name="consultation/form" />
       <Stack.Screen name="consultation/my-consultations" />
+
+      {/* Abonnement & Paiement */}
+      <Stack.Screen name="subscription/index" />
+      <Stack.Screen name="subscription/payment" />
+      <Stack.Screen name="subscription/callback" options={{ gestureEnabled: false }} />
+      <Stack.Screen name="subscription/success" options={{ gestureEnabled: false }} />
+      <Stack.Screen name="subscription/failure" />
+      <Stack.Screen name="subscription/history" />
+      <Stack.Screen name="subscription/manage" />
+      <Stack.Screen name="subscription/admin" />
+
+      {/* Partage viral */}
+      <Stack.Screen name="viral-share/index" />
+
+      {/* Formations & Bibliothèque */}
       <Stack.Screen name="formations/index" />
       <Stack.Screen name="formations/[id]" />
       <Stack.Screen name="formations/reader/[id]" />
       <Stack.Screen name="formations/admin" />
-      <Stack.Screen name="push/admin" />
-      <Stack.Screen name="dreams/index" />
-      <Stack.Screen name="prayer-program/index" />
-      <Stack.Screen name="futur/index" />
       <Stack.Screen name="library/reader" />
+      <Stack.Screen name="books/admin" />
+
+      {/* Compte & Paramètres */}
       <Stack.Screen name="settings/index" />
       <Stack.Screen name="notifications/index" />
       <Stack.Screen name="referral/index" />
       <Stack.Screen name="support/index" />
       <Stack.Screen name="legal/terms" />
       <Stack.Screen name="legal/privacy" />
-      <Stack.Screen name="accompagnements/index" />
-      <Stack.Screen name="accompagnements/[id]" />
-      <Stack.Screen name="prophet/index" />
-      <Stack.Screen name="consultation/form" />
-      <Stack.Screen name="subscription/index" />
-      <Stack.Screen name="subscription/payment" />
-      <Stack.Screen name="subscription/success" />
-      <Stack.Screen name="subscription/failure" />
-      <Stack.Screen name="subscription/history" />
-      <Stack.Screen name="subscription/manage" />
-      <Stack.Screen name="missions/index" />
+
+      {/* Admin */}
       <Stack.Screen name="admin/index" />
       <Stack.Screen name="admin/users" />
       <Stack.Screen name="admin/ai-settings" />
       <Stack.Screen name="admin/books" />
       <Stack.Screen name="admin/notifications" />
+      <Stack.Screen name="admin/viral-shares" />
+      <Stack.Screen name="push/admin" />
     </Stack>
   );
 }

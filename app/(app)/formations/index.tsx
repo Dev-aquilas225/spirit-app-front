@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useEffect, useState } from 'react';
 import {
   Modal,
@@ -662,7 +663,7 @@ function FormationsContent() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <View
-        style={[s.header, { backgroundColor: '#1A1A3E', padding: spacing.base, paddingTop: 56 }]}
+        style={[s.header, { backgroundColor: '#1A1A3E', padding: spacing.base, paddingTop: 0 }]}
       >
         <BackButton variant="dark" style={{ marginBottom: 12 }} fallback="/home" />
         <View style={s.headerTitleRow}>
@@ -877,8 +878,8 @@ const s = StyleSheet.create({
   headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff', flex: 1 },
   headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 4 },
   addBtn: {
-    width: 32,
-    height: 32,
+    width: 40,
+    height: 40,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
@@ -962,7 +963,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 56,
+    paddingTop: 0,
     paddingBottom: 12,
     borderBottomWidth: 1,
   },

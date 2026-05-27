@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 /**
  * Admin — Gestion des abonnements
  * Accessible uniquement aux admins (EXPO_PUBLIC_ADMIN_EMAIL).
@@ -152,6 +153,7 @@ function InfoCell({ label, value, mono }: { label: string; value: string; mono?:
 /* ─── Écran principal ───────────────────────────────────────────────────── */
 
 export default function AdminSubscriptionsScreen() {
+  const insets = useSafeAreaInsets();
   const { colors, spacing } = useTheme();
 
   const [data, setData]           = useState<AdminSubscription[]>([]);
@@ -245,7 +247,7 @@ export default function AdminSubscriptionsScreen() {
     <View style={[s.root, { backgroundColor: colors.background }]}>
 
       {/* Header */}
-      <View style={[s.header, { backgroundColor: colors.deepBlue ?? '#1A1A3E', paddingTop: 56 }]}>
+      <View style={[s.header, { backgroundColor: colors.deepBlue ?? '#1A1A3E', paddingTop: insets.top + 12 }]}>
         <View style={s.headerTop}>
           <BackButton variant="dark" />
           <TouchableOpacity onPress={() => load(true)} style={s.refreshBtn}>

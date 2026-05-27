@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import { useI18n } from '../../../src/i18n';
@@ -5,11 +6,12 @@ import { useTheme } from '../../../src/theme';
 import { BackButton } from '../../../src/components/common/BackButton';
 
 export default function PrivacyScreen() {
+  const insets = useSafeAreaInsets();
   const { colors, spacing } = useTheme();
   const { t } = useI18n();
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <View style={{ backgroundColor: colors.surface, paddingTop: 56, paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+      <View style={{ backgroundColor: colors.surface, paddingTop: insets.top + 12, paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.border }}>
         <BackButton style={{ marginBottom: 8 }} fallback="/profile"/>
         <Text style={{ fontSize: 20, fontWeight: '800', color: colors.text }}>{t.legal.privacyTitle}</Text>
       </View>

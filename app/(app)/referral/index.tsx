@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 /**
  * Parrainage Oracle Plus
  * Parrain + filleul gagnent chacun 200 crédits à l'inscription du filleul.
@@ -16,6 +17,7 @@ import { useCreditsStore } from '../../../src/store/credits.store';
 const REFERRAL_BONUS = 200; // crédits offerts aux deux
 
 export default function ReferralScreen() {
+  const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const { user } = useAuth();
   const credits = useCreditsStore((s) => s.credits);
@@ -188,7 +190,7 @@ export default function ReferralScreen() {
 }
 
 const s = StyleSheet.create({
-  header: { paddingTop: 56, paddingBottom: 20, overflow: 'hidden', position: 'relative' },
+  header: { paddingTop: 0, paddingBottom: 20, overflow: 'hidden', position: 'relative' },
   deco1: { position: 'absolute', width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(201,168,76,0.1)', top: -50, right: -30 },
   deco2: { position: 'absolute', width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(99,102,241,0.12)', bottom: -30, left: -20 },
   headerRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20 },

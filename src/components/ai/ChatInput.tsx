@@ -102,8 +102,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   sendBtn: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 8,

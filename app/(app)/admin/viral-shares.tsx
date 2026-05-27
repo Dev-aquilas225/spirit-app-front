@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 /**
  * Admin — Validation des partages viraux WhatsApp
  * Affiche les demandes en attente + stats + boutons approuver/rejeter
@@ -30,6 +31,7 @@ interface Stats {
 }
 
 export default function AdminViralSharesScreen() {
+  const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const [requests, setRequests] = useState<ShareRequest[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -228,7 +230,7 @@ export default function AdminViralSharesScreen() {
 }
 
 const st = StyleSheet.create({
-  header:       { paddingTop: 56, paddingBottom: 16, borderBottomWidth: 1 },
+  header:       { paddingTop: 0, paddingBottom: 16, borderBottomWidth: 1 },
   headerRow:    { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20 },
   headerTitle:  { fontSize: 18, fontWeight: '800' },
   headerSub:    { fontSize: 12, marginTop: 2 },

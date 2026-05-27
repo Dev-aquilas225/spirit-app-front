@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useI18n } from '../../../src/i18n';
@@ -7,6 +8,7 @@ import { Card } from '../../../src/components/common/Card';
 import { formatDate } from '../../../src/utils/helpers';
 
 export default function TermsScreen() {
+  const insets = useSafeAreaInsets();
   const { colors, spacing } = useTheme();
   const { t } = useI18n();
 
@@ -17,7 +19,7 @@ export default function TermsScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       
       {/* Header Premium - Inspire la confiance et le respect */}
-      <View style={[styles.header, { backgroundColor: colors.deepBlue ?? '#1A1A3E', paddingTop: 56 }]}>
+      <View style={[styles.header, { backgroundColor: colors.deepBlue ?? '#1A1A3E', paddingTop: insets.top + 12 }]}>
         <BackButton variant="dark" style={{ marginBottom: 12 }} fallback="/profile" />
         <Text style={styles.headerTitle}>{t.legal.termsTitle}</Text>
         <Text style={styles.headerSubtitle}>

@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { History, MessageCircle, Star } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
@@ -38,6 +39,7 @@ const PROGRAMME_SUGGESTIONS: Record<string, string> = {
 const DEFAULT_SUGGESTION = "J'ai besoin d'un accompagnement spirituel";
 
 export default function AccompagnementChatScreen() {
+  const insets = useSafeAreaInsets();
   const { colors, spacing } = useTheme();
   const user = useAuthStore((s) => s.user);
   const { programme, id } = useLocalSearchParams<{ programme?: string; id?: string }>();
@@ -238,7 +240,7 @@ export default function AccompagnementChatScreen() {
 }
 
 const s = StyleSheet.create({
-  header: { paddingHorizontal: 16, paddingTop: 56, paddingBottom: 16 },
+  header: { paddingHorizontal: 16, paddingTop: 0, paddingBottom: 16 },
   headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },

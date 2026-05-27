@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ChatBubble } from '../../../src/components/ai/ChatBubble';
 import { ChatInput } from '../../../src/components/ai/ChatInput';
@@ -33,6 +34,7 @@ type TabView = 'chat' | 'history';
 
 export default function FuturScreen() {
   const { colors, spacing } = useTheme();
+  const insets = useSafeAreaInsets();
   const user = useAuthStore((s) => s.user);
   const firstName = user?.firstName?.trim() || user?.name?.split(' ')[0] || '';
   const [view, setView] = useState<TabView>('chat');
@@ -85,7 +87,7 @@ export default function FuturScreen() {
 
   // ── Header ──────────────────────────────────────────────────────────────────
   const HeaderBlock = (
-    <View style={[s.header, { backgroundColor: '#0D1B2A' }]}>
+    <View style={[s.header, { backgroundColor: '#0D1B2A', paddingTop: insets.top + 12 }]}>
       <View style={s.headerRow}>
         <View style={{ flex: 1 }}>
           <View style={s.headerTitleRow}>
@@ -152,6 +154,9 @@ export default function FuturScreen() {
             data={conversations}
             keyExtractor={(item) => item.id}
             contentContainerStyle={{ padding: spacing.base }}
+            removeClippedSubviews
+            maxToRenderPerBatch={10}
+            windowSize={5}
             renderItem={({ item }) => {
               const preview =
                 item?.title?.trim() ||
@@ -206,6 +211,10 @@ export default function FuturScreen() {
             keyExtractor={(item) => item.id}
             renderItem={({ item, index }) => <ChatBubble message={item} isLatest={index === messages.length - 1 && item.role === 'assistant'} />}
             contentContainerStyle={{ paddingVertical: 16 }}
+            removeClippedSubviews
+            maxToRenderPerBatch={8}
+            windowSize={10}
+            inverted={false}
           />
         )}
 
@@ -229,7 +238,7 @@ export default function FuturScreen() {
 }
 
 const s = StyleSheet.create({
-  header:         { paddingHorizontal: 16, paddingTop: 56, paddingBottom: 16 },
+  header:         { paddingHorizontal: 16, paddingBottom: 16 },
   headerRow:      { flexDirection: 'row', alignItems: 'center', gap: 4 },
   headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   headerTitle:    { fontSize: 20, fontWeight: '800', color: '#fff', letterSpacing: 0.2 },

@@ -1,4 +1,5 @@
-import { Heart, History, MessageCircle } from "lucide-react-native";
+import { Heart, History, MessageCircle, User } from "lucide-react-native";
+import { router } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import { useAccess } from "../../../src/hooks/useAccess";
 
@@ -14,6 +15,7 @@ import {
   ScrollView,
   ActivityIndicator,
 } from "react-native";
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ChatBubble } from "../../../src/components/ai/ChatBubble";
 import { ChatInput } from "../../../src/components/ai/ChatInput";
@@ -36,7 +38,7 @@ type PrayerView = "chat" | "history";
 export default function PrayerProgramScreen() {
   const { colors, spacing } = useTheme();
   const { t } = useI18n();
-
+  const insets = useSafeAreaInsets();
   const user = useAuthStore((s) => s.user);
 
   const firstName =
@@ -137,8 +139,8 @@ export default function PrayerProgramScreen() {
       style={[
         s.header,
         {
-          backgroundColor:
-            colors.deepBlue ?? "#1A1A3E",
+          backgroundColor: colors.deepBlue ?? "#1A1A3E",
+          paddingTop: insets.top + 12,
         },
       ]}
     >
@@ -181,23 +183,20 @@ export default function PrayerProgramScreen() {
         {view === "chat" && (
           <TouchableOpacity
             onPress={() => setView("history")}
-            style={[
-              s.iconBtn,
-              {
-                backgroundColor:
-                  "rgba(255,255,255,0.12)",
-              },
-            ]}
+            style={[s.iconBtn, { backgroundColor: "rgba(255,255,255,0.12)" }]}
             activeOpacity={0.8}
           >
-            <AppIcon
-              icon={History}
-              size={18}
-              color="#fff"
-              strokeWidth={2.2}
-            />
+            <AppIcon icon={History} size={18} color="#fff" strokeWidth={2.2} />
           </TouchableOpacity>
         )}
+        {/* Bouton profil */}
+        <TouchableOpacity
+          onPress={() => router.push('/profile')}
+          style={[s.iconBtn, { backgroundColor: "rgba(255,255,255,0.12)", marginLeft: 4 }]}
+          activeOpacity={0.8}
+        >
+          <AppIcon icon={User} size={18} color="#fff" strokeWidth={2.2} />
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -408,7 +407,6 @@ export default function PrayerProgramScreen() {
 const s = StyleSheet.create({
   header: {
     paddingHorizontal: 16,
-    paddingTop: 56,
     paddingBottom: 16,
   },
 
@@ -457,8 +455,8 @@ const s = StyleSheet.create({
   },
 
   goldIndicatorIcon: {
-    width: 34,
-    height: 34,
+    width: 40,
+    height: 40,
     borderRadius: 17,
     backgroundColor:
       "rgba(201, 168, 76, 0.1)",

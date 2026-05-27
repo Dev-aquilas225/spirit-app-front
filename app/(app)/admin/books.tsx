@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 /**
  * Admin — Bibliothèque (CRUD complet)
  * - Liste des livres avec couverture, auteur, catégorie, coût
@@ -246,6 +247,7 @@ function BookRow({ book, onEdit, onDelete }: { book: Book; onEdit: () => void; o
 
 /* ─── Main screen ────────────────────────────────────────────────────────── */
 export default function AdminBooks() {
+  const insets = useSafeAreaInsets();
   const [books, setBooks]       = useState<Book[]>([]);
   const [loading, setLoading]   = useState(true);
   const [mode, setMode]         = useState<'list' | 'add' | 'edit'>('list');
@@ -380,7 +382,7 @@ export default function AdminBooks() {
 
 /* ─── Styles ─────────────────────────────────────────────────────────────── */
 const s = StyleSheet.create({
-  hdr:       { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 20, paddingTop: 56, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' },
+  hdr:       { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 20, paddingTop: 0, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' },
   back:      { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.06)' },
   title:     { flex: 1, fontSize: 18, fontWeight: '800', color: '#fff' },
   addBtn:    { width: 40, height: 40, borderRadius: 20, backgroundColor: '#C9A84C', alignItems: 'center', justifyContent: 'center' },

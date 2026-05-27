@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet } from 'react-native';
 import type { LucideIcon } from 'lucide-react-native';
@@ -12,6 +13,7 @@ import { formatDate, formatCurrency } from '../../../src/utils/helpers';
 import { PaymentRecord } from '../../../src/types/subscription.types';
 
 export default function PaymentHistoryScreen() {
+  const insets = useSafeAreaInsets();
   const { colors, spacing } = useTheme();
   const { t } = useI18n();
   const { payments, loadSubscription } = useSubscription();
@@ -26,7 +28,7 @@ export default function PaymentHistoryScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <View style={[styles.header, { backgroundColor: colors.deepBlue ?? '#1A1A3E', paddingTop: 56 }]}>
+      <View style={[styles.header, { backgroundColor: colors.deepBlue ?? '#1A1A3E', paddingTop: insets.top + 12 }]}>
         <BackButton variant="dark" style={{ alignSelf: 'flex-start' }} fallback="/subscription"/>
         <Text style={styles.headerTitle}>{t.subscription.history}</Text>
       </View>

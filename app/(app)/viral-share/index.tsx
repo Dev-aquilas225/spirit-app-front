@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 /**
  * Partage Viral WhatsApp — 1000 crédits pour 50 contacts
  * Alternative gratuite au paiement selon le CDC Oracle Plus.
@@ -36,6 +37,7 @@ function StatusBadge({ status }: { status: ViralShareRequest['status'] }) {
 }
 
 export default function ViralShareScreen() {
+  const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const fetchBalance = useCreditsStore(s => s.fetchBalance);
 
@@ -212,7 +214,7 @@ export default function ViralShareScreen() {
 }
 
 const st = StyleSheet.create({
-  header:       { paddingTop: 56, paddingBottom: 18, borderBottomWidth: 1, overflow: 'hidden' },
+  header:       { paddingTop: 0, paddingBottom: 18, borderBottomWidth: 1, overflow: 'hidden' },
   deco:         { position: 'absolute', width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(37,211,102,0.06)', top: -80, right: -60 },
   headerRow:    { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20 },
   headerTitle:  { fontSize: 18, fontWeight: '800' },
