@@ -6,6 +6,6 @@ export class FormationsEntity {
   @Column({ type: 'text', nullable: true }) description: string;
   @Column({ nullable: true }) coverUrl: string;
   @Column({ default: true }) isActive: boolean;
-  @Column({ type: 'json', default: '[]' }) lessons: any[];
+  @Column({ type: 'json', nullable: true }) lessons: any[];
   @CreateDateColumn() createdAt: Date;
 }
