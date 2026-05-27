@@ -1,10 +1,10 @@
 #!/bin/sh
 set -e
 
-HTML=/usr/share/nginx/html/index.html
-ENV_JS=/usr/share/nginx/html/env-config.js
+HTML=/app/dist/index.html
+ENV_JS=/app/dist/env-config.js
 
-# Générer env-config.js avec toutes les variables runtime
+# 1. Générer env-config.js avec toutes les variables runtime
 cat > "$ENV_JS" << ENVEOF
 window.__ENV__ = {
   "EXPO_PUBLIC_API_BASE_URL":         "${EXPO_PUBLIC_API_BASE_URL:-}",
@@ -15,9 +15,10 @@ window.__ENV__ = {
 };
 ENVEOF
 
-# Injecter <script src="/env-config.js"> dans index.html avant </head>
+# 2. Injecter <script src="/env-config.js"> dans index.html avant </head>
 if ! grep -q 'env-config.js' "$HTML"; then
   sed -i 's|</head>|<script src="/env-config.js"></script></head>|' "$HTML"
 fi
 
-exec nginx -g 'daemon off;'
+# 3. Démarrer le serveur Node.js
+exec node server.js

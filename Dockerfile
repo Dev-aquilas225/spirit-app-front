@@ -15,20 +15,17 @@ COPY . .
 # Build sans EXPO_PUBLIC_* — l'URL est injectée au runtime via window.__ENV__
 RUN npx expo export --platform web
 
-# ─── Stage 2 : Serve avec Nginx ──────────────────────────────────────────────
-FROM nginx:stable-alpine AS runner
+# ─── Stage 2 : Serve avec Node.js (port 3000) ────────────────────────────────
+FROM node:20-alpine AS runner
 
-# Copier le build statique
-COPY --from=builder /app/dist /usr/share/nginx/html
+WORKDIR /app
 
-# Copier la config Nginx (root pointe vers /usr/share/nginx/html)
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-RUN sed -i 's|root /var/www/html|root /usr/share/nginx/html|g' /etc/nginx/conf.d/default.conf
+# Copier le build statique et le serveur
+COPY --from=builder /app/dist ./dist
+COPY server.js ./
+COPY entrypoint.sh ./
+RUN chmod +x entrypoint.sh
 
-# Entrypoint : génère env-config.js + injecte dans index.html au démarrage
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+EXPOSE 3000
 
-EXPOSE 80
-
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["./entrypoint.sh"]
