@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { BookOpen, CloudMoon, Eye, Home, Sparkles, User as UserIcon } from 'lucide-react-native';
+import { BookOpen, CloudMoon, Eye, Home, MessageCircle, Sparkles, User as UserIcon } from 'lucide-react-native';
 import React, { useRef, useEffect } from 'react';
 import { Animated, Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -62,31 +62,33 @@ export default function TabsLayout() {
       },
       tabBarLabelStyle: { fontSize: 11, fontWeight: '700', letterSpacing: 0.2, marginTop: 1 },
     }}>
-      {/* Dashboard en premier — écran d'accueil */}
+      {/* Accueil — Dashboard avec cartes de services */}
       <Tabs.Screen
         name="dashboard/index"
         options={{ tabBarLabel: 'Accueil', tabBarIcon: ({ color, focused }) => <TabIcon icon={Home} focused={focused} color={color} /> }}
       />
-      <Tabs.Screen
-        name="home/index"
-        options={{ tabBarLabel: 'Rêves', tabBarIcon: ({ color, focused }) => <TabIcon icon={CloudMoon} focused={focused} color={color} /> }}
-      />
-      <Tabs.Screen
-        name="ai/index"
-        options={{ tabBarLabel: 'Voyance', tabBarIcon: ({ color, focused }) => <TabIcon icon={Eye} focused={focused} color={color} /> }}
-      />
+      {/* Prières */}
       <Tabs.Screen
         name="prayers/index"
-        options={{ tabBarLabel: 'Prière', tabBarIcon: ({ color, focused }) => <TabIcon icon={Sparkles} focused={focused} color={color} /> }}
+        options={{ tabBarLabel: 'Prières', tabBarIcon: ({ color, focused }) => <TabIcon icon={Sparkles} focused={focused} color={color} /> }}
       />
+      {/* Voyance — bouton central */}
+      <Tabs.Screen
+        name="ai/index"
+        options={{ tabBarLabel: 'Voyance', tabBarIcon: ({ color, focused }) => <TabIcon icon={MessageCircle} focused={focused} color={color} /> }}
+      />
+      {/* Livres */}
       <Tabs.Screen
         name="library/index"
-        options={{ tabBarLabel: 'Bibliothèque', tabBarIcon: ({ color, focused }) => <TabIcon icon={BookOpen} focused={focused} color={color} /> }}
+        options={{ tabBarLabel: 'Livres', tabBarIcon: ({ color, focused }) => <TabIcon icon={BookOpen} focused={focused} color={color} /> }}
       />
+      {/* Profil */}
       <Tabs.Screen
         name="profile/index"
         options={{ tabBarLabel: 'Profil', tabBarIcon: ({ color, focused }) => <TabIcon icon={UserIcon} focused={focused} color={color} /> }}
       />
+      {/* Onglets cachés — accessibles via navigation directe */}
+      <Tabs.Screen name="home/index" options={{ href: null }} />
     </Tabs>
   );
 }

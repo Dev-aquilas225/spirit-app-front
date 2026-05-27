@@ -23,6 +23,7 @@ import { useI18n } from "../../../../src/i18n";
 import { useAuthStore } from "../../../../src/store/auth.store";
 import { useTheme } from "../../../../src/theme";
 import { Gender, Language } from "../../../../src/types/auth.types";
+import { Env } from "../../../../src/utils/env";
 
 /* ─── Config genre (même palette que complete-profile) ─────────────────────── */
 
@@ -452,11 +453,9 @@ export default function ProfileScreen() {
   const langLabel = LANGUAGES.find(l => l.code === user?.language)?.label ?? t.settings.french;
   // Admin détecté via le rôle JWT (mis par le backend depuis ADMIN_EMAILS)
   // Fallback : vérification email côté client si le rôle n'est pas encore synchronisé
-  const adminEmails = (process.env.EXPO_PUBLIC_ADMIN_EMAIL ?? '')
-    .split(',').map((e: string) => e.trim()).filter(Boolean);
   const isAdmin =
     user?.role === 'admin' ||
-    adminEmails.includes(user?.email ?? '');
+    Env.ADMIN_EMAILS().includes((user?.email ?? '').toLowerCase());
 
   const genderLabels: Record<Gender, string> = {
     male:   t.profile.male,

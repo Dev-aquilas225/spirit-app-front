@@ -315,9 +315,7 @@ function FormationsContent() {
   const { t, language } = useI18n();
   const { user } = useAuth();
   // Double vérification : rôle JWT + email (fallback si le JWT est antérieur à ADMIN_EMAILS)
-  const adminEmails = (process.env.EXPO_PUBLIC_ADMIN_EMAIL ?? '')
-    .split(',').map((e: string) => e.trim()).filter(Boolean);
-  const isAdmin = user?.role === 'admin' || adminEmails.includes(user?.email ?? '');
+  const isAdmin = user?.role === 'admin' || Env.ADMIN_EMAILS().includes((user?.email ?? '').toLowerCase());
 
   const [view, setView] = useState<FormationsView>('list');
   const [formations, setFormations] = useState<Formation[]>([]);
