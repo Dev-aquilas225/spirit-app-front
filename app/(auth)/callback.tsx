@@ -1,20 +1,25 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { AlertCircle, CheckCircle } from "lucide-react-native";
+import { AlertCircle } from "lucide-react-native";
 import React, { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { AppIcon } from "../../src/components/common/AppIcon";
+import { AuthService } from "../../src/services/auth.service";
 import { useAuthStore } from "../../src/store/auth.store";
 import { useTheme } from "../../src/theme";
 
 /**
- * Écran callback — intercepte le deep link spiritapp://auth/callback
- * avec les tokens en paramètres et connecte l'utilisateur.
+ * Écran callback — gère deux cas :
+ * 1. Magic link : /callback?token=<magic_token>
+ *    → vérifie le token auprès du backend, récupère les JWT, connecte l'utilisateur
+ * 2. OAuth deep link : /callback?accessToken=...&refreshToken=...
+ *    → connecte directement avec les JWT reçus
  */
 export default function AuthCallbackScreen() {
   const { colors } = useTheme();
-  const { accessToken, refreshToken } = useLocalSearchParams<{
-    accessToken: string;
-    refreshToken: string;
+  const { token, accessToken, refreshToken } = useLocalSearchParams<{
+    token?: string;
+    accessToken?: string;
+    refreshToken?: string;
   }>();
 
   const loginWithTokens = useAuthStore((s) => s.loginWithTokens);
@@ -25,31 +30,46 @@ export default function AuthCallbackScreen() {
   useEffect(() => {
     if (called.current) return;
     called.current = true;
+    authenticate();
+  }, []);
 
-    async function authenticate() {
-      if (!accessToken || !refreshToken) {
-        setErrorMsg("Lien invalide. Veuillez redemander un lien de connexion.");
+  async function authenticate() {
+    // Cas 1 : magic link token
+    if (token) {
+      const result = await AuthService.verifyMagicLink(token);
+      if (result.error || !result.data) {
+        setErrorMsg(result.error ?? "Lien invalide ou expiré.");
         setStatus("error");
         return;
       }
-
-      const success = await loginWithTokens(accessToken, refreshToken);
-      if (success) {
-        // Lire isProfileComplete depuis le store : il a déjà fusionné le genre local
-        const profileComplete = useAuthStore.getState().isProfileComplete;
-        if (!profileComplete) {
-          router.replace("/complete-profile");
-        } else {
-          router.replace("/home");
-        }
-      } else {
-        setErrorMsg("Connexion échouée. Veuillez redemander un lien de connexion.");
-        setStatus("error");
-      }
+      await finishLogin(result.data.accessToken, result.data.refreshToken);
+      return;
     }
 
-    authenticate();
-  }, [accessToken, refreshToken]);
+    // Cas 2 : JWT directs (OAuth)
+    if (accessToken && refreshToken) {
+      await finishLogin(accessToken, refreshToken);
+      return;
+    }
+
+    setErrorMsg("Lien invalide. Veuillez redemander un lien de connexion.");
+    setStatus("error");
+  }
+
+  async function finishLogin(at: string, rt: string) {
+    const success = await loginWithTokens(at, rt);
+    if (!success) {
+      setErrorMsg("Connexion échouée. Veuillez redemander un lien de connexion.");
+      setStatus("error");
+      return;
+    }
+    const profileComplete = useAuthStore.getState().isProfileComplete;
+    if (!profileComplete) {
+      router.replace("/complete-profile");
+    } else {
+      router.replace("/home");
+    }
+  }
 
   if (status === "loading") {
     return (
@@ -64,24 +84,18 @@ export default function AuthCallbackScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
-      <AppIcon
-        icon={AlertCircle}
-        size={56}
-        color="#EF4444"
-        strokeWidth={1.8}
-      />
+      <AppIcon icon={AlertCircle} size={56} color="#EF4444" strokeWidth={1.8} />
       <Text style={[styles.errorTitle, { color: colors.text }]}>
         Connexion impossible
       </Text>
       <Text style={[styles.message, { color: colors.textSecondary }]}>
         {errorMsg}
       </Text>
-      <Text
-        style={[styles.link, { color: colors.primary }]}
-        onPress={() => router.replace("/login")}
-      >
-        Retour à l'écran de connexion
-      </Text>
+      <TouchableOpacity onPress={() => router.replace("/login")}>
+        <Text style={[styles.link, { color: colors.primary }]}>
+          Retour à l'écran de connexion
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 }
