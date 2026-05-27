@@ -28,6 +28,8 @@ const mimeTypes = {
 function buildEnvConfig() {
   const env = {
     EXPO_PUBLIC_API_BASE_URL: process.env.EXPO_PUBLIC_API_BASE_URL ?? '',
+    EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB ?? '',
+    EXPO_PUBLIC_VAPID_PUBLIC_KEY: process.env.EXPO_PUBLIC_VAPID_PUBLIC_KEY ?? '',
   };
   return `window.__ENV__ = ${JSON.stringify(env)};`;
 }
