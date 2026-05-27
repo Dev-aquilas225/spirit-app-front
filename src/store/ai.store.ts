@@ -4,6 +4,13 @@ import { AIService } from '../services/ai.service';
 import { generateId } from '../utils/helpers';
 import { useAuthStore } from './auth.store';
 
+/** Fenêtre glissante FIFO : garde les N derniers messages */
+const MAX_CONTEXT_MESSAGES = 100;
+function applyFIFO(messages: AIMessage[]): AIMessage[] {
+  if (messages.length <= MAX_CONTEXT_MESSAGES) return messages;
+  return messages.slice(messages.length - MAX_CONTEXT_MESSAGES);
+}
+
 interface AIStore {
   conversations: AIConversation[];
   currentConversation: AIConversation | null;
@@ -107,7 +114,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
 
       const updatedConv: AIConversation = {
         ...conv,
-        messages: [...conv.messages, userMessage],
+        messages: applyFIFO([...conv.messages, userMessage]),
         updatedAt: new Date().toISOString(),
       };
 
@@ -126,7 +133,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
       const finalConv: AIConversation = {
         ...updatedConv,
         id: resolvedConversationId ?? updatedConv.id,
-        messages: [...updatedConv.messages, aiMessage],
+        messages: applyFIFO([...updatedConv.messages, aiMessage]),
         updatedAt: new Date().toISOString(),
       };
 

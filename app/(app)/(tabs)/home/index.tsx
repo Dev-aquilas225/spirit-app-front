@@ -13,6 +13,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../../../../src/components/common/AppIcon';
 import { Button } from '../../../../src/components/common/Button';
 import { Card } from '../../../../src/components/common/Card';
+import { ShareButton } from '../../../../src/components/common/ShareButton';
+import { DailyMessage } from '../../../../src/components/home/DailyMessage';
 import { CreditGate } from '../../../../src/components/credits/CreditGate';
 import { AIService } from '../../../../src/services/ai.service';
 import { useAccess } from '../../../../src/hooks/useAccess';
@@ -67,6 +69,7 @@ function InterpretTab({ onSuccess }: { onSuccess: () => void }) {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.background }}>
       <View style={{ padding: spacing.base, gap: 16 }}>
+        <DailyMessage />
         <View style={[st.costBadge, { backgroundColor: hasSubscription ? 'rgba(16,185,129,0.1)' : 'rgba(201,168,76,0.1)', borderColor: hasSubscription ? '#10B981' : '#C9A84C' }]}>
           <AppIcon icon={hasSubscription ? MessageCircle : Zap} size={14} color={hasSubscription ? '#10B981' : '#C9A84C'} strokeWidth={2.4} />
           <Text style={[st.costText, { color: hasSubscription ? '#10B981' : '#C9A84C' }]}>
@@ -110,7 +113,10 @@ function InterpretTab({ onSuccess }: { onSuccess: () => void }) {
             {typingDone && (
               <>
                 <View style={[st.divider, { backgroundColor: 'rgba(201,168,76,0.2)' }]} />
-                <Text style={{ color: colors.textTertiary, fontSize: 12, fontStyle: 'italic' }}>{t.dreams.disclaimer}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text style={{ color: colors.textTertiary, fontSize: 12, fontStyle: 'italic', flex: 1 }}>{t.dreams.disclaimer}</Text>
+                  <ShareButton type="dream" content={interpretation} compact />
+                </View>
               </>
             )}
           </Pressable>

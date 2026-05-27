@@ -5,15 +5,18 @@ import { useTheme } from '../../theme';
 import { AIMessage } from '../../types/content.types';
 import { formatTime } from '../../utils/helpers';
 import { AppIcon } from '../common/AppIcon';
+import { ShareButton, ShareContentType } from '../common/ShareButton';
 import { useTypingText } from '../../hooks/useTypingText';
 
 interface ChatBubbleProps {
   message: AIMessage;
   /** Activer le typing effect uniquement sur le dernier message assistant */
   isLatest?: boolean;
+  /** Type de contenu pour le bouton Partager (affiché sur les messages assistant uniquement) */
+  shareType?: ShareContentType;
 }
 
-export function ChatBubble({ message, isLatest = false }: ChatBubbleProps) {
+export function ChatBubble({ message, isLatest = false, shareType }: ChatBubbleProps) {
   const { colors, spacing, borderRadius: br } = useTheme();
   const isUser = message.role === 'user';
 
@@ -55,9 +58,14 @@ export function ChatBubble({ message, isLatest = false }: ChatBubbleProps) {
           )}
         </Text>
         {isDone && (
-          <Text style={[st.time, { color: isUser ? 'rgba(255,255,255,0.7)' : colors.textTertiary }]}>
-            {formatTime(message.timestamp)}
-          </Text>
+          <View style={st.footer}>
+            <Text style={[st.time, { color: isUser ? 'rgba(255,255,255,0.7)' : colors.textTertiary }]}>
+              {formatTime(message.timestamp)}
+            </Text>
+            {!isUser && shareType && (
+              <ShareButton type={shareType} content={safeContent} compact />
+            )}
+          </View>
         )}
       </View>
     </Pressable>
@@ -71,5 +79,6 @@ const st = StyleSheet.create({
   avatarWrap: { marginRight: 6, marginBottom: 4 },
   bubble:     {},
   text:       { fontSize: 15 },
-  time:       { fontSize: 11, marginTop: 4, textAlign: 'right' },
+  footer:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
+  time:       { fontSize: 11 },
 });

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Search, BookOpen, Lock, Star } from 'lucide-react-native';
 import { AppIcon } from '../../../../src/components/common/AppIcon';
@@ -15,6 +16,7 @@ const CATS = ['Tous','Prière','Prophétie','Sagesse','Guérison','Formation'];
 
 export default function LibraryScreen() {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { hasSubscription, credits } = useAccess();
   const { spend } = useCreditsStore();
   const { completeMission, earnBadge } = useGamificationStore();
@@ -39,7 +41,7 @@ export default function LibraryScreen() {
 
   return (
     <View style={{ flex:1, backgroundColor: colors.background }}>
-      <View style={[s.header, { backgroundColor: '#0D0D2B' }]}>
+      <View style={[s.header, { backgroundColor: '#0D0D2B', paddingTop: insets.top + 16 }]}>
         <Text style={s.headerTitle}>Bibliothèque Spirituelle</Text>
         <Text style={s.headerSub}>{books.length} livres disponibles</Text>
       </View>
@@ -84,7 +86,7 @@ const DEMO_BOOKS: Book[] = [
 ];
 
 const s = StyleSheet.create({
-  header:{ padding:20, paddingTop:56, paddingBottom:20 },
+  header:{ padding:20, paddingBottom:20 },
   headerTitle:{ fontSize:22, fontWeight:'900', color:'#fff' },
   headerSub:{ fontSize:13, color:'rgba(255,255,255,0.5)', marginTop:4 },
   searchWrap:{ flexDirection:'row', alignItems:'center', gap:10, margin:16, borderRadius:14, borderWidth:1, paddingHorizontal:14, paddingVertical:10 },
