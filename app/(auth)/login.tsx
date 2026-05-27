@@ -1,4 +1,4 @@
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { ArrowRight, Lock, Mail, MessageCircle } from "lucide-react-native";
 import React, { useEffect, useRef, useState } from "react";
 // expo-auth-session retiré — Google OAuth géré dans LoginModal uniquement
@@ -24,6 +24,8 @@ export default function LoginScreen() {
   const { colors, spacing, borderRadius: br } = useTheme();
   const { t } = useI18n();
   const loginWithTokens = useAuthStore((s) => s.loginWithTokens);
+  const { from } = useLocalSearchParams<{ from?: string }>();
+  const fromOnboarding = from === 'onboarding';
 
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState<string | undefined>(undefined);
@@ -53,6 +55,9 @@ export default function LoginScreen() {
     const profileComplete = useAuthStore.getState().isProfileComplete;
     if (!profileComplete) {
       router.replace("/complete-profile");
+    } else if (fromOnboarding) {
+      // Venir de l'onboarding → afficher la confirmation 2000 crédits
+      router.replace('/onboarding-confirm');
     } else {
       router.replace("/home");
     }

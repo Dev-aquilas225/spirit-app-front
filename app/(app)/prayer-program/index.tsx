@@ -349,8 +349,8 @@ export default function PrayerProgramScreen() {
             ref={flatListRef}
             data={messages}
             keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <ChatBubble message={item} />
+            renderItem={({ item, index }) => (
+              <ChatBubble message={item} isLatest={index === messages.length - 1 && item.role === 'assistant'} />
             )}
             contentContainerStyle={{
               paddingVertical: 16,

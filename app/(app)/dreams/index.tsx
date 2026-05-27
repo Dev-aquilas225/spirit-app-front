@@ -5,7 +5,7 @@
 import { CloudMoon, History, MessageCircle, Trash2, Zap } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator, Alert, FlatList, ScrollView,
+  ActivityIndicator, Alert, FlatList, Pressable, ScrollView,
   StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from 'react-native';
 import { AppIcon } from '../../../src/components/common/AppIcon';
@@ -21,6 +21,7 @@ import { useTheme } from '../../../src/theme';
 import { useAuthStore } from '../../../src/store/auth.store';
 import { AIConversation } from '../../../src/types/content.types';
 import { formatDate } from '../../../src/utils/helpers';
+import { useTypingText } from '../../../src/hooks/useTypingText';
 
 type DreamTab = 'interpret' | 'history';
 
@@ -32,9 +33,11 @@ function InterpretTab({ onSuccess }: { onSuccess: () => void }) {
 
   const [dream, setDream] = useState('');
   const [loading, setLoading] = useState(false);
-  const [interpretation, setInterpretation] = useState<string | null>(null);
+  const [interpretation, setInterpretation] = useState('');
   const [date, setDate] = useState<string | null>(null);
   const [gateVisible, setGateVisible] = useState(false);
+
+  const { displayed: typedInterpretation, isDone: typingDone, skip: skipTyping } = useTypingText(interpretation, 14, !!interpretation);
 
   const handleInterpret = async () => {
     if (!dream || dream.trim().length < 20) {
@@ -51,11 +54,12 @@ function InterpretTab({ onSuccess }: { onSuccess: () => void }) {
       if (!ok) { setGateVisible(true); return; }
     }
     setLoading(true);
-    setInterpretation(null);
+    setInterpretation('');
     try {
       const res = await AIService.interpretDream(dream.trim());
       setInterpretation(res?.message?.content ?? 'Aucune interprétation reçue');
       setDate(new Date().toISOString());
+      setDream('');
       onSuccess();
     } catch {
       Alert.alert('Erreur', 'Service indisponible');
@@ -106,21 +110,30 @@ function InterpretTab({ onSuccess }: { onSuccess: () => void }) {
         />
 
         {interpretation && date && (
-          <View style={[styles.resultCard, { backgroundColor: '#1A1A3E', borderColor: 'rgba(201,168,76,0.3)' }]}>
+          <Pressable
+            onPress={!typingDone ? skipTyping : undefined}
+            style={[styles.resultCard, { backgroundColor: colors.surface, borderColor: 'rgba(201,168,76,0.3)' }]}
+          >
             <View style={styles.resultLabelRow}>
               <AppIcon icon={CloudMoon} size={14} color="#C9A84C" />
               <Text style={{ fontSize: 12, color: '#C9A84C', fontWeight: '700' }}>
                 Interprétation du {formatDate(date)}
               </Text>
+              {!typingDone && <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginLeft: 'auto' }}>Appuyer pour sauter</Text>}
             </View>
-            <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: 15, lineHeight: 24, marginTop: 10 }}>
-              {interpretation}
+            <Text style={{ color: colors.text, fontSize: 15, lineHeight: 24, marginTop: 10 }}>
+              {typedInterpretation}
+              {!typingDone && <Text style={{ color: '#C9A84C', fontWeight: '900' }}>▌</Text>}
             </Text>
-            <View style={[styles.divider, { backgroundColor: 'rgba(201,168,76,0.2)' }]} />
-            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, fontStyle: 'italic' }}>
-              {t.dreams.disclaimer}
-            </Text>
-          </View>
+            {typingDone && (
+              <>
+                <View style={[styles.divider, { backgroundColor: 'rgba(201,168,76,0.2)' }]} />
+                <Text style={{ color: colors.textTertiary, fontSize: 12, fontStyle: 'italic' }}>
+                  {t.dreams.disclaimer}
+                </Text>
+              </>
+            )}
+          </Pressable>
         )}
       </View>
 

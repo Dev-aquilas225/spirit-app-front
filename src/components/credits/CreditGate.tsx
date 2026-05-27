@@ -8,7 +8,7 @@ import {
   ActivityIndicator, Linking, Modal, Platform,
   StyleSheet, Text, TouchableOpacity, View,
 } from 'react-native';
-import { Crown, Play, X, Zap } from 'lucide-react-native';
+import { Crown, Play, Share2, X, Zap } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useCreditsStore, CreditAction, CREDIT_COSTS, CREDIT_PACKS } from '../../store/credits.store';
 import { useTheme } from '../../theme';
@@ -89,11 +89,9 @@ export function CreditGate({ visible, action, onClose, onSuccess }: Props) {
 
           <Text style={[s.title, { color: colors.text }]}>Crédits insuffisants</Text>
           <Text style={[s.subtitle, { color: colors.textSecondary }]}>
-            Il vous faut{' '}
-            <Text style={{ color: '#C9A84C', fontWeight: '700' }}>{cost} crédits</Text>
-            {' '}pour cette action.{'\n'}
-            Solde actuel :{' '}
-            <Text style={{ color: colors.text, fontWeight: '700' }}>{credits} crédits</Text>
+            Vos prédictions attendent !{'\n'}
+            Il vous faut <Text style={{ color: '#C9A84C', fontWeight: '700' }}>{cost} crédits</Text>
+            {' '}· Solde : <Text style={{ color: colors.text, fontWeight: '700' }}>{credits}</Text>
           </Text>
 
           {/* ── Option 1 : S'abonner (accès illimité) ── */}
@@ -108,6 +106,20 @@ export function CreditGate({ visible, action, onClose, onSuccess }: Props) {
               <Text style={s.subBtnSub}>Dès 3 000 FCFA / semaine · Tous les services</Text>
             </View>
             <Text style={s.subBtnArrow}>→</Text>
+          </TouchableOpacity>
+
+          {/* ── Option 2 : Partage viral WhatsApp ── */}
+          <TouchableOpacity
+            style={[s.shareBtn, { borderColor: '#25D366' }]}
+            onPress={() => { onClose(); router.push('/viral-share'); }}
+            activeOpacity={0.85}
+          >
+            <Share2 size={18} color="#25D366" strokeWidth={2.5} />
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={[s.shareBtnTitle, { color: colors.text }]}>Partager à 50 contacts</Text>
+              <Text style={[s.shareBtnSub, { color: colors.textSecondary }]}>+1000 crédits gratuits · Validation sous 24h</Text>
+            </View>
+            <Text style={{ fontSize: 16, color: '#25D366', fontWeight: '700' }}>→</Text>
           </TouchableOpacity>
 
           <View style={s.divider}>
@@ -180,6 +192,9 @@ const s = StyleSheet.create({
   subBtnTitle: { fontSize: 14, fontWeight: '800', color: '#C9A84C' },
   subBtnSub:   { fontSize: 11, color: 'rgba(201,168,76,0.65)', marginTop: 2 },
   subBtnArrow: { fontSize: 18, color: '#C9A84C', fontWeight: '700' },
+  shareBtn:      { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderRadius: 14, padding: 14, marginBottom: 12 },
+  shareBtnTitle: { fontSize: 14, fontWeight: '700' },
+  shareBtnSub:   { fontSize: 11, marginTop: 2 },
   pack: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderRadius: 14, padding: 14, marginBottom: 10 },
   packHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 },
   packName: { fontSize: 15, fontWeight: '700' },

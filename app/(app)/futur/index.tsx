@@ -26,6 +26,7 @@ import { useAuthStore } from '../../../src/store/auth.store';
 import { useTheme } from '../../../src/theme';
 import { AIConversation } from '../../../src/types/content.types';
 import { formatDate, truncateText } from '../../../src/utils/helpers';
+import { Testimonials } from '../../../src/components/home/Testimonials';
 
 type TabView = 'chat' | 'history';
 
@@ -186,13 +187,15 @@ export default function FuturScreen() {
         {isLoading ? (
           <LoadingSpinner fullScreen message="Connexion prophétique..." />
         ) : messages.length === 0 ? (
-          <View style={{ flex: 1 }} />
+          <ScrollView contentContainerStyle={{ paddingVertical: 24, gap: 24 }} showsVerticalScrollIndicator={false}>
+            <Testimonials />
+          </ScrollView>
         ) : (
           <FlatList
             ref={flatListRef}
             data={messages}
             keyExtractor={(item) => item.id}
-            renderItem={({ item }) => <ChatBubble message={item} />}
+            renderItem={({ item, index }) => <ChatBubble message={item} isLatest={index === messages.length - 1 && item.role === 'assistant'} />}
             contentContainerStyle={{ paddingVertical: 16 }}
           />
         )}

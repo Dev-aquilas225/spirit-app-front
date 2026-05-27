@@ -12,6 +12,7 @@ import { StorageService } from '../../services/storage.service';
 import { useCreditsStore } from '../../store/credits.store';
 import { useGamificationStore } from '../../store/gamification.store';
 import { useAuthStore } from '../../store/auth.store';
+import { http } from '../../services/http.client';
 
 const KEY_LAST_BONUS = '@oracle/last_daily_bonus';
 const BONUS_CREDITS  = 50;
@@ -51,11 +52,23 @@ export function DailyBonus() {
     if (claimed) return;
     setClaimed(true);
     const today = new Date().toISOString().split('T')[0];
+
+    try {
+      // Appel backend — idempotent (409 si déjà réclamé aujourd'hui)
+      await http.post('/credits/daily-bonus', {});
+    } catch (e: any) {
+      // 409 = déjà réclamé → on ferme silencieusement
+      if (e?.statusCode === 409) {
+        await StorageService.set(KEY_LAST_BONUS, today);
+        Animated.timing(fade, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => setVisible(false));
+        return;
+      }
+    }
+
     await StorageService.set(KEY_LAST_BONUS, today);
-    // Ajouter XP localement
     await addXp(20);
-    // Recharger le solde (le backend a déjà crédité via le cron ou on fait un appel direct)
     await fetchBalance().catch(() => {});
+
     setTimeout(() => {
       Animated.timing(fade, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => setVisible(false));
     }, 1500);

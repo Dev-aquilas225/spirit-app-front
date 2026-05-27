@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Users, Zap, BookOpen, MessageCircle, BarChart2, Bell, Settings, ChevronRight, Shield } from 'lucide-react-native';
+import { Users, Zap, BookOpen, MessageCircle, BarChart2, Bell, Settings, ChevronRight, Shield, Share2 } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { AppIcon } from '../../../src/components/common/AppIcon';
@@ -14,6 +14,7 @@ const SECTIONS = [
   { id: 'credits',  label: 'Crédits',         icon: Zap,            color: '#C9A84C', route: '/admin/credits' },
   { id: 'books',    label: 'Bibliothèque',    icon: BookOpen,       color: '#34D399', route: '/admin/books' },
   { id: 'ai',       label: 'Prompts IA',      icon: MessageCircle,  color: '#A78BFA', route: '/admin/ai-settings' },
+  { id: 'viral',    label: 'Partages Viraux',  icon: Share2,         color: '#25D366', route: '/admin/viral-shares' },
   { id: 'notifs',   label: 'Notifications',   icon: Bell,           color: '#F472B6', route: '/admin/notifications' },
   { id: 'settings', label: 'Paramètres',      icon: Settings,       color: '#9CA3AF', route: '/settings' },
 ] as const;
