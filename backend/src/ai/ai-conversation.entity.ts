@@ -5,7 +5,7 @@ export class AiConversation {
   @PrimaryGeneratedColumn('uuid') id: string;
   @Column() userId: string;
   @Column({ default: 'ai_chat' }) section: string;
-  @Column({ type: 'json', default: '[]' }) messages: any[];
+  @Column({ type: 'json', nullable: true }) messages: any[];
   @CreateDateColumn() createdAt: Date;
   @UpdateDateColumn() updatedAt: Date;
 }
