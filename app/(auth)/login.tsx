@@ -149,7 +149,51 @@ export default function LoginScreen() {
   }, [gsiReady]);
 
   async function handleNativeGooglePress() {
-    setEmailError("Google OAuth non disponible sur cette plateforme");
+    setGoogleLoading(true);
+    setEmailError(undefined);
+    try {
+      const clientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB;
+      if (!clientId) {
+        setEmailError("Google OAuth non configuré");
+        setGoogleLoading(false);
+        return;
+      }
+      // Utiliser expo-auth-session pour le flux OAuth natif
+      const { makeRedirectUri, useAuthRequest } = await import('expo-auth-session');
+      const { maybeCompleteAuthSession } = await import('expo-web-browser');
+      maybeCompleteAuthSession();
+
+      const redirectUri = makeRedirectUri({ scheme: 'oracle-plus', path: 'callback' });
+      const discovery = {
+        authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
+        tokenEndpoint: 'https://oauth2.googleapis.com/token',
+      };
+
+      const { WebBrowser } = await import('expo-web-browser');
+      const result = await WebBrowser.openAuthSessionAsync(
+        `https://accounts.google.com/o/oauth2/v2/auth?` +
+        `client_id=${encodeURIComponent(clientId)}` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+        `&response_type=token id_token` +
+        `&scope=openid email profile` +
+        `&nonce=${Math.random().toString(36).slice(2)}`,
+        redirectUri
+      );
+
+      if (result.type === 'success' && result.url) {
+        const params = new URLSearchParams(result.url.split('#')[1] || result.url.split('?')[1] || '');
+        const idToken = params.get('id_token');
+        if (idToken) {
+          await handleGoogleToken(idToken);
+          return;
+        }
+      }
+      setEmailError("Connexion Google annulée");
+    } catch (e) {
+      setEmailError("Erreur lors de la connexion Google");
+    } finally {
+      setGoogleLoading(false);
+    }
   }
 
   // ── Magic link ────────────────────────────────────────────────────────────
