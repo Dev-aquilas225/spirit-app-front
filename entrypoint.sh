@@ -20,5 +20,6 @@ if ! grep -q 'env-config.js' "$HTML"; then
   sed -i 's|</head>|<script src="/env-config.js"></script></head>|' "$HTML"
 fi
 
-# 3. Démarrer le serveur Node.js
+# 3. Démarrer le serveur Node.js sur port 3000 (Traefik attend ce port)
+export PORT=3000
 exec node server.js
