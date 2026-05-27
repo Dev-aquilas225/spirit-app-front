@@ -7,6 +7,7 @@ export declare class UsersService {
     findByEmail(email: string): Promise<User>;
     findByGoogleId(googleId: string): Promise<User>;
     findByReferralCode(code: string): Promise<User>;
+    findByMagicToken(token: string): Promise<User>;
     create(data: Partial<User>): Promise<User>;
     update(id: string, data: Partial<User>): Promise<User>;
     addCredits(id: string, amount: number): Promise<void>;
