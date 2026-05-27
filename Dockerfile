@@ -21,8 +21,9 @@ FROM nginx:stable-alpine AS runner
 # Copier le build statique
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copier la config Nginx
+# Copier la config Nginx (root pointe vers /usr/share/nginx/html)
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+RUN sed -i 's|root /var/www/html|root /usr/share/nginx/html|g' /etc/nginx/conf.d/default.conf
 
 # Entrypoint : génère env-config.js + injecte dans index.html au démarrage
 COPY entrypoint.sh /entrypoint.sh
