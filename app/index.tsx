@@ -1,14 +1,11 @@
 import { useEffect } from 'react';
 import { router } from 'expo-router';
 import { useAuthStore } from '../src/store/auth.store';
-import { StorageService } from '../src/services/storage.service';
-import { STORAGE_KEYS } from '../src/utils/constants';
 
 /**
- * Point d'entrée — attend que l'auth soit initialisée, puis :
- * - Si onboarding jamais vu → /onboarding
- * - Si authentifié → /home
- * - Sinon → /home (LoginModal s'affiche si besoin)
+ * Point d'entrée — redirige selon l'état d'auth :
+ * - Authentifié → /home
+ * - Non authentifié → /onboarding (inscription Google obligatoire)
  */
 export default function Index() {
   const isInitialized   = useAuthStore((s) => s.isInitialized);
@@ -21,17 +18,12 @@ export default function Index() {
 
   useEffect(() => {
     if (!isInitialized) return;
-    redirect();
-  }, [isInitialized, isAuthenticated]);
-
-  async function redirect() {
-    const onboardingDone = await StorageService.get<boolean>(STORAGE_KEYS.ONBOARDING_DONE);
-    if (!onboardingDone && !isAuthenticated) {
-      router.replace('/onboarding');
-    } else {
+    if (isAuthenticated) {
       router.replace('/home');
+    } else {
+      router.replace('/onboarding');
     }
-  }
+  }, [isInitialized, isAuthenticated]);
 
   return null;
 }
