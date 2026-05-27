@@ -50,7 +50,7 @@ export default function OnboardingScreen() {
           {[
             { icon: '🌙', label: 'Interprétation des Rêves' },
             { icon: '🔮', label: 'Voyance Spirituelle' },
-            { icon: '🙏', label: 'Prière Guidée par l\'IA' },
+            { icon: '🙏', label: 'Prière Guidée' },
           ].map((s, i) => (
             <View key={i} style={st.serviceRow}>
               <Text style={st.serviceIcon}>{s.icon}</Text>
