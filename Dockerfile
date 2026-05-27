@@ -3,8 +3,11 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Dépendances natives requises par canvas (pdfjs-dist)
+RUN apk add --no-cache python3 make g++ cairo-dev pango-dev jpeg-dev giflib-dev
+
 COPY package*.json ./
-RUN npm ci
+RUN npm install --legacy-peer-deps --ignore-scripts && node scripts/patch-canvas.js || true
 
 COPY . .
 
