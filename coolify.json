@@ -1,5 +1,0 @@
-{
-  "build_command": "npm ci && npm run build",
-  "publish_directory": "dist",
-  "node_version": "20"
-}

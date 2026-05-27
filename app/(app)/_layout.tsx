@@ -1,26 +1,15 @@
 import React, { useEffect } from 'react';
-import { Stack, router } from 'expo-router';
+import { Stack } from 'expo-router';
 import { useSubscriptionStore } from '../../src/store/subscription.store';
-import { useAuthStore } from '../../src/store/auth.store';
 
 /**
- * App Layout — Guard d'authentification global.
- * Tout accès à /(app)/* sans être connecté redirige vers /onboarding.
+ * App Layout — Version PWA Web
+ * Gère les routes et planifie le test de rappel quotidien pour les navigateurs mobiles.
  */
 export default function AppLayout() {
   const loadSubscription = useSubscriptionStore((s) => s.loadSubscription);
   const daysUntilExpiry  = useSubscriptionStore((s) => s.daysUntilExpiry);
   const isActive         = useSubscriptionStore((s) => s.isActive);
-  const isAuthenticated  = useAuthStore((s) => s.isAuthenticated);
-  const isInitialized    = useAuthStore((s) => s.isInitialized);
-
-  // Bloquer l'accès à toute la zone app si non authentifié
-  useEffect(() => {
-    if (!isInitialized) return;
-    if (!isAuthenticated) {
-      router.replace('/onboarding');
-    }
-  }, [isAuthenticated, isInitialized]);
 
   useEffect(() => {
     loadSubscription();

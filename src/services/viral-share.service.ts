@@ -44,7 +44,7 @@ export const ViralShareService = {
 
     const message = encodeURIComponent(
       `🔮 *Oracle Plus* — Guidance spirituelle africaine\n\n` +
-      `Découvrez l'interprétation des rêves, la voyance et la prière guidée.\n\n` +
+      `Découvrez l'interprétation des rêves, la voyance et la prière guidée par l'IA.\n\n` +
       `👉 ${appUrl}\n\n` +
       `Inscrivez-vous et recevez *2000 crédits gratuits* !`
     );

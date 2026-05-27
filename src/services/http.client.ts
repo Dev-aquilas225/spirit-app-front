@@ -94,9 +94,23 @@ export async function request<T>(
       refreshQueue = [];
 
       if (!newToken) {
-        // Refresh échoué → déconnecter
+        // Refresh échoué → vider le storage silencieusement
         await StorageService.multiRemove([STORAGE_KEYS.AUTH_TOKEN, STORAGE_KEYS.REFRESH_TOKEN, STORAGE_KEYS.USER]);
-        throw { statusCode: 401, message: 'Session expirée' } as ApiError;
+        // Rejouer sans token — les routes publiques passeront,
+        // les routes protégées retourneront 401 avec le message du backend
+        const retryRes = await fetch(`${baseUrl()}${path}`, {
+          ...options,
+          headers: {
+            'Content-Type': 'application/json',
+            ...(options.headers as Record<string, string>),
+          },
+        });
+        if (!retryRes.ok) {
+          const body = await retryRes.json().catch(() => ({}));
+          throw { statusCode: retryRes.status, message: body?.message ?? `Erreur ${retryRes.status}` } as ApiError;
+        }
+        if (retryRes.status === 204) return undefined as unknown as T;
+        return retryRes.json() as Promise<T>;
       }
 
       // Rejouer la requête avec le nouveau token
@@ -105,8 +119,7 @@ export async function request<T>(
       // En attente du refresh en cours
       return new Promise<T>((resolve, reject) => {
         refreshQueue.push(async (newToken) => {
-          if (!newToken) return reject({ statusCode: 401, message: 'Session expirée' });
-          try { resolve(await request<T>(path, { ...options, token: newToken })); }
+          try { resolve(await request<T>(path, { ...options, token: newToken || '' })); }
           catch (e) { reject(e); }
         });
       });
