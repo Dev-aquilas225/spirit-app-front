@@ -1,5 +1,5 @@
 /**
- * Onglet Rêves — Interprétation des rêves avec IA
+ * Onglet Rêves — Interprétation des rêves
  * Premier onglet principal selon le CDC Oracle Plus.
  */
 import { router } from 'expo-router';

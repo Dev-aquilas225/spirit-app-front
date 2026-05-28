@@ -1,6 +1,6 @@
 /**
  * useTypingText — Simule l'écriture caractère par caractère d'un texte.
- * Utilisé pour toutes les réponses IA (Rêves, Voyance, Prière).
+ * Utilisé pour toutes les réponses (Rêves, Voyance, Prière).
  *
  * @param text    Texte final à afficher
  * @param speed   Délai en ms entre chaque caractère (défaut : 18ms)

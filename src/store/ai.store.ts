@@ -124,7 +124,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
       // Sauvegarder le message utilisateur (non bloquant)
       AIService.addMessageToConversation(conv.id, userMessage).catch(() => {});
 
-      // Obtenir la réponse IA
+      // Obtenir la réponse Oracle
       const {
         message: aiMessage,
         conversationId: resolvedConversationId,

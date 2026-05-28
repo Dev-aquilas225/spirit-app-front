@@ -73,7 +73,7 @@ export default function AccompagnementChatScreen() {
     }
   }, [messages.length]);
 
-  // Préfixe le message avec le contexte du programme pour que l'IA s'adapte
+  // Préfixe le message avec le contexte du programme
   async function handleSend(text: string) {
     const programmeTitle = programme ? decodeURIComponent(programme) : null;
     const contextualMessage = programmeTitle && messages.length === 0

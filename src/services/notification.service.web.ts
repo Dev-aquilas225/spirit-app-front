@@ -22,9 +22,15 @@ function getStoredToken(): string | null {
     return null;
   }
 }
-const VAPID_PUBLIC_KEY =
-  process.env.EXPO_PUBLIC_VAPID_PUBLIC_KEY ??
-  'BEQwtf07gPJiqmexHC_nqXSVK7kb63QqGnnQV8IN6vp89T-CW5EAe8Jf3Pt8cVe1heDgbYEJrmW0aMTUeqeDHh4';
+// Lire depuis window.__ENV__ au runtime (injecté par env-config.js)
+function getVapidKey(): string {
+  if (typeof window !== 'undefined' && (window as any).__ENV__?.EXPO_PUBLIC_VAPID_PUBLIC_KEY) {
+    return (window as any).__ENV__.EXPO_PUBLIC_VAPID_PUBLIC_KEY;
+  }
+  return process.env.EXPO_PUBLIC_VAPID_PUBLIC_KEY ??
+    'BFHncpJ2BjhG6Jm7MBiQiHpExTBGAHida4LQGP_zRlcTFUQLdfXnhjCINl5bAqwAegwYj1vGaBcFL1biyv-UjKU';
+}
+const VAPID_PUBLIC_KEY = getVapidKey();
 
 /** Convertit une clé VAPID base64url en Uint8Array */
 function urlBase64ToUint8Array(base64String: string): Uint8Array {

@@ -27,7 +27,7 @@ export const BADGES = [
   { id: 'first_dream',     label: 'Premier Rêve',        icon: '🌙', xp: 50  },
   { id: 'first_consult',   label: 'Première Voyance',    icon: '🔮', xp: 50  },
   { id: 'book_reader',     label: 'Lecteur Spirituel',   icon: '📖', xp: 100 },
-  { id: 'ai_explorer',     label: 'Explorateur IA',      icon: '🤖', xp: 75  },
+  { id: 'ai_explorer',     label: 'Explorateur Spirituel', icon: '🔮', xp: 75  },
   { id: 'referral',        label: 'Ambassadeur',         icon: '🤝', xp: 150 },
 ] as const;
 
@@ -36,7 +36,7 @@ export type BadgeId = typeof BADGES[number]['id'];
 export const DAILY_MISSIONS = [
   { id: 'read_prayer',   label: 'Lire la prière du jour',       xp: 30,  icon: '🙏' },
   { id: 'open_app',      label: 'Ouvrir l\'application',        xp: 10,  icon: '📱' },
-  { id: 'ai_question',   label: 'Poser une question à l\'IA',   xp: 40,  icon: '💬' },
+  { id: 'ai_question',   label: 'Consulter Oracle',             xp: 40,  icon: '💬' },
   { id: 'read_book',     label: 'Lire un livre spirituel',      xp: 50,  icon: '📖' },
   { id: 'share_app',     label: 'Partager Oracle Plus',         xp: 60,  icon: '🤝' },
 ] as const;

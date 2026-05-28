@@ -52,7 +52,7 @@ export default function AppLayout() {
       {/* Auth post-login */}
       <Stack.Screen name="complete-profile" options={{ gestureEnabled: false }} />
 
-      {/* IA & Spirituel */}
+      {/* Services spirituels */}
       <Stack.Screen name="dreams/index" />
       <Stack.Screen name="futur/index" />
       <Stack.Screen name="prayer-program/index" />

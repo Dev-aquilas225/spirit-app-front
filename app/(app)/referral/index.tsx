@@ -27,7 +27,9 @@ export default function ReferralScreen() {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
-  const appUrl = process.env.EXPO_PUBLIC_APP_URL ?? 'https://oracle-plus.online';
+  const appUrl = (typeof window !== 'undefined' && (window as any).__ENV__?.EXPO_PUBLIC_APP_URL)
+    || process.env.EXPO_PUBLIC_APP_URL
+    || 'https://oracle-plus.online';
 
   useEffect(() => {
     (async () => {

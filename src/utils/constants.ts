@@ -3,7 +3,7 @@ export const APP_NAME = 'Oracle Plus';
 export const APP_VERSION = '2.0.0';
 
 // ── Monétisation hybride ──────────────────────────────────────────────────────
-export const INITIAL_CREDITS = 1200;          // crédits offerts à l'inscription
+export const INITIAL_CREDITS = 2000;          // crédits offerts à l'inscription
 export const CREDITS_PER_FCFA = 2;            // 1000 FCFA = 2000 crédits
 export const AUDIO_PREVIEW_WORDS = 100;       // mots gratuits pour l'aperçu audio
 export const AUDIO_STANDARD_WORDS = 1000;     // mots pour l'audio standard (abonnés)

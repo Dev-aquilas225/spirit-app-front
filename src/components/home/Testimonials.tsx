@@ -50,7 +50,7 @@ const TESTIMONIALS = [
     country: '🇨🇩 RD Congo',
     avatar: 'M',
     rating: 5,
-    text: 'J\'utilise Oracle Plus tous les jours. Les réponses de l\'IA sont toujours en accord avec ma foi. Béni !',
+    text: 'J\'utilise Oracle Plus tous les jours. Les réponses sont toujours en accord avec ma foi. Béni !',
   },
 ];
 

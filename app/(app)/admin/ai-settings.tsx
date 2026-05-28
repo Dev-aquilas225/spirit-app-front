@@ -59,7 +59,7 @@ export default function AISettings() {
         <TouchableOpacity onPress={() => router.back()} style={st.back}>
           <AppIcon icon={ChevronLeft} size={22} color={colors.text} strokeWidth={2.5} />
         </TouchableOpacity>
-        <Text style={[st.title, { color: colors.text }]}>Prompts IA</Text>
+        <Text style={[st.title, { color: colors.text }]}>Paramètres Guides</Text>
         {isSaving && <ActivityIndicator size="small" color={colors.primary} />}
       </View>
 
@@ -85,15 +85,15 @@ export default function AISettings() {
           <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, gap: 12 }}>
             <Text style={{ fontSize: 16, fontWeight: '800', color: colors.text }}>{selected.label}</Text>
             <Text style={{ fontSize: 12, color: colors.textTertiary }}>{selected.description}</Text>
-            <Text style={{ fontSize: 11, color: colors.textTertiary, fontFamily: 'monospace' }}>Section : {selected.id}</Text>
+            <Text style={{ fontSize: 11, color: colors.textTertiary, fontFamily: 'monospace' }}>Rubrique : {selected.id}</Text>
 
-            <Text style={[st.lbl, { color: colors.textSecondary }]}>Prompt système</Text>
+            <Text style={[st.lbl, { color: colors.textSecondary }]}>Guide spirituel</Text>
             <TextInput
               value={draft}
               onChangeText={setDraft}
               multiline
               style={[st.textarea, { color: colors.text, backgroundColor: colors.surface, borderColor: colors.border }]}
-              placeholder="Entrez le prompt système..."
+              placeholder="Entrez le guide spirituel..."
               placeholderTextColor={colors.textTertiary}
               textAlignVertical="top"
             />

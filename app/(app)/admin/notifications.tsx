@@ -27,7 +27,7 @@ export default function AdminNotifications() {
   const [sending, setSending] = useState(false);
   const [sent, setSent]       = useState(false);
 
-  // Cron IA
+  // Cron notifications
   const [cronEnabled, setCronEnabled] = useState(true);
   const [cronStatus, setCronStatus]   = useState<'idle'|'loading'|'ok'|'err'>('idle');
   const [lastGenerated, setLastGenerated] = useState<string | null>(null);
@@ -76,15 +76,15 @@ export default function AdminNotifications() {
         <Text style={s.title}>Notifications Push</Text>
       </View>
 
-      {/* Cron IA card */}
+      {/* Cron notifications card */}
       <View style={s.card}>
         <View style={s.cardHdr}>
           <View style={[s.iconWrap, { backgroundColor: 'rgba(52,211,153,0.12)' }]}>
             <AppIcon icon={Sparkles} size={24} color="#34D399" strokeWidth={2} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={s.cardTitle}>Cron IA — toutes les 5h</Text>
-            <Text style={s.cardSub}>Oracle génère un message mystique via OpenAI et l'envoie à tous les utilisateurs</Text>
+            <Text style={s.cardTitle}>Message automatique — toutes les 5h</Text>
+            <Text style={s.cardSub}>Oracle génère un message mystique et l'envoie à tous les utilisateurs</Text>
           </View>
           <Switch
             value={cronEnabled}

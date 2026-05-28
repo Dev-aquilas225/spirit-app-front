@@ -32,7 +32,7 @@ export function ChatBubble({ message, isLatest = false, shareType }: ChatBubbleP
         : '';
 
   // 40ms par caractère — vitesse confortable pour la lecture
-  const { displayed, isDone, skip } = useTypingText(safeContent, 40, !isUser && isLatest);
+  const { displayed, isDone, skip } = useTypingText(safeContent, 67, !isUser && isLatest);
   const textToShow = (!isUser && isLatest) ? displayed : safeContent;
 
   return (

@@ -74,7 +74,7 @@ export default function AccompagnementsScreen() {
             <AppIcon icon={Heart} size={16} color="#F472B6" strokeWidth={2.6} />
             <Text style={s.title}>{view === 'chat' ? 'Suivi spirituel' : 'Mes suivis'}</Text>
           </View>
-          <Text style={s.sub}>Accompagnement personnalisé par l'IA</Text>
+          <Text style={s.sub}>Accompagnement spirituel personnalisé</Text>
         </View>
         <TouchableOpacity
           onPress={() => setView(view === 'chat' ? 'history' : 'chat')}
