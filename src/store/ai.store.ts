@@ -26,6 +26,7 @@ interface AIStore {
   startNewConversation: () => Promise<void>;
   loadConversation: (id: string) => Promise<void>;
   sendMessage: (content: string, chatType?: 'prophet' | 'consultation' | 'accompagnement' | 'dream' | 'prayer') => Promise<void>;
+  addSystemMessage: (text: string) => void;
   deleteConversation: (id: string) => Promise<void>;
   refreshUsage: () => Promise<void>;
 }
@@ -200,6 +201,24 @@ export const useAIStore = create<AIStore>((set, get) => ({
       dailyUsage: usage,
       remainingQuestions: remaining === Infinity ? 9999 : remaining,
       limitReached: !isPremium && remaining === 0,
+    });
+  },
+
+  addSystemMessage: (text: string) => {
+    const systemMsg: import('../types/content.types').AIMessage = {
+      id: `sys-${Date.now()}`,
+      role: 'assistant',
+      content: `⚠️ ${text}`,
+      timestamp: new Date().toISOString(),
+    };
+    set((state) => {
+      if (!state.currentConversation) return {};
+      return {
+        currentConversation: {
+          ...state.currentConversation,
+          messages: [...state.currentConversation.messages, systemMsg],
+        },
+      };
     });
   },
 }));

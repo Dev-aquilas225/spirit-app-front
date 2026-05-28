@@ -111,12 +111,21 @@ function BookForm({
     const b64 = await pickImageWeb();
     if (b64) {
       try {
-        // Compresser l'image côté client avant upload (canvas → JPEG qualité 0.7, max 800px)
+        // Compresser avant upload (canvas → JPEG 0.7, max 800px)
         const compressed = await compressImageWeb(b64, 800, 0.7);
         const res = await http.post<{ url: string }>('/admin/upload/image', { data: compressed });
-        set('coverUrl', res?.url ?? compressed);
+        if (res?.url) {
+          // Préfixer avec l'URL API si chemin relatif
+          const apiBase = (typeof window !== 'undefined' && (window as any).__ENV__?.EXPO_PUBLIC_API_BASE_URL)
+            || process.env.EXPO_PUBLIC_API_BASE_URL
+            || 'https://api.oracle-plus.online';
+          const fullUrl = res.url.startsWith('http') ? res.url : `${apiBase}${res.url}`;
+          set('coverUrl', fullUrl);
+        } else {
+          set('coverUrl', compressed);
+        }
       } catch {
-        // Fallback : stocker le base64 directement (fonctionne même sans backend upload)
+        // Fallback : base64 directement (affiché localement, sauvegardé en DB)
         set('coverUrl', b64);
       }
     }
@@ -130,8 +139,17 @@ function BookForm({
     if (result) {
       try {
         const res = await http.post<{ url: string }>('/admin/upload/pdf', { data: result.data, name: result.name });
-        if (res?.url) { set('pdfUrl', res.url); setPdfName(result.name); }
-        else { set('pdfUrl', result.data); setPdfName(result.name); }
+        if (res?.url) {
+          const apiBase = (typeof window !== 'undefined' && (window as any).__ENV__?.EXPO_PUBLIC_API_BASE_URL)
+            || process.env.EXPO_PUBLIC_API_BASE_URL
+            || 'https://api.oracle-plus.online';
+          const fullUrl = res.url.startsWith('http') ? res.url : `${apiBase}${res.url}`;
+          set('pdfUrl', fullUrl);
+          setPdfName(result.name);
+        } else {
+          set('pdfUrl', result.data);
+          setPdfName(result.name);
+        }
       } catch {
         set('pdfUrl', result.data);
         setPdfName(result.name);

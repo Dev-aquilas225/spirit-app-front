@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Eye, User } from 'lucide-react-native';
 import React, { useEffect, useRef } from 'react';
 import {
@@ -32,6 +32,8 @@ export default function FuturScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const user = useAuthStore((s) => s.user);
+  const { mode } = useLocalSearchParams<{ mode?: string }>();
+  const isFuturMode = mode === 'futur';
   const { hasSubscription, canPerform } = useAccess();
   // Accès autorisé si abonné OU si l'utilisateur a assez de crédits
   const canAccess = hasSubscription || canPerform('prophetic_consultation');
@@ -80,7 +82,7 @@ export default function FuturScreen() {
         <View style={{ flex: 1 }}>
           <View style={s.headerTitleRow}>
             <AppIcon icon={Eye} size={18} color="#34D399" strokeWidth={2.6} />
-            <Text style={s.headerTitle}>Consulter</Text>
+            <Text style={s.headerTitle}>{isFuturMode ? 'Connaître le futur' : 'Consulter'}</Text>
           </View>
           <Text style={s.headerSub}>Guidance prophétique & révélation spirituelle</Text>
         </View>

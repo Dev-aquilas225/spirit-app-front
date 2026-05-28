@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAIStore } from '../store/ai.store';
 import { useAuthStore } from '../store/auth.store';
 import { useCreditsStore, CreditAction, CREDIT_COSTS } from '../store/credits.store';
@@ -33,14 +33,27 @@ export function useAIChat(chatType: AIChatType = 'prophet') {
   const deleteConversation = useAIStore((s) => s.deleteConversation);
   const refreshUsage = useAIStore((s) => s.refreshUsage);
 
-  const { spend } = useCreditsStore();
+  const { spend, credits } = useCreditsStore();
   const [creditGateVisible, setCreditGateVisible] = useState(false);
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);
   const creditAction = CHAT_TYPE_TO_ACTION[chatType];
+  const prevCreditsRef = useRef(credits);
+  const addSystemMessage = useAIStore((s) => s.addSystemMessage);
 
   useEffect(() => {
     loadConversations();
   }, []);
+
+  // Détecter quand les crédits tombent à zéro pendant une conversation
+  useEffect(() => {
+    if (!hasSubscription && prevCreditsRef.current > 0 && credits === 0) {
+      // Injecter un message système dans le chat
+      addSystemMessage?.(
+        'Vos crédits sont épuisés. Rechargez votre compte ou passez à un abonnement pour continuer à recevoir des guidances spirituelles.'
+      );
+    }
+    prevCreditsRef.current = credits;
+  }, [credits, hasSubscription]);
 
   const sendMessage = async (content: string) => {
     if (!hasSubscription) {

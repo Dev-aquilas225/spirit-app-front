@@ -184,36 +184,32 @@ export default function PaymentScreen() {
     startedAt.current = Date.now();
 
     pollRef.current = setInterval(async () => {
-      const { status } = await PaymentService.getStatus(result.reference);
+      // Appeler verifyPayment() qui vérifie avec Paystack ET active le service
+      const verified = await PaymentService.verifyPayment(result.reference).catch(() => null);
 
-      if (status === 'active' || status === 'success') {
+      if (verified?.success) {
         stopAll();
-        
-        // CORRECTION : On ferme de force la fenêtre du navigateur Paystack immédiatement
-        try {
-          if (Platform.OS !== 'web') {
-            await WebBrowser.dismissBrowser();
-          }
-        } catch (e) {
-          console.log("Erreur fermeture navigateur");
-        }
-
+        try { if (Platform.OS !== 'web') await WebBrowser.dismissBrowser(); } catch {}
         await Promise.all([loadSubscription(), refreshUser(), fetchBalance()]);
         setStep('vip');
-        setTimeout(() => router.replace('/subscription/success'), VIP_DISPLAY_MS);
+        setTimeout(() => router.replace(`/subscription/success?reference=${result.reference}` as any), VIP_DISPLAY_MS);
+        return;
+      }
+
+      // Fallback : vérifier le statut en DB si verifyPayment échoue
+      const { status } = await PaymentService.getStatus(result.reference).catch(() => ({ status: 'pending' as const }));
+      if (status === 'active' || status === 'success') {
+        stopAll();
+        try { if (Platform.OS !== 'web') await WebBrowser.dismissBrowser(); } catch {}
+        await Promise.all([loadSubscription(), refreshUser(), fetchBalance()]);
+        setStep('vip');
+        setTimeout(() => router.replace(`/subscription/success?reference=${result.reference}` as any), VIP_DISPLAY_MS);
         return;
       }
 
       if (status === 'failed' || status === 'cancelled') {
         stopAll();
-        
-        // CORRECTION EN CAS D'ÉCHEC : Fermer aussi le navigateur
-        try {
-          if (Platform.OS !== 'web') {
-            await WebBrowser.dismissBrowser();
-          }
-        } catch (e) {}
-
+        try { if (Platform.OS !== 'web') await WebBrowser.dismissBrowser(); } catch {}
         setError('Le paiement n\'a pas abouti.');
         setStep('error');
       }
@@ -251,13 +247,13 @@ export default function PaymentScreen() {
             }
           } catch {}
         }
-        // Sinon forcer un poll immédiat
-        const { status: s } = await PaymentService.getStatus(result.reference);
-        if (s === 'success' || s === 'active') {
+        // Sinon forcer un verify immédiat
+        const vr = await PaymentService.verifyPayment(result.reference).catch(() => null);
+        if (vr?.success) {
           stopAll();
           await Promise.all([loadSubscription(), refreshUser(), fetchBalance()]);
           setStep('vip');
-          setTimeout(() => router.replace('/subscription/success'), VIP_DISPLAY_MS);
+          setTimeout(() => router.replace(`/subscription/success?reference=${result.reference}` as any), VIP_DISPLAY_MS);
         }
       };
       document.addEventListener('visibilitychange', onVisible);

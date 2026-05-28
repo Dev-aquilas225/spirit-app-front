@@ -82,7 +82,7 @@ const MODULES = [
   { id: 'consult', label: 'Consulter',           sub: 'Illimité', icon: Star,      color: '#C9A84C', bg: 'rgba(201,168,76,0.12)',  route: '/(app)/(tabs)/ai' },
   { id: 'accomp',  label: 'Suivi',              sub: 'Illimité', icon: Heart,     color: '#F472B6', bg: 'rgba(244,114,182,0.12)', route: '/accompagnements' },
   { id: 'library', label: 'Livres',             sub: 'Gratuit',  icon: BookOpen,  color: '#60A5FA', bg: 'rgba(96,165,250,0.12)',  route: '/(app)/(tabs)/library' },
-  { id: 'futur',   label: 'Connaître le futur', sub: 'Illimité', icon: Eye,       color: '#2DD4A0', bg: 'rgba(45,212,160,0.12)',  route: '/(app)/(tabs)/ai' },
+  { id: 'futur',   label: 'Connaître le futur', sub: 'Illimité', icon: Eye,       color: '#2DD4A0', bg: 'rgba(45,212,160,0.12)',  route: '/(app)/(tabs)/ai?mode=futur' },
   { id: 'prayer',  label: 'Prières',            sub: 'Gratuit',  icon: Sparkles,  color: '#FBBF24', bg: 'rgba(251,191,36,0.12)',  route: '/(app)/(tabs)/prayers' },
 ] as const;
 

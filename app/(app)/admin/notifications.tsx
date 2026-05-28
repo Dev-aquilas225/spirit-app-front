@@ -4,7 +4,7 @@
  * - Génération automatique via OpenAI toutes les 5h (cron côté backend)
  * - Bouton "Tester le cron" pour déclencher manuellement
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ScrollView, StyleSheet, Text, TextInput,
   TouchableOpacity, View, ActivityIndicator, Switch,
@@ -36,20 +36,22 @@ export default function AdminNotifications() {
     if (!title.trim() || !body.trim()) return;
     setSending(true);
     try {
-      await http.post('/admin/notifications/push', { title, body, target });
+      // Route backend réelle : POST /push/send
+      const res = await http.post<{ sent: number; failed: number }>('/push/send', { title, body });
       setSent(true);
       setTitle(''); setBody('');
       setTimeout(() => setSent(false), 3000);
-    } catch {}
+    } catch (e: any) {
+      alert('Erreur envoi : ' + (e?.message ?? 'inconnue'));
+    }
     setSending(false);
   };
 
   const triggerCron = async () => {
     setCronStatus('loading');
     try {
-      const res = await http.post<{ message: string; sentAt: string }>(
-        '/admin/notifications/cron/trigger', {}
-      );
+      // Route backend réelle : POST /push/trigger
+      const res = await http.post<{ sentAt: string }>('/push/trigger', {});
       setLastGenerated((res as any)?.sentAt ?? new Date().toISOString());
       setCronStatus('ok');
     } catch {
@@ -60,8 +62,19 @@ export default function AdminNotifications() {
 
   const toggleCron = async (val: boolean) => {
     setCronEnabled(val);
-    await http.post('/admin/notifications/cron/toggle', { enabled: val }).catch(() => {});
+    // Route backend réelle : POST /push/toggle
+    await http.post('/push/toggle', { enabled: val }).catch(() => {});
   };
+
+  // Charger le statut push au montage
+  useEffect(() => {
+    http.get<{ cronEnabled: boolean; lastSentAt: string | null; subsCount: number }>('/push/status')
+      .then(s => {
+        setCronEnabled(s.cronEnabled ?? true);
+        setLastGenerated(s.lastSentAt ?? null);
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <ScrollView
