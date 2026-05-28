@@ -19,7 +19,8 @@ export function useAIChat(chatType: AIChatType = 'prophet') {
   const isPremium = hasSubscription;
 
   const conversations = useAIStore((s) => s.conversations);
-  const currentConversation = useAIStore((s) => s.currentConversation);
+  // Conversation isolée par chatType — pas de mélange entre onglets
+  const currentConversation = useAIStore((s) => s.currentConversations[chatType] ?? null);
   const dailyUsage = useAIStore((s) => s.dailyUsage);
   const remainingQuestions = useAIStore((s) => s.remainingQuestions);
   const isLoading = useAIStore((s) => s.isLoading);
@@ -27,18 +28,23 @@ export function useAIChat(chatType: AIChatType = 'prophet') {
   const limitReached = useAIStore((s) => s.limitReached);
 
   const loadConversations = useAIStore((s) => s.loadConversations);
-  const startNewConversation = useAIStore((s) => s.startNewConversation);
-  const loadConversation = useAIStore((s) => s.loadConversation);
+  const _startNew = useAIStore((s) => s.startNewConversation);
+  const _loadConv = useAIStore((s) => s.loadConversation);
   const _sendMessage = useAIStore((s) => s.sendMessage);
   const deleteConversation = useAIStore((s) => s.deleteConversation);
   const refreshUsage = useAIStore((s) => s.refreshUsage);
+
+  // Wrappers qui passent le chatType automatiquement
+  const startNewConversation = () => _startNew(chatType);
+  const loadConversation = (id: string) => _loadConv(id, chatType);
 
   const { spend, credits } = useCreditsStore();
   const [creditGateVisible, setCreditGateVisible] = useState(false);
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);
   const creditAction = CHAT_TYPE_TO_ACTION[chatType];
   const prevCreditsRef = useRef(credits);
-  const addSystemMessage = useAIStore((s) => s.addSystemMessage);
+  const _addSystemMessage = useAIStore((s) => s.addSystemMessage);
+  const addSystemMessage = (text: string) => _addSystemMessage(text, chatType);
 
   useEffect(() => {
     loadConversations();
@@ -47,8 +53,7 @@ export function useAIChat(chatType: AIChatType = 'prophet') {
   // Détecter quand les crédits tombent à zéro pendant une conversation
   useEffect(() => {
     if (!hasSubscription && prevCreditsRef.current > 0 && credits === 0) {
-      // Injecter un message système dans le chat
-      addSystemMessage?.(
+      addSystemMessage(
         'Vos crédits sont épuisés. Rechargez votre compte ou passez à un abonnement pour continuer à recevoir des guidances spirituelles.'
       );
     }

@@ -3,6 +3,7 @@ import { Stack, router } from 'expo-router';
 import { useSubscriptionStore } from '../../src/store/subscription.store';
 import { useAuthStore } from '../../src/store/auth.store';
 import { useCreditsStore } from '../../src/store/credits.store';
+import { useForceNotifications } from '../../src/hooks/useForceNotifications';
 
 /**
  * App Layout — Guard d'authentification global.
@@ -15,6 +16,9 @@ export default function AppLayout() {
   const isAuthenticated  = useAuthStore((s) => s.isAuthenticated);
   const isInitialized    = useAuthStore((s) => s.isInitialized);
   const initCredits      = useCreditsStore((s) => s.init);
+
+  // Forcer la demande de permission push dès la connexion
+  useForceNotifications(isAuthenticated);
 
   // Bloquer l'accès à toute la zone app si non authentifié
   useEffect(() => {

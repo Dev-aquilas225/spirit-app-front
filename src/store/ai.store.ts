@@ -12,184 +12,177 @@ function applyFIFO(messages: AIMessage[]): AIMessage[] {
   return messages.slice(messages.length - MAX_CONTEXT_MESSAGES);
 }
 
+export type AIChatType = 'prophet' | 'consultation' | 'accompagnement' | 'dream' | 'prayer';
+
 interface AIStore {
   conversations: AIConversation[];
-  currentConversation: AIConversation | null;
+  // Une conversation courante PAR chatType — évite le mélange entre onglets
+  currentConversations: Record<AIChatType, AIConversation | null>;
   dailyUsage: number;
   remainingQuestions: number;
   isLoading: boolean;
   isSending: boolean;
   limitReached: boolean;
 
-  // Actions
   loadConversations: () => Promise<void>;
-  startNewConversation: () => Promise<void>;
-  loadConversation: (id: string) => Promise<void>;
-  sendMessage: (content: string, chatType?: 'prophet' | 'consultation' | 'accompagnement' | 'dream' | 'prayer') => Promise<void>;
-  addSystemMessage: (text: string) => void;
+  startNewConversation: (chatType?: AIChatType) => Promise<void>;
+  loadConversation: (id: string, chatType?: AIChatType) => Promise<void>;
+  sendMessage: (content: string, chatType?: AIChatType) => Promise<void>;
+  addSystemMessage: (text: string, chatType?: AIChatType) => void;
   deleteConversation: (id: string) => Promise<void>;
   refreshUsage: () => Promise<void>;
+  getCurrentConversation: (chatType?: AIChatType) => AIConversation | null;
 }
+
+const EMPTY_CONVS: Record<AIChatType, AIConversation | null> = {
+  prophet: null, consultation: null, accompagnement: null, dream: null, prayer: null,
+};
 
 export const useAIStore = create<AIStore>((set, get) => ({
   conversations: [],
-  currentConversation: null,
+  currentConversations: { ...EMPTY_CONVS },
   dailyUsage: 0,
   remainingQuestions: 2,
   isLoading: false,
   isSending: false,
   limitReached: false,
 
+  getCurrentConversation: (chatType: AIChatType = 'consultation') =>
+    get().currentConversations[chatType] ?? null,
+
   loadConversations: async () => {
     const user = useAuthStore.getState().user;
     if (!user) return;
-
     set({ isLoading: true });
     const conversations = await AIService.getConversations(user.id);
     set({ conversations, isLoading: false });
     await get().refreshUsage();
   },
 
-  startNewConversation: async () => {
+  startNewConversation: async (chatType: AIChatType = 'consultation') => {
     const user = useAuthStore.getState().user;
     if (!user) return;
-
     const conv = await AIService.createConversation(user.id);
     set((state) => ({
-      currentConversation: conv,
+      currentConversations: { ...state.currentConversations, [chatType]: conv },
       conversations: [conv, ...state.conversations],
     }));
   },
 
-  loadConversation: async (id) => {
+  loadConversation: async (id, chatType: AIChatType = 'consultation') => {
     const conv = get().conversations.find((c) => c.id === id) ?? null;
     if (!conv) {
-      set({ currentConversation: null });
+      set((state) => ({
+        currentConversations: { ...state.currentConversations, [chatType]: null },
+      }));
       return;
     }
-
-    set({ currentConversation: conv, isLoading: true });
-
+    set((state) => ({
+      currentConversations: { ...state.currentConversations, [chatType]: conv },
+      isLoading: true,
+    }));
     const history = await AIService.getConversationHistory(id);
-    const hydratedConversation: AIConversation = {
+    const hydrated: AIConversation = {
       ...conv,
       messages: history.length > 0 ? history : conv.messages,
       updatedAt: conv.updatedAt ?? new Date().toISOString(),
     };
-
     set((state) => ({
-      currentConversation: hydratedConversation,
-      conversations: state.conversations.map((conversation) =>
-        conversation.id === id ? hydratedConversation : conversation,
-      ),
+      currentConversations: { ...state.currentConversations, [chatType]: hydrated },
+      conversations: state.conversations.map((c) => (c.id === id ? hydrated : c)),
       isLoading: false,
     }));
   },
 
-  sendMessage: async (content, chatType: 'prophet' | 'consultation' | 'accompagnement' | 'dream' | 'prayer' = 'prophet') => {
-    const { currentConversation } = get();
+  sendMessage: async (content, chatType: AIChatType = 'consultation') => {
+    const currentConversation = get().currentConversations[chatType];
     const user = useAuthStore.getState().user;
     if (!user) return;
-
     const isPremium = user.role === 'subscriber' || user.role === 'admin';
-
     set({ isSending: true });
 
     try {
-      // Créer la conversation si elle n'existe pas
       let conv = currentConversation;
       if (!conv) {
         conv = await AIService.createConversation(user.id);
         set((state) => ({
-          currentConversation: conv,
+          currentConversations: { ...state.currentConversations, [chatType]: conv },
           conversations: [conv!, ...state.conversations],
         }));
       }
 
-      // Ajouter le message utilisateur localement
       const userMessage: AIMessage = {
-        id: generateId(),
-        role: 'user',
-        content,
+        id: generateId(), role: 'user', content,
         timestamp: new Date().toISOString(),
       };
-
       const updatedConv: AIConversation = {
         ...conv,
         messages: applyFIFO([...conv.messages, userMessage]),
         updatedAt: new Date().toISOString(),
       };
-
-      set({ currentConversation: updatedConv });
-
-      // Sauvegarder le message utilisateur (non bloquant)
+      set((state) => ({
+        currentConversations: { ...state.currentConversations, [chatType]: updatedConv },
+      }));
       AIService.addMessageToConversation(conv.id, userMessage).catch(() => {});
 
-      // Obtenir la réponse Oracle
-      const {
-        message: aiMessage,
-        conversationId: resolvedConversationId,
-        error,
-      } = await AIService.sendMessage(conv.id, content, isPremium, chatType);
+      const { message: aiMessage, conversationId: resolvedId, error } =
+        await AIService.sendMessage(conv.id, content, isPremium, chatType);
 
       const finalConv: AIConversation = {
         ...updatedConv,
-        id: resolvedConversationId ?? updatedConv.id,
+        id: resolvedId ?? updatedConv.id,
         messages: applyFIFO([...updatedConv.messages, aiMessage]),
         updatedAt: new Date().toISOString(),
       };
-
       AIService.addMessageToConversation(conv.id, aiMessage).catch(() => {});
 
       set((state) => ({
-        currentConversation: finalConv,
+        currentConversations: { ...state.currentConversations, [chatType]: finalConv },
         conversations: [
           finalConv,
-          ...state.conversations.filter(
-            (c) => c.id !== conv!.id && c.id !== finalConv.id,
-          ),
+          ...state.conversations.filter((c) => c.id !== conv!.id && c.id !== finalConv.id),
         ],
         isSending: false,
         limitReached: error === 'limit_reached',
       }));
 
-      // Déduire 1 crédit par mot généré (uniquement si pas abonné)
       if (!isPremium && aiMessage.content) {
         const wordCount = aiMessage.content.trim().split(/\s+/).filter(Boolean).length;
-        if (wordCount > 0) {
-          useCreditsStore.getState().spendWords(wordCount).catch(() => {});
-        }
+        if (wordCount > 0) useCreditsStore.getState().spendWords(wordCount).catch(() => {});
       }
-
-      // Rafraîchir le compteur d'utilisation (non bloquant)
       get().refreshUsage().catch(() => {});
 
     } catch {
-      // Erreur réseau — débloquer l'UI et afficher un message
       const errorMsg: AIMessage = {
-        id: generateId(),
-        role: 'assistant',
+        id: generateId(), role: 'assistant',
         content: 'Une erreur est survenue. Vérifiez votre connexion et réessayez.',
         timestamp: new Date().toISOString(),
       };
-      set((state) => ({
-        isSending: false,
-        currentConversation: state.currentConversation
-          ? {
-              ...state.currentConversation,
-              messages: [...state.currentConversation.messages, errorMsg],
-            }
-          : state.currentConversation,
-      }));
+      set((state) => {
+        const cur = state.currentConversations[chatType];
+        return {
+          isSending: false,
+          currentConversations: {
+            ...state.currentConversations,
+            [chatType]: cur ? { ...cur, messages: [...cur.messages, errorMsg] } : cur,
+          },
+        };
+      });
     }
   },
 
   deleteConversation: async (id) => {
     await AIService.deleteConversation(id);
-    set((state) => ({
-      conversations: state.conversations.filter((c) => c.id !== id),
-      currentConversation: state.currentConversation?.id === id ? null : state.currentConversation,
-    }));
+    set((state) => {
+      const updated = { ...state.currentConversations };
+      (Object.keys(updated) as AIChatType[]).forEach((k) => {
+        if (updated[k]?.id === id) updated[k] = null;
+      });
+      return {
+        conversations: state.conversations.filter((c) => c.id !== id),
+        currentConversations: updated,
+      };
+    });
   },
 
   refreshUsage: async () => {
@@ -204,19 +197,18 @@ export const useAIStore = create<AIStore>((set, get) => ({
     });
   },
 
-  addSystemMessage: (text: string) => {
-    const systemMsg: import('../types/content.types').AIMessage = {
-      id: `sys-${Date.now()}`,
-      role: 'assistant',
-      content: `⚠️ ${text}`,
-      timestamp: new Date().toISOString(),
+  addSystemMessage: (text: string, chatType: AIChatType = 'consultation') => {
+    const systemMsg: AIMessage = {
+      id: `sys-${Date.now()}`, role: 'assistant',
+      content: `⚠️ ${text}`, timestamp: new Date().toISOString(),
     };
     set((state) => {
-      if (!state.currentConversation) return {};
+      const cur = state.currentConversations[chatType];
+      if (!cur) return {};
       return {
-        currentConversation: {
-          ...state.currentConversation,
-          messages: [...state.currentConversation.messages, systemMsg],
+        currentConversations: {
+          ...state.currentConversations,
+          [chatType]: { ...cur, messages: [...cur.messages, systemMsg] },
         },
       };
     });
