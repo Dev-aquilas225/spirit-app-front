@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChatBubble } from "../../../../src/components/ai/ChatBubble";
 import { ChatInput } from "../../../../src/components/ai/ChatInput";
 import { CreditGate } from "../../../../src/components/credits/CreditGate";
+import { NoCreditsBanner } from "../../../../src/components/credits/NoCreditsBanner";
 import { AppIcon } from "../../../../src/components/common/AppIcon";
 
 import { EmptyState } from "../../../../src/components/common/EmptyState";
@@ -389,6 +390,8 @@ export default function PrayerProgramScreen() {
             </View>
           </View>
         )}
+
+        <NoCreditsBanner action="prayer_generation" />
 
         <ChatInput
           onSend={handleSend}

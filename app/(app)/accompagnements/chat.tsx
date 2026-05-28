@@ -13,6 +13,7 @@ import {
 import { ChatBubble } from '../../../src/components/ai/ChatBubble';
 import { ChatInput } from '../../../src/components/ai/ChatInput';
 import { CreditGate } from '../../../src/components/credits/CreditGate';
+import { NoCreditsBanner } from '../../../src/components/credits/NoCreditsBanner';
 import { AppIcon } from '../../../src/components/common/AppIcon';
 import { BackButton } from '../../../src/components/common/BackButton';
 import { EmptyState } from '../../../src/components/common/EmptyState';
@@ -234,6 +235,8 @@ export default function AccompagnementChatScreen() {
           </View>
         </View>
       )}
+
+      <NoCreditsBanner action="ai_chat" />
 
       <ChatInput
         onSend={handleSend}

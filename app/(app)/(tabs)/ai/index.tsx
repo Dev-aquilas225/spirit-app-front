@@ -18,6 +18,7 @@ import { ChatBubble } from '../../../../src/components/ai/ChatBubble';
 import { ChatInput } from '../../../../src/components/ai/ChatInput';
 import { AppIcon } from '../../../../src/components/common/AppIcon';
 import { CreditGate } from '../../../../src/components/credits/CreditGate';
+import { NoCreditsBanner } from '../../../../src/components/credits/NoCreditsBanner';
 import { FadeInView } from '../../../../src/components/common/FadeInView';
 import { LoadingSpinner } from '../../../../src/components/common/LoadingSpinner';
 
@@ -131,6 +132,8 @@ export default function FuturScreen() {
             </Text>
           </View>
         )}
+
+        <NoCreditsBanner action="prophetic_consultation" />
 
         <ChatInput
           onSend={sendMessage}
