@@ -7,7 +7,7 @@ import type { LucideIcon } from "lucide-react-native";
 import {
   Bell, BookOpen, Camera, Check, ChevronRight, CreditCard, Crown,
   FileText, Gift, Globe, LogOut, MessageCircle,
-  Pencil, Settings, ShieldCheck, Trash2, User, X,
+  Pencil, Settings, Share2, ShieldCheck, Trash2, User, X,
 } from "lucide-react-native";
 import React, { useState } from "react";
 import {
@@ -610,6 +610,7 @@ export default function ProfileScreen() {
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t.profile.sectionCommunity}</Text>
           <Card padding="none">
             <MenuItem icon={Gift}          label={t.profile.referral} onPress={() => router.push('/referral')} />
+            <MenuItem icon={Share2}        label="Partager sur WhatsApp (+1000 crédits)" onPress={() => router.push('/viral-share' as any)} />
             <MenuItem icon={MessageCircle} label={t.profile.support}  onPress={() => router.push('/support')} />
           </Card>
         </View>

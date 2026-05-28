@@ -135,7 +135,12 @@ function VipAnimation() {
 export default function PaymentScreen() {
   const { colors } = useTheme();
   const { plan: planParam } = useLocalSearchParams<{ plan?: string }>();
-  const plan = (planParam === 'weekly_plus' ? 'weekly_plus' : 'monthly') as 'monthly' | 'weekly_plus';
+  // Fallback : lire depuis window.location.search si useLocalSearchParams retourne undefined (SPA web)
+  const planRaw = planParam
+    ?? (Platform.OS === 'web' && typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search).get('plan') ?? ''
+        : '');
+  const plan = (planRaw === 'weekly_plus' ? 'weekly_plus' : 'monthly') as 'monthly' | 'weekly_plus';
   const { initiatePayment, paymentError, clearPaymentError, loadSubscription } = useSubscription();
   const refreshUser    = useAuthStore((s) => s.refreshUser);
   const fetchBalance   = useCreditsStore((s) => s.fetchBalance);

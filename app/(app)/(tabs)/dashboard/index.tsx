@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import {
   Bell, BookOpen, CloudMoon, Crown, Eye,
-  Heart, MessageCircle, Sparkles, Star, Users, Zap,
+  Heart, MessageCircle, Share2, Sparkles, Star, Users, Zap,
 } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -188,9 +188,9 @@ export default function DashboardScreen() {
               <Text style={[s.statTxt, { color: '#7B52D4' }]}>Parrainer</Text>
             </TouchableOpacity>
             <View style={[s.statSep, { backgroundColor: colors.border }]} />
-            <TouchableOpacity style={s.statItem} onPress={() => router.push('/subscription' as any)}>
-              <AppIcon icon={Crown} size={13} color="#E8609A" strokeWidth={2.2} />
-              <Text style={[s.statTxt, { color: '#E8609A' }]}>Missions</Text>
+            <TouchableOpacity style={s.statItem} onPress={() => router.push('/viral-share' as any)}>
+              <AppIcon icon={Share2} size={13} color="#25D366" strokeWidth={2.2} />
+              <Text style={[s.statTxt, { color: '#25D366' }]}>Partager</Text>
             </TouchableOpacity>
           </View>
 
