@@ -64,7 +64,7 @@ export default function PaystackCallbackScreen() {
 
       setStep('success');
       // Rediriger vers succès après 2s
-      setTimeout(() => router.replace('/subscription/success'), 2000);
+      setTimeout(() => router.replace(`/subscription/success?reference=${ref}` as any), 2000);
     } catch {
       setStep('error');
       setErrorMsg('Impossible de vérifier le paiement');

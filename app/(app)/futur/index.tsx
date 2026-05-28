@@ -1,10 +1,6 @@
-import { useEffect } from 'react';
-import { router } from 'expo-router';
+import { Redirect } from 'expo-router';
 
-/** Redirige vers l'onglet Voyance dans le BottomTab */
+/** /futur → onglet Voyance (chat direct, sans flash) */
 export default function FuturRedirect() {
-  useEffect(() => {
-    router.replace('/(app)/(tabs)/ai');
-  }, []);
-  return null;
+  return <Redirect href="/(app)/(tabs)/ai" />;
 }

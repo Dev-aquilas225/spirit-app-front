@@ -10,6 +10,8 @@ import { useSubscription } from '../../../src/hooks/useSubscription';
 import { useAuthStore } from '../../../src/store/auth.store';
 import { useCreditsStore } from '../../../src/store/credits.store';
 import { formatDate, formatCurrency } from '../../../src/utils/helpers';
+import { http } from '../../../src/services/http.client';
+import { useLocalSearchParams } from 'expo-router';
 
 export default function PaymentSuccessScreen() {
   const { colors, spacing } = useTheme();
@@ -19,9 +21,17 @@ export default function PaymentSuccessScreen() {
   const fetchBalance = useCreditsStore((s) => s.fetchBalance);
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const { reference } = useLocalSearchParams<{ reference?: string }>();
+  const [payInfo, setPayInfo] = React.useState<{ amount?: number; planType?: string; credits?: number } | null>(null);
 
   useEffect(() => {
-    // Rafraîchir le profil, l'abonnement et les crédits dès l'arrivée sur cette page
+    // Vérifier le paiement et récupérer les infos réelles
+    const ref = reference || pendingReference;
+    if (ref) {
+      http.get<any>(`/subscriptions/verify/${ref}`)
+        .then(res => { if (res?.amount) setPayInfo({ amount: res.amount, planType: res.planType, credits: res.credits }); })
+        .catch(() => {});
+    }
     Promise.all([refreshUser(), loadSubscription(), fetchBalance()]).catch(() => {});
 
     Animated.sequence([
@@ -41,7 +51,9 @@ export default function PaymentSuccessScreen() {
         <View style={styles.subtitleRow}>
           <AppIcon icon={Crown} size={18} color={colors.primary} strokeWidth={2.2} />
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            {t.subscription.successSubtitle}
+            {payInfo?.planType === 'credits'
+              ? `+${payInfo.credits?.toLocaleString()} crédits ajoutés à votre compte`
+              : t.subscription.successSubtitle}
           </Text>
         </View>
 
@@ -49,7 +61,7 @@ export default function PaymentSuccessScreen() {
           <View style={[styles.infoCard, { backgroundColor: colors.premiumBackground, borderColor: colors.premiumBorder }]}>
             <View style={styles.infoRow}>
               <Text style={{ color: colors.textSecondary }}>{t.subscription.successAmount}</Text>
-              <Text style={{ color: colors.text, fontWeight: '700' }}>{formatCurrency(5000)}</Text>
+              <Text style={{ color: colors.text, fontWeight: '700' }}>{formatCurrency(payInfo?.amount ?? 0)}</Text>
             </View>
             {subscription && (
               <View style={styles.infoRow}>
