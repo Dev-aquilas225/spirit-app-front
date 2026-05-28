@@ -33,7 +33,7 @@ const POLL_INTERVAL_MS  = 4_000;
 const TIMEOUT_MS        = 10 * 60 * 1000; 
 const VIP_DISPLAY_MS    = 2_800;   
 
-type Step = 'initiating' | 'waiting' | 'vip' | 'timeout' | 'error';
+type Step = 'confirm' | 'initiating' | 'waiting' | 'vip' | 'timeout' | 'error';
 
 /* ─── Helpers ────────────────────────────────────────────────────────────── */
 async function openPaystackUrl(url: string): Promise<void> {
@@ -145,7 +145,7 @@ export default function PaymentScreen() {
   const refreshUser    = useAuthStore((s) => s.refreshUser);
   const fetchBalance   = useCreditsStore((s) => s.fetchBalance);
 
-  const [step, setStep]         = useState<Step>('initiating');
+  const [step, setStep]         = useState<Step>('confirm');
   const [reference, setRef]     = useState<string | null>(null);
   const [authUrl, setAuthUrl]   = useState<string | null>(null);
   const [remaining, setRemaining] = useState(TIMEOUT_MS);
@@ -265,10 +265,36 @@ export default function PaymentScreen() {
     await openPaystackUrl(result.authorization_url);
   }, [initiatePayment, loadSubscription, stopAll, clearPaymentError]);
 
+  // Ne lance PAS automatiquement — l'utilisateur confirme d'abord
   useEffect(() => {
-    launch();
     return () => stopAll();
   }, []);
+
+  // ── Écran de confirmation ──────────────────────────────────────────────
+  const planLabels: Record<string, { name: string; price: string; desc: string }> = {
+    weekly_plus: { name: 'Hebdomadaire Plus', price: '3 000 FCFA', desc: '7 jours d\'accès illimité' },
+    monthly:     { name: 'Mensuel',           price: '8 000 FCFA', desc: '30 jours d\'accès illimité' },
+  };
+  const planInfo = planLabels[plan] ?? planLabels['monthly'];
+
+  if (step === 'confirm') {
+    return (
+      <View style={[s.centered, { backgroundColor: colors.background, gap: 24, paddingHorizontal: 32 }]}>
+        <View style={{ backgroundColor: 'rgba(201,168,76,0.12)', borderRadius: 50, padding: 20, borderWidth: 1.5, borderColor: 'rgba(201,168,76,0.3)' }}>
+          <AppIcon icon={Crown} size={52} color="#C9A84C" strokeWidth={1.8} />
+        </View>
+        <View style={{ alignItems: 'center', gap: 8 }}>
+          <Text style={[s.title, { color: colors.text }]}>{planInfo.name}</Text>
+          <Text style={[{ fontSize: 28, fontWeight: '900', color: '#C9A84C' }]}>{planInfo.price}</Text>
+          <Text style={[s.msg, { color: colors.textSecondary }]}>{planInfo.desc}</Text>
+        </View>
+        <View style={{ width: '100%', gap: 12 }}>
+          <Button label="Payer maintenant" variant="gold" fullWidth onPress={launch} />
+          <Button label="Annuler" variant="ghost" fullWidth onPress={() => router.back()} />
+        </View>
+      </View>
+    );
+  }
 
   if (step === 'vip') {
     return (

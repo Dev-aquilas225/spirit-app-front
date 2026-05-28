@@ -38,13 +38,14 @@ export function CreditGate({ visible, action, onClose, onSuccess }: Props) {
   const handlePurchase = async (packId: string, price: number) => {
     setLoading(true);
     try {
-      const res = await http.post<{ authorization_url: string; reference: string }>(
-        '/payments/initialize',
-        { amount: price, plan: packId, type: 'credits' }
+      const res = await http.post<{ paymentUrl?: string; authorization_url?: string; reference: string }>(
+        '/subscriptions/initiate',
+        { plan: packId, autoRenew: false }
       );
-      if (res?.authorization_url) {
-        if (Platform.OS === 'web') window.open(res.authorization_url, '_blank');
-        else await Linking.openURL(res.authorization_url);
+      const url = res?.paymentUrl ?? res?.authorization_url;
+      if (url) {
+        if (Platform.OS === 'web') window.location.href = url;
+        else await Linking.openURL(url);
 
         // Polling toutes les 4s pendant 3 min pour détecter le paiement confirmé
         let attempts = 0;
@@ -52,7 +53,7 @@ export function CreditGate({ visible, action, onClose, onSuccess }: Props) {
         const poll = setInterval(async () => {
           attempts++;
           try {
-            const statusRes = await http.get<{ status: string }>(`/subscriptions/status/${res.reference}`);
+            const statusRes = await http.get<{ status: string }>(`/subscriptions/status/${res?.reference}`);
             if (statusRes?.status === 'success' || statusRes?.status === 'active') {
               clearInterval(poll);
               await purchase(packId, res.reference);
