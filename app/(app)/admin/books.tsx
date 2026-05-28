@@ -64,6 +64,31 @@ function pickImageWeb(): Promise<string | null> {
   return pickFileWeb('image/*').then(r => r?.data ?? null);
 }
 
+/**
+ * Compresse une image base64 via un canvas HTML.
+ * Redimensionne à maxPx de large max, encode en JPEG à la qualité donnée.
+ */
+function compressImageWeb(dataUrl: string, maxPx = 800, quality = 0.7): Promise<string> {
+  return new Promise((resolve) => {
+    if (typeof document === 'undefined') { resolve(dataUrl); return; }
+    const img = new window.Image();
+    img.onload = () => {
+      const ratio = Math.min(1, maxPx / Math.max(img.width, img.height));
+      const w = Math.round(img.width * ratio);
+      const h = Math.round(img.height * ratio);
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { resolve(dataUrl); return; }
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
 /* ─── BookForm ───────────────────────────────────────────────────────────── */
 function BookForm({
   initial, onSave, onCancel, saving,
@@ -86,10 +111,12 @@ function BookForm({
     const b64 = await pickImageWeb();
     if (b64) {
       try {
-        const res = await http.post<{ url: string }>('/admin/upload/image', { data: b64 });
-        if (res?.url) set('coverUrl', res.url);
-        else set('coverUrl', b64);
+        // Compresser l'image côté client avant upload (canvas → JPEG qualité 0.7, max 800px)
+        const compressed = await compressImageWeb(b64, 800, 0.7);
+        const res = await http.post<{ url: string }>('/admin/upload/image', { data: compressed });
+        set('coverUrl', res?.url ?? compressed);
       } catch {
+        // Fallback : stocker le base64 directement (fonctionne même sans backend upload)
         set('coverUrl', b64);
       }
     }
@@ -298,7 +325,7 @@ export default function AdminBooks() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const d = await http.get<Book[]>('/books');
+      const d = await http.get<Book[]>('/library');
       setBooks((d as any) ?? []);
     } catch { setBooks([]); }
     setLoading(false);
@@ -310,16 +337,24 @@ export default function AdminBooks() {
     setSaving(true);
     try {
       if (mode === 'edit' && editing) {
-        const updated = await http.put<Book>(`/admin/books/${editing.id}`, data);
+        const updated = await http.patch<Book>(`/library/${editing.id}`, data);
         setBooks(prev => prev.map(b => b.id === editing.id ? (updated as any ?? { ...editing, ...data }) : b));
       } else {
-        const created = await http.post<Book>('/admin/books', data);
-        setBooks(prev => [created as any, ...prev]);
+        const created = await http.post<Book>('/library', data);
+        setBooks(prev => [(created as any) ?? data, ...prev]);
       }
       setMode('list');
       setEditing(null);
-    } catch {}
-    setSaving(false);
+    } catch (e: any) {
+      const msg = e?.message ?? 'Erreur lors de l\'enregistrement';
+      if (Platform.OS === 'web') {
+        window.alert(`Erreur : ${msg}`);
+      } else {
+        Alert.alert('Erreur', msg);
+      }
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = (book: Book) => {
@@ -335,7 +370,7 @@ export default function AdminBooks() {
   };
 
   const doDelete = async (id: string) => {
-    await http.delete(`/admin/books/${id}`).catch(() => {});
+    await http.delete(`/library/${id}`).catch(() => {});
     setBooks(prev => prev.filter(b => b.id !== id));
   };
 
@@ -441,7 +476,7 @@ const f = StyleSheet.create({
   row:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   heading:   { fontSize: 18, fontWeight: '800', color: '#fff' },
   closeBtn:  { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center' },
-  coverPicker:{ height: 160, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', borderStyle: 'dashed' },
+  coverPicker:{ aspectRatio: 1 / 1.414, width: '100%', borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', borderStyle: 'dashed' },
   coverPreview:{ width: '100%', height: '100%' },
   coverPlaceholder:{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: 'rgba(201,168,76,0.05)' },
   coverHint: { fontSize: 13, color: 'rgba(255,255,255,0.4)' },
@@ -462,8 +497,8 @@ const f = StyleSheet.create({
 
 const r = StyleSheet.create({
   wrap:        { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 12 },
-  cover:       { width: 52, height: 72, borderRadius: 8 },
-  coverFallback:{ width: 52, height: 72, borderRadius: 8, backgroundColor: 'rgba(201,168,76,0.1)', alignItems: 'center', justifyContent: 'center' },
+  cover:       { width: 52, height: 74, borderRadius: 8 },
+  coverFallback:{ width: 52, height: 74, borderRadius: 8, backgroundColor: 'rgba(201,168,76,0.1)', alignItems: 'center', justifyContent: 'center' },
   title:       { fontSize: 14, fontWeight: '800', color: '#fff', marginBottom: 2 },
   author:      { fontSize: 12, color: 'rgba(255,255,255,0.45)', marginBottom: 6 },
   badges:      { flexDirection: 'row', gap: 6 },

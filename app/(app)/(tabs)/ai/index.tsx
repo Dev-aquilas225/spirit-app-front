@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChatBubble } from '../../../../src/components/ai/ChatBubble';
 import { ChatInput } from '../../../../src/components/ai/ChatInput';
 import { AppIcon } from '../../../../src/components/common/AppIcon';
+import { CreditGate } from '../../../../src/components/credits/CreditGate';
 import { FadeInView } from '../../../../src/components/common/FadeInView';
 import { LoadingSpinner } from '../../../../src/components/common/LoadingSpinner';
 
@@ -40,6 +41,10 @@ export default function FuturScreen() {
     isSending,
     startNewConversation,
     sendMessage,
+    creditGateVisible,
+    creditAction,
+    onCreditSuccess,
+    closeCreditGate,
   } = useAIChat('consultation');
 
   const flatListRef = useRef<FlatList>(null);
@@ -74,9 +79,9 @@ export default function FuturScreen() {
         <View style={{ flex: 1 }}>
           <View style={s.headerTitleRow}>
             <AppIcon icon={Eye} size={18} color="#34D399" strokeWidth={2.6} />
-            <Text style={s.headerTitle}>Connaître le futur</Text>
+            <Text style={s.headerTitle}>Consulter</Text>
           </View>
-          <Text style={s.headerSub}>Consultation spirituelle & révélation</Text>
+          <Text style={s.headerSub}>Guidance prophétique & révélation spirituelle</Text>
         </View>
         <TouchableOpacity
           onPress={() => router.push('/profile')}
@@ -131,6 +136,13 @@ export default function FuturScreen() {
           onSend={sendMessage}
           loading={isSending}
           placeholder="Posez votre question prophétique ici…"
+        />
+
+        <CreditGate
+          visible={!!creditGateVisible && !!creditAction}
+          action={creditAction}
+          onSuccess={onCreditSuccess}
+          onClose={closeCreditGate}
         />
       </FadeInView>
     </KeyboardAvoidingView>

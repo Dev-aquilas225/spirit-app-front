@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ChatBubble } from "../../../../src/components/ai/ChatBubble";
 import { ChatInput } from "../../../../src/components/ai/ChatInput";
+import { CreditGate } from "../../../../src/components/credits/CreditGate";
 import { AppIcon } from "../../../../src/components/common/AppIcon";
 
 import { EmptyState } from "../../../../src/components/common/EmptyState";
@@ -60,6 +61,10 @@ export default function PrayerProgramScreen() {
     sendMessage,
     loadConversation,
     deleteConversation,
+    creditGateVisible,
+    creditAction,
+    onCreditSuccess,
+    closeCreditGate,
   } = useAIChat("prayer");
 
   const flatListRef = useRef<FlatList>(null);
@@ -389,6 +394,13 @@ export default function PrayerProgramScreen() {
           onSend={handleSend}
           loading={isSending}
           placeholder="Écrivez votre fardeau ou votre prière ici…"
+        />
+
+        <CreditGate
+          visible={!!creditGateVisible && !!creditAction}
+          action={creditAction}
+          onSuccess={onCreditSuccess}
+          onClose={closeCreditGate}
         />
       </FadeInView>
     </KeyboardAvoidingView>

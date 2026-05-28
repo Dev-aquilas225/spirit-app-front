@@ -95,7 +95,7 @@ const s = StyleSheet.create({
   catActive:{ backgroundColor:'#C9A84C' },
   catTxt:{ fontSize:13, fontWeight:'700' },
   card:{ flex:1, borderRadius:16, borderWidth:1, padding:12, gap:8 },
-  cover:{ width:'100%', aspectRatio:0.75, borderRadius:12, alignItems:'center', justifyContent:'center', position:'relative' },
+  cover:{ width:'100%', aspectRatio: 1/1.414, borderRadius:12, alignItems:'center', justifyContent:'center', position:'relative' },
   lockBadge:{ position:'absolute', bottom:6, right:6, flexDirection:'row', alignItems:'center', gap:3, backgroundColor:'rgba(0,0,0,0.7)', borderRadius:8, paddingHorizontal:6, paddingVertical:3 },
   lockTxt:{ fontSize:10, fontWeight:'700', color:'#C9A84C' },
   bookTitle:{ fontSize:13, fontWeight:'800', lineHeight:18 },

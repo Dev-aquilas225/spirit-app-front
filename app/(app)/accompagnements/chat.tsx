@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { ChatBubble } from '../../../src/components/ai/ChatBubble';
 import { ChatInput } from '../../../src/components/ai/ChatInput';
+import { CreditGate } from '../../../src/components/credits/CreditGate';
 import { AppIcon } from '../../../src/components/common/AppIcon';
 import { BackButton } from '../../../src/components/common/BackButton';
 import { EmptyState } from '../../../src/components/common/EmptyState';
@@ -55,6 +56,10 @@ export default function AccompagnementChatScreen() {
     sendMessage,
     loadConversation,
     deleteConversation,
+    creditGateVisible,
+    creditAction,
+    onCreditSuccess,
+    closeCreditGate,
   } = useAIChat('accompagnement');
 
   const flatListRef = useRef<FlatList>(null);
@@ -234,6 +239,13 @@ export default function AccompagnementChatScreen() {
         onSend={handleSend}
         loading={isSending}
         placeholder="Partagez votre situation avec le Prophète Georges…"
+      />
+
+      <CreditGate
+        visible={!!creditGateVisible && !!creditAction}
+        action={creditAction}
+        onSuccess={onCreditSuccess}
+        onClose={closeCreditGate}
       />
     </FadeInView>
   );
