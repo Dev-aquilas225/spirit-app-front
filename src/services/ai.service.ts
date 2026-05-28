@@ -138,10 +138,21 @@ export const AIService = {
     chatType: 'prophet' | 'consultation' | 'accompagnement' | 'dream' | 'prayer' = 'prophet',
   ): Promise<{ message: AIMessage; conversationId?: string; error?: string }> {
 
+    // Map chatType → section backend (identifiant exact du prompt admin)
+    const CHAT_TYPE_TO_SECTION: Record<string, string> = {
+      prophet:        'prophetic_consultation',
+      consultation:   'consultation',
+      accompagnement: 'accompagnement',
+      dream:          'dream_interpretation',
+      prayer:         'prayer_generation',
+    };
+    const section = CHAT_TYPE_TO_SECTION[chatType] ?? chatType;
+
     try {
       const data = await http.post<unknown>('/ai/chat', {
         message: question,
         chatType,
+        section,
         conversationId,
       });
 

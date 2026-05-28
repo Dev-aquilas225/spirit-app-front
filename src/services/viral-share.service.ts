@@ -42,20 +42,21 @@ export const ViralShareService = {
       || process.env.EXPO_PUBLIC_APP_URL
       || 'https://oracle-plus.online';
 
-    const message = encodeURIComponent(
-      `🔮 *Oracle Plus* — Guidance spirituelle africaine\n\n` +
-      `Découvrez l'interprétation des rêves, la voyance et la prière guidée.\n\n` +
-      `👉 ${appUrl}\n\n` +
-      `Inscrivez-vous et recevez *2000 crédits gratuits* !`
-    );
+    // Texte sans emojis ni formatage markdown pour éviter les symboles bizarres
+    const plainText =
+      `Oracle Plus - Guidance spirituelle africaine\n\n` +
+      `Decouvrez l'interpretation des reves, la consultation prophetique et la priere guidee.\n\n` +
+      `Lien : ${appUrl}\n\n` +
+      `Inscrivez-vous et recevez 2000 credits gratuits !`;
 
+    const message = encodeURIComponent(plainText);
     const waUrl = `https://wa.me/?text=${message}`;
 
     if (Platform.OS === 'web') {
       window.open(waUrl, '_blank');
     } else {
       try {
-        await Share.share({ message: decodeURIComponent(message), url: appUrl });
+        await Share.share({ message: plainText, url: appUrl });
       } catch {}
     }
   },

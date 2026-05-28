@@ -133,17 +133,24 @@ export const PaymentService = {
 
   async getPaymentHistory(): Promise<PaymentRecord[]> {
     try {
-      const result = await http.get<Partial<PaymentRecord>[]>('/subscriptions/me/history');
-      return result.map((item) => ({
+      const raw = await http.get<any>('/subscriptions/me/history');
+      // Le backend peut retourner un tableau direct, ou { data: [...] }, ou { payments: [...] }
+      const result: Partial<PaymentRecord>[] = Array.isArray(raw)
+        ? raw
+        : Array.isArray(raw?.data) ? raw.data
+        : Array.isArray(raw?.payments) ? raw.payments
+        : [];
+      return result.map((item: any) => ({
         id: item.id ?? `${item.reference ?? 'payment'}-${item.createdAt ?? Date.now()}`,
         userId: item.userId ?? '',
         amount: item.amount ?? 0,
         currency: 'FCFA',
         method: (item.method as PaymentMethod) ?? 'card',
-        status: item.status ?? 'pending',
-        reference: item.reference ?? '',
-        createdAt: item.createdAt ?? new Date().toISOString(),
-        description: item.description ?? 'Abonnement Premium',
+        status: (item.status === 'success' || item.status === 'failed' || item.status === 'pending')
+          ? item.status : 'pending',
+        reference: item.reference ?? item.paymentReference ?? '',
+        createdAt: item.createdAt ?? item.updatedAt ?? new Date().toISOString(),
+        description: item.description ?? (item.plan ? `Abonnement ${item.plan}` : 'Paiement Oracle Plus'),
       }));
     } catch {
       return [];
@@ -159,9 +166,13 @@ export const PaymentService = {
       const result = await http.post<any>('/subscriptions/initiate', { plan, autoRenew });
       // Backend retourne paymentUrl, frontend attend authorization_url
       const normalized: InitiateResult = {
-        reference: result.reference,
+        reference: result.reference ?? '',
         authorization_url: result.authorization_url ?? result.paymentUrl ?? '',
-        subscriptionId: result.subscriptionId,
+        subscriptionId: result.subscriptionId ?? '',
+        access_code: result.access_code ?? '',
+        amount: result.amount ?? 0,
+        currency: result.currency ?? 'FCFA',
+        plan: result.plan ?? 'monthly',
       };
       return { data: normalized };
     } catch (e) {

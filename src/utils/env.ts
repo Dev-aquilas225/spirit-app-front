@@ -17,11 +17,18 @@ function getEnv(key: string, fallback = ''): string {
   return (process.env as Record<string, string | undefined>)[key] ?? fallback;
 }
 
+// Emails admin hardcodés en fallback si la variable d'env n'est pas injectée
+const HARDCODED_ADMIN_EMAILS = ['tchingankonggeorges@gmail.com'];
+
 export const Env = {
   API_BASE_URL: () => getEnv('EXPO_PUBLIC_API_BASE_URL', 'http://localhost:4200'),
   GOOGLE_CLIENT_ID_WEB: () => getEnv('EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB', ''),
-  ADMIN_EMAILS: () => getEnv('EXPO_PUBLIC_ADMIN_EMAIL', '')
-    .split(',')
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean),
+  ADMIN_EMAILS: () => {
+    const fromEnv = getEnv('EXPO_PUBLIC_ADMIN_EMAIL', '')
+      .split(',')
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean);
+    // Fusionner env + hardcodé pour garantir l'accès même sans variable runtime
+    return Array.from(new Set([...fromEnv, ...HARDCODED_ADMIN_EMAILS]));
+  },
 };

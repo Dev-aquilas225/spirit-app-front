@@ -1,9 +1,8 @@
 import { router } from 'expo-router';
-import { Eye, History, MessageCircle, User } from 'lucide-react-native';
-import React, { useEffect, useRef, useState } from 'react';
+import { Eye, User } from 'lucide-react-native';
+import React, { useEffect, useRef } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -18,7 +17,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChatBubble } from '../../../../src/components/ai/ChatBubble';
 import { ChatInput } from '../../../../src/components/ai/ChatInput';
 import { AppIcon } from '../../../../src/components/common/AppIcon';
-import { EmptyState } from '../../../../src/components/common/EmptyState';
 import { FadeInView } from '../../../../src/components/common/FadeInView';
 import { LoadingSpinner } from '../../../../src/components/common/LoadingSpinner';
 
@@ -26,31 +24,22 @@ import { useAIChat } from '../../../../src/hooks/useAIChat';
 import { useAccess } from '../../../../src/hooks/useAccess';
 import { useAuthStore } from '../../../../src/store/auth.store';
 import { useTheme } from '../../../../src/theme';
-import { AIConversation } from '../../../../src/types/content.types';
-import { formatDate, truncateText } from '../../../../src/utils/helpers';
 import { Testimonials } from '../../../../src/components/home/Testimonials';
 
-type TabView = 'chat' | 'history';
-
 export default function FuturScreen() {
-  const { colors, spacing } = useTheme();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const user = useAuthStore((s) => s.user);
-  const firstName = user?.firstName?.trim() || user?.name?.split(' ')[0] || '';
-  const [view, setView] = useState<TabView>('chat');
   const { hasSubscription, canPerform } = useAccess();
   // Accès autorisé si abonné OU si l'utilisateur a assez de crédits
   const canAccess = hasSubscription || canPerform('prophetic_consultation');
 
   const {
     messages,
-    conversations,
     isLoading,
     isSending,
     startNewConversation,
     sendMessage,
-    loadConversation,
-    deleteConversation,
   } = useAIChat('consultation');
 
   const flatListRef = useRef<FlatList>(null);
@@ -63,13 +52,6 @@ export default function FuturScreen() {
       return () => clearTimeout(t);
     }
   }, [messages.length]);
-
-  function handleDeleteConv(conv: AIConversation) {
-    Alert.alert('Supprimer', 'Supprimer cette consultation ?', [
-      { text: 'Annuler', style: 'cancel' },
-      { text: 'Supprimer', style: 'destructive', onPress: () => deleteConversation(conv.id) },
-    ]);
-  }
 
   if (!canAccess) {
     return (
@@ -92,37 +74,10 @@ export default function FuturScreen() {
         <View style={{ flex: 1 }}>
           <View style={s.headerTitleRow}>
             <AppIcon icon={Eye} size={18} color="#34D399" strokeWidth={2.6} />
-            <Text style={s.headerTitle}>
-              {view === 'chat' ? 'Voyance' : 'Mes consultations'}
-            </Text>
+            <Text style={s.headerTitle}>Connaître le futur</Text>
           </View>
-          <Text style={s.headerSub}>
-            {view === 'chat'
-              ? 'Consultation spirituelle & révélation'
-              : 'Historique de vos consultations'}
-          </Text>
+          <Text style={s.headerSub}>Consultation spirituelle & révélation</Text>
         </View>
-
-        {view === 'chat' && (
-          <TouchableOpacity
-            onPress={() => setView('history')}
-            style={[s.iconBtn, { backgroundColor: 'rgba(255,255,255,0.10)' }]}
-            activeOpacity={0.8}
-          >
-            <AppIcon icon={History} size={18} color="#fff" strokeWidth={2.2} />
-          </TouchableOpacity>
-        )}
-
-        {view === 'history' && (
-          <TouchableOpacity
-            onPress={() => setView('chat')}
-            style={[s.iconBtn, { backgroundColor: 'rgba(255,255,255,0.10)' }]}
-            activeOpacity={0.8}
-          >
-            <AppIcon icon={MessageCircle} size={18} color="#fff" strokeWidth={2.2} />
-          </TouchableOpacity>
-        )}
-
         <TouchableOpacity
           onPress={() => router.push('/profile')}
           style={[s.iconBtn, { backgroundColor: 'rgba(255,255,255,0.10)', marginLeft: 4 }]}
@@ -133,61 +88,6 @@ export default function FuturScreen() {
       </View>
     </View>
   );
-
-  // ── Historique ───────────────────────────────────────────────────────────────
-  if (view === 'history') {
-    return (
-      <FadeInView style={{ flex: 1, backgroundColor: colors.background }}>
-        {HeaderBlock}
-        {conversations.length === 0 ? (
-          <View style={{ flex: 1, justifyContent: 'center' }}>
-            <EmptyState
-              icon={<AppIcon icon={Eye} size={48} color="#34D399" strokeWidth={1.8} />}
-              title="Aucune consultation"
-              message="Posez votre première question prophétique pour recevoir une guidance spirituelle."
-              actionLabel="Nouvelle consultation"
-              onAction={() => setView('chat')}
-            />
-          </View>
-        ) : (
-          <FlatList
-            data={conversations}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={{ padding: spacing.base }}
-            removeClippedSubviews
-            maxToRenderPerBatch={10}
-            windowSize={5}
-            renderItem={({ item }) => {
-              const preview =
-                item?.title?.trim() ||
-                item.messages.find((m) => m.role === 'user')?.content?.trim() ||
-                item.messages[0]?.content?.trim();
-              return (
-                <TouchableOpacity
-                  onPress={async () => { await loadConversation(item.id); setView('chat'); }}
-                  onLongPress={() => handleDeleteConv(item)}
-                  style={[s.convCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-                  activeOpacity={0.85}
-                >
-                  <View style={s.convIcon}>
-                    <AppIcon icon={MessageCircle} size={16} color="#34D399" strokeWidth={2.2} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontWeight: '700', color: colors.text, fontSize: 14 }}>
-                      {preview ? truncateText(preview, 45) : 'Consultation prophétique'}
-                    </Text>
-                    <Text style={{ color: colors.textTertiary, fontSize: 12, marginTop: 4 }}>
-                      {item.messages.length} échange(s) • {formatDate(item.updatedAt || item.createdAt)}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            }}
-          />
-        )}
-      </FadeInView>
-    );
-  }
 
   // ── Chat ─────────────────────────────────────────────────────────────────────
   return (
@@ -244,14 +144,5 @@ const s = StyleSheet.create({
   headerTitle:    { fontSize: 20, fontWeight: '800', color: '#fff', letterSpacing: 0.2 },
   headerSub:      { fontSize: 11, color: 'rgba(255,255,255,0.55)', marginTop: 2, fontWeight: '500' },
   iconBtn:        { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
-  convCard:       { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 14, borderWidth: 1, marginBottom: 10 },
-  convIcon:       { width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(52,211,153,0.10)', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  emptyChat:      { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  illustrationCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(52,211,153,0.08)', alignItems: 'center', justifyContent: 'center', marginBottom: 20, borderWidth: 1, borderColor: 'rgba(52,211,153,0.2)' },
-  emptyTitle:     { fontSize: 20, fontWeight: '800', textAlign: 'center', letterSpacing: 0.2 },
-  emptySub:       { fontSize: 14, textAlign: 'center', marginTop: 12, lineHeight: 22, paddingHorizontal: 8 },
-  suggestion:     { padding: 14, borderRadius: 12, borderWidth: 1 },
-  suggestionRow:  { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  bullet:         { width: 6, height: 6, borderRadius: 3 },
   typing:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, borderTopWidth: 0.5 },
 });

@@ -10,7 +10,7 @@
  * ouvertes — elles se rechargent automatiquement.
  */
 
-const CACHE_VERSION = 'oracle-plus-v9';
+const CACHE_VERSION = 'oracle-plus-v10';
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 
 // Ressources mises en cache à l'installation (shell minimal)

@@ -39,6 +39,7 @@ import { LoadingSpinner } from '../../../src/components/common/LoadingSpinner';
 import { FormationsService, type Formation, type Lesson } from '../../../src/services/formations.service';
 import { StorageService } from '../../../src/services/storage.service';
 import { STORAGE_KEYS } from '../../../src/utils/constants';
+import { Env } from '../../../src/utils/env';
 import { PdfViewer } from '../../../src/components/pdf/PdfViewer';
 
 type FormationsView = 'list' | 'detail' | 'reader';
