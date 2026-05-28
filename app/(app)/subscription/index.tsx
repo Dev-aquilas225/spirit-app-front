@@ -55,13 +55,14 @@ function CreditsTab() {
   const handleBuy = async (packId: string, price: number) => {
     setLoading(packId);
     try {
-      const res = await http.post<{ authorization_url: string; reference: string }>(
-        '/payments/initialize',
-        { amount: price, plan: packId, type: 'credits' }
+      const res = await http.post<{ paymentUrl?: string; authorization_url?: string; reference: string }>(
+        '/subscriptions/initiate',
+        { plan: packId, autoRenew: false }
       );
-      if (res?.authorization_url) {
-        if (Platform.OS === 'web') window.location.href = res.authorization_url;
-        else await Linking.openURL(res.authorization_url);
+      const url = res?.paymentUrl ?? res?.authorization_url;
+      if (url) {
+        if (Platform.OS === 'web') window.location.href = url;
+        else await Linking.openURL(url);
       }
     } catch {}
     setLoading(null);

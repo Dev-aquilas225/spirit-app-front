@@ -156,8 +156,14 @@ export const PaymentService = {
    */
   async initiate(plan: SubscriptionPlan, autoRenew = false): Promise<{ data?: InitiateResult; error?: string }> {
     try {
-      const result = await http.post<InitiateResult>('/subscriptions/initiate', { plan, autoRenew });
-      return { data: result };
+      const result = await http.post<any>('/subscriptions/initiate', { plan, autoRenew });
+      // Backend retourne paymentUrl, frontend attend authorization_url
+      const normalized: InitiateResult = {
+        reference: result.reference,
+        authorization_url: result.authorization_url ?? result.paymentUrl ?? '',
+        subscriptionId: result.subscriptionId,
+      };
+      return { data: normalized };
     } catch (e) {
       return { error: (e as ApiError).message };
     }
