@@ -272,8 +272,12 @@ export default function PaymentScreen() {
 
   // ── Écran de confirmation ──────────────────────────────────────────────
   const planLabels: Record<string, { name: string; price: string; desc: string }> = {
+    starter:     { name: 'Pack Départ',       price: '500 FCFA',   desc: '500 crédits · 1 crédit = 1 mot' },
+    standard:    { name: 'Pack Standard',     price: '1 000 FCFA', desc: '2 000 crédits · ⭐ Populaire' },
+    premium:     { name: 'Pack Premium',      price: '2 500 FCFA', desc: '5 000 crédits · 🏆 Meilleure valeur' },
     weekly_plus: { name: 'Hebdomadaire Plus', price: '3 000 FCFA', desc: '7 jours d\'accès illimité' },
     monthly:     { name: 'Mensuel',           price: '8 000 FCFA', desc: '30 jours d\'accès illimité' },
+    yearly:      { name: 'Annuel',            price: '15 000 FCFA',desc: '365 jours d\'accès illimité' },
   };
   const planInfo = planLabels[plan] ?? planLabels['monthly'];
 

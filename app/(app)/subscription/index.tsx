@@ -52,20 +52,8 @@ function CreditsTab() {
   const { hasSubscription } = useAccess();
   const [loading, setLoading] = useState<string | null>(null);
 
-  const handleBuy = async (packId: string, price: number) => {
-    setLoading(packId);
-    try {
-      const res = await http.post<{ paymentUrl?: string; authorization_url?: string; reference: string }>(
-        '/subscriptions/initiate',
-        { plan: packId, autoRenew: false }
-      );
-      const url = res?.paymentUrl ?? res?.authorization_url;
-      if (url) {
-        if (Platform.OS === 'web') window.location.href = url;
-        else await Linking.openURL(url);
-      }
-    } catch {}
-    setLoading(null);
+  const handleBuy = (packId: string, _price?: number) => {
+    router.push(`/subscription/payment?plan=${packId}` as any);
   };
 
   return (
