@@ -41,29 +41,40 @@ export default function PaystackCallbackScreen() {
 
   async function verify() {
     try {
-      // Attendre max 30s que le webhook Paystack traite le paiement
-      let attempts = 0;
+      // Appeler verify/:ref — vérifie avec Paystack ET active le service (crédits ou abonnement)
       let verified = false;
-      while (attempts < 8 && !verified) {
+      let attempts = 0;
+      while (attempts < 10 && !verified) {
         attempts++;
-        const res = await PaymentService.getStatus(ref).catch(() => null);
-        if (res?.status === 'success' || res?.status === 'active') {
+        const res = await PaymentService.verifyPayment(ref).catch(() => null);
+        if (res?.success) {
           verified = true;
           break;
         }
-        if (res?.status === 'failed') {
+        // Fallback : vérifier le statut en DB
+        const status = await PaymentService.getStatus(ref).catch(() => null);
+        if (status?.status === 'active') {
+          verified = true;
+          break;
+        }
+        if (status?.status === 'failed') {
           setStep('error');
           setErrorMsg('Paiement refusé par Paystack');
           return;
         }
-        await new Promise(r => setTimeout(r, 3500));
+        await new Promise(r => setTimeout(r, 3000));
+      }
+
+      if (!verified) {
+        setStep('error');
+        setErrorMsg('Vérification expirée. Si vous avez été débité, contactez le support.');
+        return;
       }
 
       // Rafraîchir profil + abonnement + crédits
       await Promise.all([refreshUser(), loadSubscription(), fetchBalance()]).catch(() => {});
 
       setStep('success');
-      // Rediriger vers succès après 2s
       setTimeout(() => router.replace(`/subscription/success?reference=${ref}` as any), 2000);
     } catch {
       setStep('error');
