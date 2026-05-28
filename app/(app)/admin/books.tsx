@@ -43,21 +43,25 @@ const EMPTY_FORM: Omit<Book, 'id'> = {
 const CATEGORIES = ['Spiritualité', 'Prophétie', 'Prières', 'Rêves', 'Formation', 'Autre'];
 
 /* ─── Upload helper (web only) ───────────────────────────────────────────── */
-function pickImageWeb(): Promise<string | null> {
+function pickFileWeb(accept: string): Promise<{ data: string; name: string } | null> {
   return new Promise((resolve) => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = 'image/*';
+    input.accept = accept;
     input.onchange = () => {
       const file = input.files?.[0];
       if (!file) return resolve(null);
       const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
+      reader.onload = () => resolve({ data: reader.result as string, name: file.name });
       reader.onerror = () => resolve(null);
       reader.readAsDataURL(file);
     };
     input.click();
   });
+}
+
+function pickImageWeb(): Promise<string | null> {
+  return pickFileWeb('image/*').then(r => r?.data ?? null);
 }
 
 /* ─── BookForm ───────────────────────────────────────────────────────────── */
@@ -71,6 +75,8 @@ function BookForm({
 }) {
   const [form, setForm] = useState(initial);
   const [uploading, setUploading] = useState(false);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
+  const [pdfName, setPdfName] = useState(initial.pdfUrl ? initial.pdfUrl.split('/').pop() ?? 'PDF chargé' : '');
 
   const set = (k: keyof typeof form, v: any) => setForm(f => ({ ...f, [k]: v }));
 
@@ -79,16 +85,32 @@ function BookForm({
     setUploading(true);
     const b64 = await pickImageWeb();
     if (b64) {
-      // Upload to backend, get URL back
       try {
         const res = await http.post<{ url: string }>('/admin/upload/image', { data: b64 });
         if (res?.url) set('coverUrl', res.url);
-        else set('coverUrl', b64); // fallback: store base64 locally
+        else set('coverUrl', b64);
       } catch {
         set('coverUrl', b64);
       }
     }
     setUploading(false);
+  };
+
+  const pickPdf = async () => {
+    if (Platform.OS !== 'web') return;
+    setUploadingPdf(true);
+    const result = await pickFileWeb('application/pdf');
+    if (result) {
+      try {
+        const res = await http.post<{ url: string }>('/admin/upload/pdf', { data: result.data, name: result.name });
+        if (res?.url) { set('pdfUrl', res.url); setPdfName(result.name); }
+        else { set('pdfUrl', result.data); setPdfName(result.name); }
+      } catch {
+        set('pdfUrl', result.data);
+        setPdfName(result.name);
+      }
+    }
+    setUploadingPdf(false);
   };
 
   return (
@@ -130,7 +152,6 @@ function BookForm({
         { label: 'Titre *', key: 'title' as const },
         { label: 'Auteur *', key: 'author' as const },
         { label: 'Description', key: 'description' as const, multi: true },
-        { label: 'URL PDF (optionnel)', key: 'pdfUrl' as const },
       ].map(({ label, key, multi }) => (
         <View key={key}>
           <Text style={f.lbl}>{label}</Text>
@@ -144,6 +165,25 @@ function BookForm({
           />
         </View>
       ))}
+
+      {/* PDF Upload */}
+      <View>
+        <Text style={f.lbl}>Fichier PDF</Text>
+        <TouchableOpacity
+          style={[f.input, { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 14 }]}
+          onPress={pickPdf}
+          disabled={uploadingPdf}
+        >
+          {uploadingPdf
+            ? <ActivityIndicator color="#C9A84C" size="small" />
+            : <AppIcon icon={FileText} size={20} color="#60A5FA" strokeWidth={2} />
+          }
+          <Text style={{ color: pdfName ? '#60A5FA' : 'rgba(255,255,255,0.3)', flex: 1, fontSize: 14 }} numberOfLines={1}>
+            {pdfName || 'Choisir un fichier PDF...'}
+          </Text>
+          {form.pdfUrl && <AppIcon icon={Upload} size={16} color="rgba(255,255,255,0.4)" strokeWidth={2} />}
+        </TouchableOpacity>
+      </View>
 
       {/* Catégorie */}
       <View>
