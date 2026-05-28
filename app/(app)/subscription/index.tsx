@@ -60,7 +60,7 @@ function CreditsTab() {
         { amount: price, plan: packId, type: 'credits' }
       );
       if (res?.authorization_url) {
-        if (Platform.OS === 'web') window.open(res.authorization_url, '_blank');
+        if (Platform.OS === 'web') window.location.href = res.authorization_url;
         else await Linking.openURL(res.authorization_url);
       }
     } catch {}
@@ -166,9 +166,8 @@ function SubscriptionsTab() {
   const PLAN_COLORS = { weekly: '#3B82F6', weekly_plus: '#8B5CF6', monthly: '#C9A84C' } as const;
 
   const handleSubscribe = (plan: SubscriptionPlan) => {
-    // payment.tsx handles initiation + polling + VIP animation
     setSelected(plan);
-    router.push({ pathname: '/subscription/payment', params: { plan } });
+    router.push(`/subscription/payment?plan=${plan}` as any);
   };
 
   return (

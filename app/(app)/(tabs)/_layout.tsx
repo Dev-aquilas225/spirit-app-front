@@ -33,22 +33,22 @@ function TabIcon({ icon: Icon, focused, color }: { icon: any; focused: boolean; 
 export default function TabsLayout() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const TAB_H = Platform.select({ ios: 82, android: 66, default: 60 + insets.bottom });
-  const PAD_B = Platform.select({ ios: 24, android: 8, default: 8 + insets.bottom });
+  const TAB_H = Platform.select({ ios: 88, android: 72, default: 68 + insets.bottom });
+  const PAD_B = Platform.select({ ios: 28, android: 10, default: 10 + insets.bottom });
 
   return (
     <Tabs screenOptions={{
       headerShown: false,
       animation: 'shift',
       tabBarActiveTintColor:   colors.primary,
-      tabBarInactiveTintColor: colors.tabBarInactive,
+      tabBarInactiveTintColor: 'rgba(255,255,255,0.55)',
       tabBarStyle: {
         backgroundColor: colors.tabBar,
         borderTopWidth: 1,
         borderTopColor: colors.border,
         height: TAB_H,
         paddingBottom: PAD_B,
-        paddingTop: 6,
+        paddingTop: 8,
         ...Platform.select({
           web: { boxShadow: `0 -1px 0 ${colors.border}, 0 -4px 20px rgba(201,168,76,0.08)` },
           default: {
@@ -60,7 +60,7 @@ export default function TabsLayout() {
           },
         }),
       },
-      tabBarLabelStyle: { fontSize: 11, fontWeight: '700', letterSpacing: 0.2, marginTop: 1 },
+      tabBarLabelStyle: { fontSize: 10, fontWeight: '600', letterSpacing: 0, marginTop: 2 },
     }}>
       {/* Accueil — Dashboard avec cartes de services */}
       <Tabs.Screen

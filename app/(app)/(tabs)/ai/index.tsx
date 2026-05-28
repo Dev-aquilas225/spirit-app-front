@@ -93,12 +93,12 @@ export default function FuturScreen() {
           <View style={s.headerTitleRow}>
             <AppIcon icon={Eye} size={18} color="#34D399" strokeWidth={2.6} />
             <Text style={s.headerTitle}>
-              {view === 'chat' ? 'Connaître le futur' : 'Mes consultations'}
+              {view === 'chat' ? 'Voyance' : 'Mes consultations'}
             </Text>
           </View>
           <Text style={s.headerSub}>
             {view === 'chat'
-              ? 'Guidance prophétique & révélation spirituelle'
+              ? 'Consultation spirituelle & révélation'
               : 'Historique de vos consultations'}
           </Text>
         </View>
