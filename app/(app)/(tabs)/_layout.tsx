@@ -75,7 +75,7 @@ export default function TabsLayout() {
       {/* Voyance — bouton central */}
       <Tabs.Screen
         name="ai/index"
-        options={{ tabBarLabel: 'Voyance', tabBarIcon: ({ color, focused }) => <TabIcon icon={MessageCircle} focused={focused} color={color} /> }}
+        options={{ tabBarLabel: 'Consulter', tabBarIcon: ({ color, focused }) => <TabIcon icon={MessageCircle} focused={focused} color={color} /> }}
       />
       {/* Livres */}
       <Tabs.Screen

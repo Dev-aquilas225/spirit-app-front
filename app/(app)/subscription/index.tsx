@@ -243,20 +243,23 @@ function SubscriptionsTab() {
         );
       })}
 
-      {/* CTA */}
-      <TouchableOpacity
-        style={[st.cta, { opacity: loading ? 0.7 : 1 }]}
-        onPress={() => handleSubscribe(selected)}
-        disabled={loading !== null}
-        activeOpacity={0.85}
-      >
-        {loading ? (
-          <ActivityIndicator color="#1A1A3E" />
-        ) : (
-          <><AppIcon icon={Crown} size={20} color="#1A1A3E" strokeWidth={2.4} />
-          <Text style={st.ctaText}>S'abonner — {SUBSCRIPTION_PLANS.find(p => p.id === selected)?.priceLabel}</ Text></>
-        )}
-      </TouchableOpacity>
+      {/* CTA — un bouton par plan */}
+      {SUBSCRIPTION_PLANS.map((plan) => (
+        <TouchableOpacity
+          key={plan.id}
+          style={[st.cta, { opacity: loading === plan.id ? 0.7 : 1, backgroundColor: PLAN_COLORS[plan.id] ?? '#C9A84C', marginBottom: 0 }]}
+          onPress={() => handleSubscribe(plan.id)}
+          disabled={loading !== null}
+          activeOpacity={0.85}
+        >
+          {loading === plan.id ? (
+            <ActivityIndicator color="#1A1A3E" />
+          ) : (
+            <><AppIcon icon={Crown} size={18} color="#1A1A3E" strokeWidth={2.4} />
+            <Text style={st.ctaText}>Choisir {plan.name} — {plan.priceLabel}</Text></>
+          )}
+        </TouchableOpacity>
+      ))}
       <Text style={[st.disclaimer, { color: colors.textTertiary }]}>
         Paiement sécurisé via Paystack · Annulation à tout moment
       </Text>
