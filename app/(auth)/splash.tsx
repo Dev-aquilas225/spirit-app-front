@@ -31,7 +31,7 @@ export default function SplashScreen() {
 
     const timer = setTimeout(() => {
       router.replace("/onboarding");
-    }, 2800);
+    }, 5000);
 
     return () => clearTimeout(timer);
   }, []);
@@ -77,6 +77,7 @@ export default function SplashScreen() {
           />
         </View>
         <Text style={styles.appName}>Oracle Plus</Text>
+        <Text style={styles.welcome}>Bienvenue dans l'application Oracle Plus</Text>
         <Text style={styles.tagline}>{t.auth.tagline}</Text>
       </Animated.View>
 
@@ -113,6 +114,15 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#C9A84C",
     letterSpacing: 2,
+  },
+  welcome: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.9)',
+    fontWeight: '600' as const,
+    textAlign: 'center' as const,
+    marginTop: 8,
+    marginBottom: 4,
+    paddingHorizontal: 24,
   },
   tagline: {
     fontSize: 16,

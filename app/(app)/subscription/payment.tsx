@@ -38,12 +38,9 @@ type Step = 'initiating' | 'waiting' | 'vip' | 'timeout' | 'error';
 /* ─── Helpers ────────────────────────────────────────────────────────────── */
 async function openPaystackUrl(url: string): Promise<void> {
   if (Platform.OS === 'web') {
-    // Essayer window.open (Chrome/Android). Sur iOS Safari bloqué → fallback location.href
-    const win = window.open(url, '_blank');
-    if (!win) {
-      // iOS Safari a bloqué window.open → même onglet
-      window.location.href = url;
-    }
+    // Redirection dans le même onglet — window.open est bloqué par les navigateurs
+    // mobiles quand appelé hors d'un gestionnaire d'événement synchrone.
+    window.location.href = url;
     return;
   }
   try {
