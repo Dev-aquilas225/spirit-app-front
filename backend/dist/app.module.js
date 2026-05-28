@@ -24,6 +24,7 @@ const formations_module_1 = require("./formations/formations.module");
 const consultations_module_1 = require("./consultations/consultations.module");
 const referrals_module_1 = require("./referrals/referrals.module");
 const support_module_1 = require("./support/support.module");
+const upload_module_1 = require("./upload/upload.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -61,6 +62,7 @@ exports.AppModule = AppModule = __decorate([
             consultations_module_1.ConsultationsModule,
             referrals_module_1.ReferralsModule,
             support_module_1.SupportModule,
+            upload_module_1.UploadModule,
         ],
     })
 ], AppModule);

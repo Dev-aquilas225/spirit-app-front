@@ -2,11 +2,22 @@ import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
+import * as express from 'express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bodyParser: false });
+
+  // Body parser avec limite 10mb pour les uploads base64
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ limit: '10mb', extended: true }));
+
   app.enableCors({
-    origin: ['https://oracle-plus.online', 'https://www.oracle-plus.online', 'http://localhost:8081', 'http://localhost:3000'],
+    origin: [
+      'https://oracle-plus.online',
+      'https://www.oracle-plus.online',
+      'http://localhost:8081',
+      'http://localhost:3000',
+    ],
     credentials: true,
   });
   app.setGlobalPrefix('api/v1');

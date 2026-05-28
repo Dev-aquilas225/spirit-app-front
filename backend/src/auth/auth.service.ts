@@ -92,7 +92,20 @@ export class AuthService {
     return {
       accessToken: this.jwt.sign(payload, { expiresIn: '7d' }),
       refreshToken: this.jwt.sign(payload, { expiresIn: '30d' }),
-      user,
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        avatar: user.avatar,
+        role: user.role,
+        credits: user.credits,
+        subscriptionStatus: user.subscriptionStatus,
+        referralCode: user.referralCode,
+        country: user.country,
+        language: user.language,
+        createdAt: user.createdAt,
+      },
     };
   }
 }

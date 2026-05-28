@@ -22,6 +22,7 @@ let ReferralsController = class ReferralsController {
     }
     getMyReferrals(req) { return this.svc.getMyReferrals(req.user.id); }
     getShareLink(req) { return this.svc.getShareLink(req.user.id); }
+    useCode(req, body) { return this.svc.useCode(req.user.id, body.code); }
 };
 exports.ReferralsController = ReferralsController;
 __decorate([
@@ -38,6 +39,14 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], ReferralsController.prototype, "getShareLink", null);
+__decorate([
+    (0, common_1.Post)('use'),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], ReferralsController.prototype, "useCode", null);
 exports.ReferralsController = ReferralsController = __decorate([
     (0, common_1.Controller)('referrals'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

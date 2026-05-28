@@ -7,7 +7,20 @@ export declare class AuthController {
     }): Promise<{
         accessToken: string;
         refreshToken: string;
-        user: any;
+        user: {
+            id: any;
+            email: any;
+            firstName: any;
+            lastName: any;
+            avatar: any;
+            role: any;
+            credits: any;
+            subscriptionStatus: any;
+            referralCode: any;
+            country: any;
+            language: any;
+            createdAt: any;
+        };
     }>;
     sendMagicLink(body: {
         email: string;
@@ -17,14 +30,40 @@ export declare class AuthController {
     verifyMagicLink(token: string): Promise<{
         accessToken: string;
         refreshToken: string;
-        user: any;
+        user: {
+            id: any;
+            email: any;
+            firstName: any;
+            lastName: any;
+            avatar: any;
+            role: any;
+            credits: any;
+            subscriptionStatus: any;
+            referralCode: any;
+            country: any;
+            language: any;
+            createdAt: any;
+        };
     }>;
     refresh(body: {
         refreshToken: string;
     }): Promise<{
         accessToken: string;
         refreshToken: string;
-        user: any;
+        user: {
+            id: any;
+            email: any;
+            firstName: any;
+            lastName: any;
+            avatar: any;
+            role: any;
+            credits: any;
+            subscriptionStatus: any;
+            referralCode: any;
+            country: any;
+            language: any;
+            createdAt: any;
+        };
     }>;
     logout(): {
         message: string;

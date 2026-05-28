@@ -24,12 +24,40 @@ let ReferralsService = class ReferralsService {
         this.users = users;
     }
     async getMyReferrals(userId) {
+        const user = await this.users.findById(userId);
         const refs = await this.repo.find({ where: { referrerId: userId } });
-        return { count: refs.length, referrals: refs };
+        const referrals = await Promise.all(refs.map(async (r) => {
+            const referee = await this.users.findById(r.referredId);
+            return { id: r.id, phone: referee?.email ?? '', joinedAt: r.createdAt, credited: r.credited };
+        }));
+        return {
+            referralCode: user?.referralCode ?? '',
+            code: user?.referralCode ?? '',
+            count: refs.length,
+            referrals,
+        };
     }
     async getShareLink(userId) {
         const user = await this.users.findById(userId);
-        return { code: user.referralCode, message: `Partagez ce code: ${user.referralCode}` };
+        if (!user)
+            throw new common_1.NotFoundException('User not found');
+        return { code: user.referralCode, referralCode: user.referralCode, message: `Partagez ce code: ${user.referralCode}` };
+    }
+    async useCode(refereeId, code) {
+        if (!code)
+            throw new common_1.BadRequestException('Code requis');
+        const referrer = await this.users.findByReferralCode(code.toUpperCase());
+        if (!referrer)
+            throw new common_1.NotFoundException('Code invalide');
+        if (referrer.id === refereeId)
+            throw new common_1.BadRequestException('Vous ne pouvez pas utiliser votre propre code');
+        const existing = await this.repo.findOne({ where: { referredId: refereeId } });
+        if (existing)
+            throw new common_1.BadRequestException('Vous avez déjà utilisé un code de parrainage');
+        await this.repo.save(this.repo.create({ referrerId: referrer.id, referredId: refereeId, credited: true }));
+        await this.users.addCredits(referrer.id, 200);
+        await this.users.addCredits(refereeId, 200);
+        return { success: true, creditsAdded: 200, message: '200 crédits ajoutés à vous et votre parrain !' };
     }
 };
 exports.ReferralsService = ReferralsService;

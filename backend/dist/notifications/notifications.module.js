@@ -12,16 +12,22 @@ const typeorm_1 = require("@nestjs/typeorm");
 const notifications_controller_1 = require("./notifications.controller");
 const notifications_service_1 = require("./notifications.service");
 const notifications_entity_1 = require("./notifications.entity");
+const push_controller_1 = require("./push.controller");
+const push_service_1 = require("./push.service");
+const push_subscription_entity_1 = require("./push-subscription.entity");
 const users_module_1 = require("../users/users.module");
 let NotificationsModule = class NotificationsModule {
 };
 exports.NotificationsModule = NotificationsModule;
 exports.NotificationsModule = NotificationsModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([notifications_entity_1.NotificationsEntity]), users_module_1.UsersModule],
-        controllers: [notifications_controller_1.NotificationsController],
-        providers: [notifications_service_1.NotificationsService],
-        exports: [notifications_service_1.NotificationsService],
+        imports: [
+            typeorm_1.TypeOrmModule.forFeature([notifications_entity_1.NotificationsEntity, push_subscription_entity_1.PushSubscriptionEntity]),
+            users_module_1.UsersModule,
+        ],
+        controllers: [notifications_controller_1.NotificationsController, push_controller_1.PushController],
+        providers: [notifications_service_1.NotificationsService, push_service_1.PushService],
+        exports: [notifications_service_1.NotificationsService, push_service_1.PushService],
     })
 ], NotificationsModule);
 //# sourceMappingURL=notifications.module.js.map

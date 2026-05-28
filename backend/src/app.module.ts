@@ -15,6 +15,7 @@ import { FormationsModule } from './formations/formations.module';
 import { ConsultationsModule } from './consultations/consultations.module';
 import { ReferralsModule } from './referrals/referrals.module';
 import { SupportModule } from './support/support.module';
+import { UploadModule } from './upload/upload.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { SupportModule } from './support/support.module';
     ConsultationsModule,
     ReferralsModule,
     SupportModule,
+    UploadModule,
   ],
 })
 export class AppModule {}

@@ -10,7 +10,20 @@ export declare class AuthService {
     googleSignIn(idToken: string): Promise<{
         accessToken: string;
         refreshToken: string;
-        user: any;
+        user: {
+            id: any;
+            email: any;
+            firstName: any;
+            lastName: any;
+            avatar: any;
+            role: any;
+            credits: any;
+            subscriptionStatus: any;
+            referralCode: any;
+            country: any;
+            language: any;
+            createdAt: any;
+        };
     }>;
     sendMagicLink(email: string): Promise<{
         message: string;
@@ -18,16 +31,55 @@ export declare class AuthService {
     verifyMagicLink(token: string): Promise<{
         accessToken: string;
         refreshToken: string;
-        user: any;
+        user: {
+            id: any;
+            email: any;
+            firstName: any;
+            lastName: any;
+            avatar: any;
+            role: any;
+            credits: any;
+            subscriptionStatus: any;
+            referralCode: any;
+            country: any;
+            language: any;
+            createdAt: any;
+        };
     }>;
     refresh(refreshToken: string): Promise<{
         accessToken: string;
         refreshToken: string;
-        user: any;
+        user: {
+            id: any;
+            email: any;
+            firstName: any;
+            lastName: any;
+            avatar: any;
+            role: any;
+            credits: any;
+            subscriptionStatus: any;
+            referralCode: any;
+            country: any;
+            language: any;
+            createdAt: any;
+        };
     }>;
     issueTokens(user: any): {
         accessToken: string;
         refreshToken: string;
-        user: any;
+        user: {
+            id: any;
+            email: any;
+            firstName: any;
+            lastName: any;
+            avatar: any;
+            role: any;
+            credits: any;
+            subscriptionStatus: any;
+            referralCode: any;
+            country: any;
+            language: any;
+            createdAt: any;
+        };
     };
 }
