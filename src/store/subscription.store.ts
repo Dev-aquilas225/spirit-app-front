@@ -17,7 +17,7 @@ interface SubscriptionStore {
 
   // Actions
   loadSubscription: () => Promise<void>;
-  initiatePayment: (plan?: SubscriptionPlan) => Promise<InitiateResult | null>;
+  initiatePayment: (plan?: string) => Promise<InitiateResult | null>;
   verifyPayment: (reference: string) => Promise<boolean>;
   cancelSubscription: () => Promise<void>;
   clearPaymentError: () => void;
@@ -55,7 +55,7 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => ({
    * Étape 1 : initier le paiement Paystack.
    * Retourne { authorization_url, reference } pour rediriger l'utilisateur.
    */
-  initiatePayment: async (plan = 'monthly') => {
+  initiatePayment: async (plan: string = 'monthly') => {
     set({ isProcessingPayment: true, paymentError: null, pendingReference: null });
 
     const result = await PaymentService.initiate(plan);

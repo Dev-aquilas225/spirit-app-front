@@ -140,7 +140,9 @@ export default function PaymentScreen() {
     ?? (Platform.OS === 'web' && typeof window !== 'undefined'
         ? new URLSearchParams(window.location.search).get('plan') ?? ''
         : '');
-  const plan = (planRaw === 'weekly_plus' ? 'weekly_plus' : 'monthly') as 'monthly' | 'weekly_plus';
+  // Accepter tous les plans valides : crédits ET abonnements
+  const VALID_PLANS = ['starter', 'standard', 'premium', 'weekly_plus', 'monthly', 'yearly'];
+  const plan = (VALID_PLANS.includes(planRaw) ? planRaw : 'monthly') as string;
   const { initiatePayment, paymentError, clearPaymentError, loadSubscription } = useSubscription();
   const refreshUser    = useAuthStore((s) => s.refreshUser);
   const fetchBalance   = useCreditsStore((s) => s.fetchBalance);

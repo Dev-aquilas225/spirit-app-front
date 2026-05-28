@@ -154,7 +154,7 @@ export const PaymentService = {
    * Initier un paiement Paystack.
    * Retourne l'URL de paiement vers laquelle rediriger l'utilisateur.
    */
-  async initiate(plan: SubscriptionPlan, autoRenew = false): Promise<{ data?: InitiateResult; error?: string }> {
+  async initiate(plan: string, autoRenew = false): Promise<{ data?: InitiateResult; error?: string }> {
     try {
       const result = await http.post<any>('/subscriptions/initiate', { plan, autoRenew });
       // Backend retourne paymentUrl, frontend attend authorization_url
