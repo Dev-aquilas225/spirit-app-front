@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
  * Parrain + filleul gagnent chacun 200 crédits à l'inscription du filleul.
  */
 import React, { useEffect, useState } from 'react';
-import { Alert, Platform, Share, StyleSheet, Text, TouchableOpacity, View, FlatList, ActivityIndicator } from 'react-native';
+import { Alert, Platform, Share, StyleSheet, Text, TextInput, TouchableOpacity, View, FlatList, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { Copy, Gift, Share2, Users, Zap, CheckCircle } from 'lucide-react-native';
 import { AppIcon } from '../../../src/components/common/AppIcon';
@@ -13,6 +13,7 @@ import { useTheme } from '../../../src/theme';
 import { useAuth } from '../../../src/hooks/useAuth';
 import { ReferralsService, Referral } from '../../../src/services/referrals.service';
 import { useCreditsStore } from '../../../src/store/credits.store';
+import { http } from '../../../src/services/http.client';
 
 const REFERRAL_BONUS = 200; // crédits offerts aux deux
 
@@ -26,6 +27,9 @@ export default function ReferralScreen() {
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [inputCode, setInputCode] = useState('');
+  const [applying, setApplying] = useState(false);
+  const [applyMsg, setApplyMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
   const appUrl = (typeof window !== 'undefined' && (window as any).__ENV__?.EXPO_PUBLIC_APP_URL)
     || process.env.EXPO_PUBLIC_APP_URL
@@ -33,11 +37,12 @@ export default function ReferralScreen() {
 
   useEffect(() => {
     (async () => {
-      const data = await ReferralsService.getMine();
-      if (data) {
-        setCode(data.referralCode);
-        setReferrals(data.referrals ?? []);
-      } else {
+      try {
+        const data = await ReferralsService.getMine();
+        const code = data?.referralCode || data?.code || user?.referralCode || '';
+        setCode(code);
+        setReferrals(data?.referrals ?? []);
+      } catch {
         setCode(user?.referralCode ?? '');
       }
       setLoading(false);
@@ -53,6 +58,26 @@ export default function ReferralScreen() {
     }
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
+  };
+
+  const handleApplyCode = async () => {
+    if (!inputCode.trim()) return;
+    setApplying(true);
+    setApplyMsg(null);
+    try {
+      const res = await http.post<{ success: boolean; message: string; creditsAdded?: number }>(
+        '/referrals/use',
+        { code: inputCode.trim().toUpperCase() },
+      );
+      setApplyMsg({ text: res.message || '200 crédits ajoutés !', ok: true });
+      setInputCode('');
+      // Rafraîchir les crédits
+      useCreditsStore.getState().fetchBalance?.();
+    } catch (e: any) {
+      setApplyMsg({ text: e?.message || 'Code invalide', ok: false });
+    } finally {
+      setApplying(false);
+    }
   };
 
   const handleShare = async () => {
@@ -148,6 +173,41 @@ export default function ReferralScreen() {
               ))}
             </View>
 
+            {/* Entrer un code de parrainage reçu */}
+            <View style={[s.applyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Text style={[s.applyTitle, { color: colors.text }]}>Vous avez un code ?</Text>
+              <Text style={[s.applySub, { color: colors.textSecondary }]}>
+                Entrez le code d'un ami et recevez 200 crédits chacun
+              </Text>
+              <View style={s.applyRow}>
+                <TextInput
+                  style={[s.applyInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
+                  placeholder="Ex: A3F2B891"
+                  placeholderTextColor={colors.textTertiary}
+                  value={inputCode}
+                  onChangeText={(t) => { setInputCode(t.toUpperCase()); setApplyMsg(null); }}
+                  autoCapitalize="characters"
+                  maxLength={10}
+                />
+                <TouchableOpacity
+                  style={[s.applyBtn, { opacity: applying ? 0.6 : 1 }]}
+                  onPress={handleApplyCode}
+                  disabled={applying}
+                  activeOpacity={0.8}
+                >
+                  {applying
+                    ? <ActivityIndicator color="#1A1A3E" size="small" />
+                    : <Text style={s.applyBtnText}>Appliquer</Text>
+                  }
+                </TouchableOpacity>
+              </View>
+              {applyMsg && (
+                <Text style={[s.applyFeedback, { color: applyMsg.ok ? '#10B981' : '#EF4444' }]}>
+                  {applyMsg.ok ? '✓ ' : '✗ '}{applyMsg.text}
+                </Text>
+              )}
+            </View>
+
             {/* Referrals list header */}
             {referrals.length > 0 && (
               <View style={s.listHeader}>
@@ -233,4 +293,12 @@ const s = StyleSheet.create({
   referralDate: { fontSize: 12, marginTop: 2 },
   referralBonus: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(201,168,76,0.12)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
   referralBonusText: { fontSize: 12, fontWeight: '700', color: '#C9A84C' },
+  applyCard: { borderRadius: 16, borderWidth: 1, padding: 16, gap: 10 },
+  applyTitle: { fontSize: 15, fontWeight: '800' },
+  applySub: { fontSize: 12, lineHeight: 18 },
+  applyRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
+  applyInput: { flex: 1, borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 16, fontWeight: '700', letterSpacing: 2 },
+  applyBtn: { backgroundColor: '#C9A84C', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 11 },
+  applyBtnText: { fontSize: 14, fontWeight: '800', color: '#1A1A3E' },
+  applyFeedback: { fontSize: 13, fontWeight: '600', marginTop: 2 },
 });

@@ -8,8 +8,10 @@ export interface Referral {
 
 export interface ReferralData {
   referralCode: string;
+  code?: string;
   referrals: Referral[];
-  totalCount: number;
+  totalCount?: number;
+  count?: number;
 }
 
 export const ReferralsService = {
@@ -27,5 +29,9 @@ export const ReferralsService = {
     } catch {
       return null;
     }
+  },
+
+  async useCode(code: string): Promise<{ success: boolean; creditsAdded?: number; message: string }> {
+    return http.post('/referrals/use', { code: code.toUpperCase() });
   },
 };
