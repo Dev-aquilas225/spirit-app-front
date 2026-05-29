@@ -3,19 +3,13 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# ARGs injectés par Coolify au build — Expo les compile dans le bundle JS
-ARG EXPO_PUBLIC_API_BASE_URL=https://api.oracle-plus.online
-ARG EXPO_PUBLIC_APP_URL=https://oracle-plus.online
-ARG EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB=835702776630-0gh59t57sgp6oq67h7k02vgsoth2lgsh.apps.googleusercontent.com
-ARG EXPO_PUBLIC_VAPID_PUBLIC_KEY=BPahGBQRxKp2NBj98RWtp5gwIgmyjsc0cKzeAbquZdb5a9SEH7UV1SqPAFuB34W7LXc1uxNuPgHF_LL6cqZPZeE
-ARG EXPO_PUBLIC_ADMIN_EMAIL=christoinaquilas@gmail.com,tchingankonggeorges@gmail.com
-
-# Exposer comme ENV pour que Expo les lise pendant le build
-ENV EXPO_PUBLIC_API_BASE_URL=$EXPO_PUBLIC_API_BASE_URL
-ENV EXPO_PUBLIC_APP_URL=$EXPO_PUBLIC_APP_URL
-ENV EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB=$EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB
-ENV EXPO_PUBLIC_VAPID_PUBLIC_KEY=$EXPO_PUBLIC_VAPID_PUBLIC_KEY
-ENV EXPO_PUBLIC_ADMIN_EMAIL=$EXPO_PUBLIC_ADMIN_EMAIL
+# Valeurs de production compilées dans le bundle Expo
+# Note: pas d'ARG ici — Coolify corrompt les valeurs avec virgules
+ENV EXPO_PUBLIC_API_BASE_URL=https://api.oracle-plus.online
+ENV EXPO_PUBLIC_APP_URL=https://oracle-plus.online
+ENV EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB=835702776630-0gh59t57sgp6oq67h7k02vgsoth2lgsh.apps.googleusercontent.com
+ENV EXPO_PUBLIC_VAPID_PUBLIC_KEY=BPahGBQRxKp2NBj98RWtp5gwIgmyjsc0cKzeAbquZdb5a9SEH7UV1SqPAFuB34W7LXc1uxNuPgHF_LL6cqZPZeE
+ENV EXPO_PUBLIC_ADMIN_EMAIL=christoinaquilas@gmail.com
 
 COPY package*.json ./
 COPY scripts/ ./scripts/
