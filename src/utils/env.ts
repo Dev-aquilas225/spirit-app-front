@@ -2,7 +2,7 @@
  * Lecture des variables d'environnement publiques.
  *
  * Sur le web (prod), `window.__ENV__` est injecté au démarrage du conteneur
- * via entrypoint.sh (Docker/nginx) ou server.js (nixpacks), AVANT que le
+ * via entrypoint.sh (Docker/nginx) AVANT que le
  * bundle JS ne soit évalué.
  *
  * Sur natif (iOS/Android) ou en dev, Metro injecte `process.env.EXPO_PUBLIC_*`
