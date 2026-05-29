@@ -25,17 +25,6 @@ const mimeTypes = {
   '.woff2': 'font/woff2',
 };
 
-// Génère env-config.js depuis les env vars runtime (injectées par Coolify)
-function buildEnvConfig() {
-  const env = {
-    EXPO_PUBLIC_API_BASE_URL:         process.env.EXPO_PUBLIC_API_BASE_URL ?? '',
-    EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB ?? '',
-    EXPO_PUBLIC_VAPID_PUBLIC_KEY:     process.env.EXPO_PUBLIC_VAPID_PUBLIC_KEY ?? '',
-    EXPO_PUBLIC_ADMIN_EMAIL:          process.env.EXPO_PUBLIC_ADMIN_EMAIL ?? '',
-  };
-  return `window.__ENV__ = ${JSON.stringify(env)};`;
-}
-
 // Injecte <script src="/env-config.js"> dans le HTML avant </head>
 function injectEnvScript(html) {
   if (html.includes('env-config.js')) return html;
@@ -92,23 +81,9 @@ function createServer() {
     const requestedPath = decodeURIComponent(url.pathname);
 
     // Route dynamique : variables d'environnement runtime
-    if (requestedPath === '/env-config.js') {
-      const envFile = path.join(distDir, 'env-config.js');
-      const exists = fs.existsSync(envFile);
-      console.log('[env-config] distDir=' + distDir + ' exists=' + exists);
-      if (exists) {
-        const body = fs.readFileSync(envFile, 'utf-8');
-        console.log('[env-config] serving static, first 60:', body.slice(0, 60));
-        res.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'no-store' });
-        res.end(body);
-      } else {
-        const body = buildEnvConfig();
-        console.log('[env-config] fallback dynamic, first 60:', body.slice(0, 60));
-        res.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'no-store' });
-        res.end(body);
-      }
-      return;
-    }
+    // /env-config.js est servi comme fichier statique depuis dist/
+    // (écrit par entrypoint.sh avec les bonnes valeurs au démarrage du container)
+    // Pas de génération dynamique — on tombe dans resolveFile() ci-dessous
 
     const resolvedFile = resolveFile(requestedPath);
 
