@@ -7,8 +7,11 @@ import * as express from 'express';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bodyParser: false });
 
-  // Body parser avec limite 10mb pour les uploads base64
-  app.use(express.json({ limit: '10mb' }));
+  // rawBody activé pour vérifier la signature HMAC du webhook Paystack
+  app.use(express.json({
+    limit: '10mb',
+    verify: (req: any, _res, buf) => { req.rawBody = buf; },
+  }));
   app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
   app.enableCors({

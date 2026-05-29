@@ -1,9 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SubscriptionsEntity } from './subscriptions.entity';
 import { UsersService } from '../users/users.service';
 import axios from 'axios';
+import * as crypto from 'crypto';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const PLANS = [
   { id: 'weekly_plus', name: 'Offre Hebdomadaire', price: 3000,  currency: 'XOF', credits: 5000,  durationDays: 7  },
@@ -12,10 +15,29 @@ const PLANS = [
 
 @Injectable()
 export class SubscriptionsService {
+  private readonly logger = new Logger(SubscriptionsService.name);
+  private readonly LOG_DIR = process.env.LOGS_PATH || '/tmp/logs';
+
   constructor(
     @InjectRepository(SubscriptionsEntity) private repo: Repository<SubscriptionsEntity>,
     private users: UsersService,
-  ) {}
+  ) {
+    // Créer le dossier de logs au démarrage
+    if (!fs.existsSync(this.LOG_DIR)) {
+      fs.mkdirSync(this.LOG_DIR, { recursive: true });
+    }
+  }
+
+  /** Écrit une ligne dans le fichier de log des transactions */
+  private logTransaction(status: string, email: string, amount: number, reference: string) {
+    const line = `[${new Date().toISOString()}] status=${status} email=${email} amount=${amount} ref=${reference}\n`;
+    try {
+      fs.appendFileSync(path.join(this.LOG_DIR, 'transactions.log'), line);
+    } catch (e: any) {
+      this.logger.warn('Log write failed: ' + e.message);
+    }
+    this.logger.log(`Transaction: ${status} | ${email} | ${amount} XOF | ${reference}`);
+  }
 
   getPlans() { return PLANS; }
 
@@ -100,4 +122,55 @@ export class SubscriptionsService {
   }
 
   getAll() { return this.repo.find({ order: { createdAt: 'DESC' } }); }
+
+  /**
+   * Webhook Paystack — appelé automatiquement par Paystack après chaque paiement.
+   * Vérifie la signature HMAC-SHA512, puis active l'abonnement si charge = success.
+   */
+  async handleWebhook(signature: string, body: any, rawBody?: Buffer) {
+    const secret = process.env.PAYSTACK_WEBHOOK_SECRET;
+    if (!secret) {
+      this.logger.warn('PAYSTACK_WEBHOOK_SECRET manquant — webhook ignoré');
+      return { received: true };
+    }
+
+    // Vérifier la signature Paystack
+    if (signature && rawBody) {
+      const expected = crypto
+        .createHmac('sha512', secret)
+        .update(rawBody)
+        .digest('hex');
+      if (signature !== expected) {
+        this.logger.warn('Webhook Paystack : signature invalide');
+        return { received: false, error: 'Invalid signature' };
+      }
+    }
+
+    const event = body?.event;
+    const data  = body?.data;
+
+    if (event === 'charge.success') {
+      const reference = data?.reference;
+      const email     = data?.customer?.email ?? 'unknown';
+      const amount    = (data?.amount ?? 0) / 100; // Paystack envoie en centimes
+
+      this.logTransaction('SUCCESS', email, amount, reference);
+
+      const sub = await this.repo.findOne({ where: { reference } });
+      if (sub && sub.status !== 'active') {
+        await this.activate(sub.id);
+        this.logger.log(`Abonnement activé via webhook : ${reference}`);
+      } else if (!sub) {
+        this.logger.warn(`Webhook : référence inconnue ${reference}`);
+      }
+    } else if (event === 'charge.failed') {
+      const reference = data?.reference ?? 'unknown';
+      const email     = data?.customer?.email ?? 'unknown';
+      const amount    = (data?.amount ?? 0) / 100;
+      this.logTransaction('FAILED', email, amount, reference);
+      await this.repo.update({ reference }, { status: 'failed' });
+    }
+
+    return { received: true };
+  }
 }
