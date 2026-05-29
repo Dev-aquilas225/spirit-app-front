@@ -48,7 +48,7 @@ export default function FuturScreen() {
     creditAction,
     onCreditSuccess,
     closeCreditGate,
-  } = useAIChat('consultation');
+  } = useAIChat('prophet'); // 'prophet' → section 'prophetic_consultation' dans le prompt admin
 
   const flatListRef = useRef<FlatList>(null);
 
