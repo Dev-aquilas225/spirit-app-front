@@ -1,8 +1,11 @@
 [phases.install]
-cmds = ['npm ci --omit=dev --cache /tmp/npm-cache']
+cmds = ['npm ci --cache /tmp/npm-cache']
 
 [phases.build]
-cmds = []
+cmds = ['npm run build']
+
+[phases.setup]
+cmds = ['npm prune --omit=dev']
 
 [start]
 cmd = 'node dist/main'
