@@ -2,18 +2,17 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Installer les dépendances
 COPY package*.json ./
 COPY scripts/ ./scripts/
 RUN npm install --legacy-peer-deps --ignore-scripts && \
     node scripts/patch-canvas.js || true
 
-# Copier les sources (inclut .env.production, server.js, entrypoint.sh)
 COPY . .
 
-# Utiliser .env.production pour le build Expo
-# Coolify injecte ses ARGs mais ne peut pas modifier les fichiers du repo
-RUN cp .env.production .env && npx expo export --platform web
+# Lire les valeurs depuis .env.production et les exporter explicitement
+# avant le build Expo — ignore les ARGs injectés par Coolify
+RUN set -a && . ./.env.production && set +a && \
+    npx expo export --platform web
 
 RUN chmod +x entrypoint.sh
 
