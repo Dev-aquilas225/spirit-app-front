@@ -34,4 +34,6 @@ fi
 
 # 3. Démarrer le serveur Node.js sur port 3000 (Traefik attend ce port)
 export PORT=3000
+echo "[entrypoint] GOOGLE_CLIENT_ID=${EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB}"
+echo "[entrypoint] VAPID=${EXPO_PUBLIC_VAPID_PUBLIC_KEY:0:20}"
 exec node server.js
