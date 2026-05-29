@@ -5,6 +5,11 @@ const path = require('node:path');
 const distDir = path.join(__dirname, 'dist');
 const port = Number(process.env.PORT || 3000);
 
+// Log de démarrage — version et env vars reçues
+console.log('[server.js v4] Starting on port', port);
+console.log('[env] GOOGLE_CLIENT_ID:', process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB || '(empty)');
+console.log('[env] VAPID:', (process.env.EXPO_PUBLIC_VAPID_PUBLIC_KEY || '(empty)').slice(0, 20));
+
 const mimeTypes = {
   '.css': 'text/css; charset=utf-8',
   '.gif': 'image/gif',
