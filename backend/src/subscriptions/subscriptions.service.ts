@@ -121,3 +121,4 @@ export class SubscriptionsService {
     await this.users.update(userId, { subscriptionStatus: 'inactive' });
     return { success: true, message: 'Abonnement annulé' };
   }
+}
