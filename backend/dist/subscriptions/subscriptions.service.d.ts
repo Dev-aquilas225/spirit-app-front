@@ -13,25 +13,36 @@ export declare class SubscriptionsService {
         credits: number;
         durationDays: number;
     }[];
-    getMySubscription(userId: string): Promise<{
-        isActive: boolean;
-        subscription: SubscriptionsEntity;
-    }>;
-    getHistory(userId: string): Promise<SubscriptionsEntity[]>;
-    initiate(userId: string, plan: string, autoRenew: boolean): Promise<{
+    initiate(userId: string, plan: string, autoRenew?: boolean): Promise<{
         reference: string;
         paymentUrl: any;
-        subscriptionId: string;
+        plan: {
+            id: string;
+            name: string;
+            price: number;
+            currency: string;
+            credits: number;
+            durationDays: number;
+        };
     }>;
+    activate(id: string): Promise<void>;
     verify(reference: string): Promise<{
+        success: boolean;
         verified: boolean;
+        message: string;
         subscription?: undefined;
     } | {
+        success: boolean;
         verified: boolean;
         subscription: SubscriptionsEntity;
+        message?: undefined;
     }>;
-    activate(subscriptionId: string): Promise<void>;
-    cancel(userId: string): Promise<void>;
+    getStatus(reference: string): Promise<{
+        status: string;
+        subscription?: undefined;
+    } | {
+        status: string;
+        subscription: SubscriptionsEntity;
+    }>;
     getAll(): Promise<SubscriptionsEntity[]>;
-    getStatus(reference: string): Promise<SubscriptionsEntity>;
 }

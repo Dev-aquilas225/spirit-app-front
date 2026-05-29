@@ -10,28 +10,42 @@ export declare class SubscriptionsController {
         credits: number;
         durationDays: number;
     }[];
-    getMe(req: any): Promise<{
-        isActive: boolean;
-        subscription: import("./subscriptions.entity").SubscriptionsEntity;
-    }>;
-    getHistory(req: any): Promise<import("./subscriptions.entity").SubscriptionsEntity[]>;
+    getMe(req: any): any;
+    getHistory(req: any): any;
     initiate(req: any, body: {
         plan: string;
         autoRenew: boolean;
     }): Promise<{
         reference: string;
         paymentUrl: any;
-        subscriptionId: string;
+        plan: {
+            id: string;
+            name: string;
+            price: number;
+            currency: string;
+            credits: number;
+            durationDays: number;
+        };
     }>;
     verify(ref: string): Promise<{
+        success: boolean;
         verified: boolean;
+        message: string;
         subscription?: undefined;
     } | {
+        success: boolean;
         verified: boolean;
         subscription: import("./subscriptions.entity").SubscriptionsEntity;
+        message?: undefined;
     }>;
-    getStatus(ref: string): Promise<import("./subscriptions.entity").SubscriptionsEntity>;
-    cancel(req: any): Promise<void>;
+    getStatus(ref: string): Promise<{
+        status: string;
+        subscription?: undefined;
+    } | {
+        status: string;
+        subscription: import("./subscriptions.entity").SubscriptionsEntity;
+    }>;
+    cancel(req: any): any;
     getAll(): Promise<import("./subscriptions.entity").SubscriptionsEntity[]>;
     activate(id: string): Promise<void>;
 }

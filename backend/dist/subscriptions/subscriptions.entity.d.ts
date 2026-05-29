@@ -6,6 +6,9 @@ export declare class SubscriptionsEntity {
     reference: string;
     paystackRef: string;
     autoRenew: boolean;
+    credits: number;
+    amount: number;
+    activatedAt: Date;
     expiresAt: Date;
     createdAt: Date;
     updatedAt: Date;

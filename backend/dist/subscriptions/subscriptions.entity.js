@@ -43,6 +43,18 @@ __decorate([
     __metadata("design:type", Boolean)
 ], SubscriptionsEntity.prototype, "autoRenew", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ nullable: true, type: 'int' }),
+    __metadata("design:type", Number)
+], SubscriptionsEntity.prototype, "credits", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true, type: 'int' }),
+    __metadata("design:type", Number)
+], SubscriptionsEntity.prototype, "amount", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Date)
+], SubscriptionsEntity.prototype, "activatedAt", void 0);
+__decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", Date)
 ], SubscriptionsEntity.prototype, "expiresAt", void 0);
