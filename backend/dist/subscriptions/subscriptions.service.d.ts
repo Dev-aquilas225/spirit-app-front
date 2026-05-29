@@ -44,5 +44,11 @@ export declare class SubscriptionsService {
         status: string;
         subscription: SubscriptionsEntity;
     }>;
+    getMySubscription(userId: string): Promise<SubscriptionsEntity>;
+    getHistory(userId: string): Promise<SubscriptionsEntity[]>;
+    cancel(userId: string): Promise<{
+        success: boolean;
+        message: string;
+    }>;
     getAll(): Promise<SubscriptionsEntity[]>;
 }

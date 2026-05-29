@@ -10,8 +10,8 @@ export declare class SubscriptionsController {
         credits: number;
         durationDays: number;
     }[];
-    getMe(req: any): any;
-    getHistory(req: any): any;
+    getMe(req: any): Promise<import("./subscriptions.entity").SubscriptionsEntity>;
+    getHistory(req: any): Promise<import("./subscriptions.entity").SubscriptionsEntity[]>;
     initiate(req: any, body: {
         plan: string;
         autoRenew: boolean;
@@ -45,7 +45,10 @@ export declare class SubscriptionsController {
         status: string;
         subscription: import("./subscriptions.entity").SubscriptionsEntity;
     }>;
-    cancel(req: any): any;
+    cancel(req: any): Promise<{
+        success: boolean;
+        message: string;
+    }>;
     getAll(): Promise<import("./subscriptions.entity").SubscriptionsEntity[]>;
     activate(id: string): Promise<void>;
 }

@@ -34,15 +34,7 @@ let SubscriptionsService = class SubscriptionsService {
         if (!planInfo)
             throw new Error('Plan invalide');
         const reference = 'OP-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7).toUpperCase();
-        const sub = this.repo.create({
-            userId,
-            plan,
-            reference,
-            status: 'pending',
-            autoRenew,
-            credits: planInfo.credits,
-            amount: planInfo.price,
-        });
+        const sub = this.repo.create({ userId, plan, reference, status: 'pending', autoRenew, credits: planInfo.credits, amount: planInfo.price });
         await this.repo.save(sub);
         const paystackKey = process.env.PAYSTACK_SECRET_KEY;
         const callbackUrl = process.env.PAYSTACK_CALLBACK_URL || 'https://oracle-plus.online/subscription/callback';
@@ -96,17 +88,27 @@ let SubscriptionsService = class SubscriptionsService {
                 console.error('[Paystack] verify error:', e.message);
             }
         }
-        return {
-            success: sub.status === 'active',
-            verified: sub.status === 'active',
-            subscription: sub,
-        };
+        return { success: sub.status === 'active', verified: sub.status === 'active', subscription: sub };
     }
     async getStatus(reference) {
         const sub = await this.repo.findOne({ where: { reference } });
         if (!sub)
             return { status: 'pending' };
         return { status: sub.status, subscription: sub };
+    }
+    async getMySubscription(userId) {
+        return this.repo.findOne({ where: { userId, status: 'active' }, order: { createdAt: 'DESC' } });
+    }
+    async getHistory(userId) {
+        return this.repo.find({ where: { userId }, order: { createdAt: 'DESC' } });
+    }
+    async cancel(userId) {
+        const sub = await this.repo.findOne({ where: { userId, status: 'active' } });
+        if (!sub)
+            return { success: false, message: 'Aucun abonnement actif' };
+        await this.repo.update(sub.id, { status: 'cancelled', autoRenew: false });
+        await this.users.update(userId, { subscriptionStatus: 'inactive' });
+        return { success: true, message: 'Abonnement annulé' };
     }
     getAll() { return this.repo.find({ order: { createdAt: 'DESC' } }); }
 };
@@ -117,27 +119,4 @@ exports.SubscriptionsService = SubscriptionsService = __decorate([
     __metadata("design:paramtypes", [typeorm_2.Repository,
         users_service_1.UsersService])
 ], SubscriptionsService);
-async;
-getMySubscription(userId, string);
-{
-    return this.repo.findOne({
-        where: { userId, status: 'active' },
-        order: { createdAt: 'DESC' },
-    });
-}
-async;
-getHistory(userId, string);
-{
-    return this.repo.find({ where: { userId }, order: { createdAt: 'DESC' } });
-}
-async;
-cancel(userId, string);
-{
-    const sub = await this.repo.findOne({ where: { userId, status: 'active' } });
-    if (!sub)
-        return { success: false, message: 'Aucun abonnement actif' };
-    await this.repo.update(sub.id, { status: 'cancelled', autoRenew: false });
-    await this.users.update(userId, { subscriptionStatus: 'inactive' });
-    return { success: true, message: 'Abonnement annulé' };
-}
 //# sourceMappingURL=subscriptions.service.js.map

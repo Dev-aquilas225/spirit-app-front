@@ -5,7 +5,6 @@ import { SubscriptionsEntity } from './subscriptions.entity';
 import { UsersService } from '../users/users.service';
 import axios from 'axios';
 
-// Plans synchronisés avec le frontend (payment.service.ts)
 const PLANS = [
   { id: 'weekly_plus', name: 'Offre Hebdomadaire', price: 3000,  currency: 'XOF', credits: 5000,  durationDays: 7  },
   { id: 'monthly',     name: 'Offre Mensuelle',    price: 8000,  currency: 'XOF', credits: 20000, durationDays: 30 },
@@ -24,17 +23,8 @@ export class SubscriptionsService {
     const planInfo = PLANS.find(p => p.id === plan);
     if (!planInfo) throw new Error('Plan invalide');
     const reference = 'OP-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7).toUpperCase();
-    const sub = this.repo.create({
-      userId,
-      plan,
-      reference,
-      status: 'pending',
-      autoRenew,
-      credits: planInfo.credits,
-      amount: planInfo.price,
-    });
+    const sub = this.repo.create({ userId, plan, reference, status: 'pending', autoRenew, credits: planInfo.credits, amount: planInfo.price });
     await this.repo.save(sub);
-    // Initier le paiement Paystack
     const paystackKey = process.env.PAYSTACK_SECRET_KEY;
     const callbackUrl = process.env.PAYSTACK_CALLBACK_URL || 'https://oracle-plus.online/subscription/callback';
     if (paystackKey) {
@@ -42,7 +32,7 @@ export class SubscriptionsService {
         const user = await this.users.findById(userId);
         const res = await axios.post('https://api.paystack.co/transaction/initialize', {
           email: user?.email || 'user@oracle-plus.online',
-          amount: planInfo.price * 100, // en centimes
+          amount: planInfo.price * 100,
           reference,
           callback_url: callbackUrl,
           metadata: { userId, plan, credits: planInfo.credits },
@@ -62,9 +52,7 @@ export class SubscriptionsService {
     const durationDays = planInfo?.durationDays ?? 30;
     const expiresAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000);
     await this.repo.update(id, { status: 'active', activatedAt: new Date(), expiresAt });
-    // Créditer l'utilisateur
     if (sub.credits) await this.users.addCredits(sub.userId, sub.credits);
-    // Mettre à jour le statut abonnement de l'utilisateur
     await this.users.update(sub.userId, { subscriptionStatus: 'active' });
   }
 
@@ -86,12 +74,7 @@ export class SubscriptionsService {
         console.error('[Paystack] verify error:', e.message);
       }
     }
-    // Retourner le statut actuel si Paystack indisponible
-    return {
-      success: sub.status === 'active',
-      verified: sub.status === 'active',
-      subscription: sub,
-    };
+    return { success: sub.status === 'active', verified: sub.status === 'active', subscription: sub };
   }
 
   async getStatus(reference: string) {
@@ -100,14 +83,8 @@ export class SubscriptionsService {
     return { status: sub.status, subscription: sub };
   }
 
-  getAll() { return this.repo.find({ order: { createdAt: 'DESC' } }); }
-}
-
   async getMySubscription(userId: string) {
-    return this.repo.findOne({
-      where: { userId, status: 'active' },
-      order: { createdAt: 'DESC' },
-    });
+    return this.repo.findOne({ where: { userId, status: 'active' }, order: { createdAt: 'DESC' } });
   }
 
   async getHistory(userId: string) {
@@ -121,4 +98,6 @@ export class SubscriptionsService {
     await this.users.update(userId, { subscriptionStatus: 'inactive' });
     return { success: true, message: 'Abonnement annulé' };
   }
+
+  getAll() { return this.repo.find({ order: { createdAt: 'DESC' } }); }
 }
