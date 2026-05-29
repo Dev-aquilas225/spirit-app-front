@@ -1,13 +1,15 @@
 #!/bin/sh
 set -e
 
-# Charger le .env Coolify s'il existe (monté dans /app/.env ou /.env)
-for f in /app/.env /.env; do
+# Charger les valeurs dans cet ordre de priorité :
+# 1. Variables déjà dans process.env (injectées par Coolify au runtime)
+# 2. .env.production commité dans le repo (valeurs de production correctes)
+# 3. .env Coolify monté (si présent)
+for f in /app/.env.production /app/.env /.env; do
   if [ -f "$f" ]; then
     set -a
     . "$f"
     set +a
-    break
   fi
 done
 

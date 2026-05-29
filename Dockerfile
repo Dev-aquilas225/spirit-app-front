@@ -20,11 +20,11 @@ FROM node:20-alpine AS runner
 
 WORKDIR /app
 
-# Copier le build statique et le serveur
-# Les env vars (EXPO_PUBLIC_*) sont injectées par Coolify au runtime via son .env
+# Copier le build statique, le serveur et les valeurs de production
 COPY --from=builder /app/dist ./dist
 COPY server.js ./
 COPY entrypoint.sh ./
+COPY .env.production ./
 RUN chmod +x entrypoint.sh
 
 EXPOSE 3000
