@@ -76,7 +76,7 @@ function CreditsTab() {
           )}
         </View>
         <Text style={ct.balanceNote}>
-          {hasSubscription ? 'Abonnement actif — accès illimité' : '1 crédit = 1 mot · 2 000 crédits offerts à l\'inscription'}
+          {hasSubscription ? 'Abonnement actif — accès illimité' : '2 000 crédits offerts à l\'inscription'}
         </Text>
       </View>
 
@@ -88,8 +88,8 @@ function CreditsTab() {
           ['🌙', 'Interprétation de rêve', '80 crédits'],
           ['🔮', 'Consultation prophétique', '100 crédits'],
           ['🙏', 'Génération de prière', '20 crédits'],
-          ['🎵', 'Audio aperçu (100 mots)', '10 crédits'],
-          ['🎧', 'Audio standard (1000 mots)', '50 crédits'],
+          ['🎵', 'Audio aperçu', '10 crédits'],
+          ['🎧', 'Audio standard', '50 crédits'],
         ].map(([emoji, label, cost]) => (
           <View key={label} style={ct.infoRow}>
             <Text style={ct.infoEmoji}>{emoji}</Text>
@@ -185,7 +185,7 @@ function SubscriptionsTab() {
         <Text style={[st.valueTitle, { color: colors.text }]}>Pourquoi s'abonner ?</Text>
         {[
           [Infinity, 'Crédits non consommés — accès illimité'],
-          [ShoppingBag, 'Audio illimité (1000 mots par service)'],
+          [ShoppingBag, 'Audio illimité'],
           [Star, 'Consultations prophétiques prioritaires'],
           [Check, 'Bibliothèque complète débloquée'],
         ].map(([Icon, text]) => (

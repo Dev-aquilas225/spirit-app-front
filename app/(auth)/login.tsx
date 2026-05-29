@@ -273,19 +273,28 @@ export default function LoginScreen() {
                   textStyle={{ color: colors.text }}
                 />
               ) : (
-                // Div géré par google.accounts.id.renderButton()
-                // overflow:hidden masque le fond blanc que GIS ajoute parfois
-                React.createElement("div", {
-                  id: gsiContainerRef.current,
-                  style: {
-                    width: "100%",
-                    minHeight: 50,
-                    display: "flex",
-                    justifyContent: "stretch",
-                    overflow: "hidden",
-                    borderRadius: 8,
-                  },
-                })
+                <View>
+                  {/* Indicateur visuel pointant vers le bouton Google */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 8, gap: 6 }}>
+                    <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '700' }}>
+                      Appuyez ici pour vous connecter
+                    </Text>
+                    <Text style={{ color: colors.primary, fontSize: 18 }}>↓</Text>
+                  </View>
+                  {/* Div géré par google.accounts.id.renderButton()
+                      overflow:hidden masque le fond blanc que GIS ajoute parfois */}
+                  {React.createElement("div", {
+                    id: gsiContainerRef.current,
+                    style: {
+                      width: "100%",
+                      minHeight: 50,
+                      display: "flex",
+                      justifyContent: "stretch",
+                      overflow: "hidden",
+                      borderRadius: 8,
+                    },
+                  })}
+                </View>
               )
             ) : (
               // Native : expo-auth-session
