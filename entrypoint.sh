@@ -29,6 +29,7 @@ window.__ENV__ = {
 ENVEOF
 
 echo "[entrypoint] env-config.js généré — GOOGLE=${EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB:0:20}..."
+echo "[entrypoint] Contenu fichier: $(cat $ENV_JS | head -c 120)"
 
 # 2. Injecter <script src="/env-config.js"> dans index.html avant </head>
 if ! grep -q 'env-config.js' "$HTML"; then
