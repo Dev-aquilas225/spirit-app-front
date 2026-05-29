@@ -105,9 +105,12 @@ export default function AppLayout() {
       <Stack.Screen name="admin/users" />
       <Stack.Screen name="admin/ai-settings" />
       <Stack.Screen name="admin/books" />
+      <Stack.Screen name="admin/credits" />
       <Stack.Screen name="admin/notifications" />
       <Stack.Screen name="admin/viral-shares" />
       <Stack.Screen name="push/admin" />
+      {/* Série */}
+      <Stack.Screen name="serie/prayer" />
     </Stack>
   );
 }
