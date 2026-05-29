@@ -5,11 +5,6 @@ const path = require('node:path');
 const distDir = path.join(__dirname, 'dist');
 const port = Number(process.env.PORT || 3000);
 
-// Log de démarrage — version et env vars reçues
-console.log('[server.js v4] Starting on port', port);
-console.log('[env] GOOGLE_CLIENT_ID:', process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB || '(empty)');
-console.log('[env] VAPID:', (process.env.EXPO_PUBLIC_VAPID_PUBLIC_KEY || '(empty)').slice(0, 20));
-
 const mimeTypes = {
   '.css': 'text/css; charset=utf-8',
   '.gif': 'image/gif',
@@ -29,35 +24,13 @@ const mimeTypes = {
   '.woff2': 'font/woff2',
 };
 
-// Valeurs de production correctes — fallback si Coolify ne passe pas les env vars
-const PROD_DEFAULTS = {
-  EXPO_PUBLIC_API_BASE_URL:         'https://api.oracle-plus.online',
-  EXPO_PUBLIC_APP_URL:              'https://oracle-plus.online',
-  EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB: '835702776630-0gh59t57sgp6oq67h7k02vgsoth2lgsh.apps.googleusercontent.com',
-  EXPO_PUBLIC_VAPID_PUBLIC_KEY:     'BPahGBQRxKp2NBj98RWtp5gwIgmyjsc0cKzeAbquZdb5a9SEH7UV1SqPAFuB34W7LXc1uxNuPgHF_LL6cqZPZeE',
-  EXPO_PUBLIC_ADMIN_EMAIL:          'christoinaquilas@gmail.com,tchingankonggeorges@gmail.com',
-};
-
-// Génère le contenu de env-config.js depuis les env vars runtime
-// Si une var est vide ou contient une ancienne valeur connue, utilise le fallback
-function resolveEnv(key) {
-  const val = process.env[key] || '';
-  // Ignorer les anciennes valeurs connues (Client IDs Android/web obsolètes)
-  const staleValues = [
-    '734297398479-pm4vr7titln8uhol6t0m9oluu20g1hsr.apps.googleusercontent.com',
-    '734297398479-rids78si56kck1u3sjrgnivfdtpr7e89.apps.googleusercontent.com',
-    'BFHncpJ2BjhG6Jm7MBiQiHpExTBGAHida4LQGP_zRlcTFUQLdfXnhjCINl5bAqwAegwYj1vGaBcFL1biyv-UjKU',
-  ];
-  if (!val || staleValues.includes(val)) return PROD_DEFAULTS[key] || '';
-  return val;
-}
-
+// Génère env-config.js depuis les env vars runtime (injectées par Coolify)
 function buildEnvConfig() {
   const env = {
-    EXPO_PUBLIC_API_BASE_URL:         resolveEnv('EXPO_PUBLIC_API_BASE_URL'),
-    EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB: resolveEnv('EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB'),
-    EXPO_PUBLIC_VAPID_PUBLIC_KEY:     resolveEnv('EXPO_PUBLIC_VAPID_PUBLIC_KEY'),
-    EXPO_PUBLIC_ADMIN_EMAIL:          resolveEnv('EXPO_PUBLIC_ADMIN_EMAIL'),
+    EXPO_PUBLIC_API_BASE_URL:         process.env.EXPO_PUBLIC_API_BASE_URL ?? '',
+    EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB ?? '',
+    EXPO_PUBLIC_VAPID_PUBLIC_KEY:     process.env.EXPO_PUBLIC_VAPID_PUBLIC_KEY ?? '',
+    EXPO_PUBLIC_ADMIN_EMAIL:          process.env.EXPO_PUBLIC_ADMIN_EMAIL ?? '',
   };
   return `window.__ENV__ = ${JSON.stringify(env)};`;
 }
