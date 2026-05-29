@@ -219,4 +219,17 @@ export const LibraryService = {
       return { error: (e as ApiError).message };
     }
   },
+
+  /**
+   * Enregistre un téléchargement côté backend (compteur freeDownloadsUsed)
+   * puis retourne l'URL du fichier pour ouvrir le reader.
+   */
+  async download(id: string): Promise<{ fileUrl: string; error?: string }> {
+    try {
+      await http.post(`/library/${id}/download`, {});
+    } catch {
+      // Erreur non bloquante — on ouvre quand même le reader
+    }
+    return { fileUrl: LibraryService.getFileUrl(id) };
+  },
 };

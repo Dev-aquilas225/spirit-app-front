@@ -78,14 +78,19 @@ function DailyThought() {
         {msg.verse && <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '600', marginTop: 10, letterSpacing: 0.3 }}>— {msg.verse}</Text>}
       </View>
       {/* Prière du jour */}
-      <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.border }}>
+      <TouchableOpacity
+        style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.border }}
+        onPress={() => router.push('/(app)/(tabs)/serie' as any)}
+        activeOpacity={0.85}
+      >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 }}>
           <AppIcon icon={Heart} size={12} color='#F472B6' strokeWidth={2.5} />
           <Text style={{ fontSize: 9, fontWeight: '800', color: '#F472B6', letterSpacing: 2, textTransform: 'uppercase' }}>PRIÈRE DU JOUR</Text>
         </View>
-        <Text style={{ fontSize: 13, color: colors.text, lineHeight: 21 }} numberOfLines={4}>{prayer.prayer}</Text>
+        <Text style={{ fontSize: 12, fontWeight: '800', color: colors.text, marginBottom: 6 }}>{prayer.title}</Text>
+        <Text style={{ fontSize: 13, color: colors.text, lineHeight: 21 }} numberOfLines={3}>{prayer.intro}</Text>
         <Text style={{ color: colors.textSecondary, fontSize: 11, fontWeight: '600', marginTop: 8, fontStyle: 'italic' }}>"{prayer.verse}" — {prayer.verseRef}</Text>
-      </View>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -180,6 +185,26 @@ export default function DashboardScreen() {
         </View>
 
         <View style={s.body}>
+          {/* Bannière paiement — visible uniquement sans abonnement actif */}
+          {!hasSubscription && (
+            <TouchableOpacity
+              style={[s.payBanner, { backgroundColor: colors.primary + '14', borderColor: colors.primary + '50' }]}
+              onPress={() => router.push('/subscription' as any)}
+              activeOpacity={0.85}
+            >
+              <View style={[s.payBannerLeft, { backgroundColor: colors.primary + '20', borderColor: colors.primary + '30' }]}>
+                <AppIcon icon={Crown} size={20} color={colors.primary} strokeWidth={1.8} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 13, fontWeight: '800', color: colors.text }}>Passer à Oracle Plus Premium</Text>
+                <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 2 }}>Accès illimité · Dès 3 000 FCFA / semaine</Text>
+              </View>
+              <View style={[s.payBannerCta, { backgroundColor: colors.primary }]}>
+                <Text style={{ fontSize: 12, fontWeight: '900', color: '#fff' }}>Payer</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+
           <XPBar />
 
           {/* Stats bar */}
@@ -286,6 +311,9 @@ const s = StyleSheet.create({
   heroTop:       { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
   notifBtn:      { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   body:          { padding: 16, gap: 18 },
+  payBanner:     { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 16, borderWidth: 1.5, padding: 14 },
+  payBannerLeft: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  payBannerCta:  { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
   statsBar:      { flexDirection: 'row', alignItems: 'center', borderRadius: 14, borderWidth: 1, paddingVertical: 12, paddingHorizontal: 16 },
   statItem:      { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
   statTxt:       { fontSize: 12, fontWeight: '700' },

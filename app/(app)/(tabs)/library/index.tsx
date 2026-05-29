@@ -2,13 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Search, BookOpen, Lock, Star } from 'lucide-react-native';
+import { BookOpen, Download, Lock, Search, Star } from 'lucide-react-native';
 import { AppIcon } from '../../../../src/components/common/AppIcon';
 import { useTheme } from '../../../../src/theme';
 import { useAccess } from '../../../../src/hooks/useAccess';
 import { useCreditsStore } from '../../../../src/store/credits.store';
 import { useGamificationStore } from '../../../../src/store/gamification.store';
 import { http } from '../../../../src/services/http.client';
+import { LibraryService } from '../../../../src/services/library.service';
 
 interface Book { id: string; title: string; author: string; category: string; coverUrl?: string; tokenCost: number; pages: number; description?: string; }
 
@@ -24,6 +25,7 @@ export default function LibraryScreen() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [cat, setCat] = useState('Tous');
+  const [downloading, setDownloading] = useState<string | null>(null);
 
   useEffect(() => {
     http.get<Book[]>('/library').then(d => { setBooks(Array.isArray(d) ? d : []); setLoading(false); }).catch(() => { setBooks(DEMO_BOOKS); setLoading(false); });
@@ -32,6 +34,16 @@ export default function LibraryScreen() {
   const open = async (b: Book) => {
     if (!hasSubscription && credits < b.tokenCost) { router.push('/subscription'); return; }
     if (!hasSubscription) await spend('audio_preview');
+    await completeMission('read_book');
+    await earnBadge('book_reader');
+    router.push({ pathname: '/library/reader', params: { id: b.id, title: b.title } } as any);
+  };
+
+  const handleDownload = async (b: Book) => {
+    if (!hasSubscription && credits < b.tokenCost) { router.push('/subscription'); return; }
+    setDownloading(b.id);
+    await LibraryService.download(b.id);
+    setDownloading(null);
     await completeMission('read_book');
     await earnBadge('book_reader');
     router.push({ pathname: '/library/reader', params: { id: b.id, title: b.title } } as any);
@@ -70,6 +82,20 @@ export default function LibraryScreen() {
                 <Text style={s.bookCat}>{b.category}</Text>
                 {hasSubscription && <View style={s.freeBadge}><AppIcon icon={Star} size={10} color="#34D399" strokeWidth={2.5} /><Text style={s.freeTxt}>Inclus</Text></View>}
               </View>
+              {/* Bouton Télécharger */}
+              <TouchableOpacity
+                style={[s.dlBtn, { backgroundColor: colors.primary + '18', borderColor: colors.primary + '35' }]}
+                onPress={() => handleDownload(b)}
+                activeOpacity={0.8}
+              >
+                {downloading === b.id
+                  ? <ActivityIndicator size="small" color="#C9A84C" />
+                  : <>
+                      <AppIcon icon={Download} size={12} color="#C9A84C" strokeWidth={2.5} />
+                      <Text style={s.dlTxt}>Télécharger</Text>
+                    </>
+                }
+              </TouchableOpacity>
             </TouchableOpacity>
           )}
         />
@@ -104,4 +130,6 @@ const s = StyleSheet.create({
   bookCat:{ fontSize:10, color:'#60A5FA', fontWeight:'600' },
   freeBadge:{ flexDirection:'row', alignItems:'center', gap:3 },
   freeTxt:{ fontSize:10, color:'#34D399', fontWeight:'700' },
+  dlBtn:{ flexDirection:'row', alignItems:'center', justifyContent:'center', gap:5, borderRadius:8, borderWidth:1, paddingVertical:6, marginTop:2 },
+  dlTxt:{ fontSize:10, fontWeight:'700', color:'#C9A84C' },
 });

@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { BookOpen, CloudMoon, Eye, Home, MessageCircle, Sparkles, User as UserIcon } from 'lucide-react-native';
+import { Flame, Home, MessageCircle, Share2, User as UserIcon } from 'lucide-react-native';
 import React, { useRef, useEffect } from 'react';
 import { Animated, Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -67,20 +67,20 @@ export default function TabsLayout() {
         name="dashboard/index"
         options={{ tabBarLabel: 'Accueil', tabBarIcon: ({ color, focused }) => <TabIcon icon={Home} focused={focused} color={color} /> }}
       />
-      {/* Prières */}
+      {/* Série — Programme de prière 21 jours */}
       <Tabs.Screen
-        name="prayers/index"
-        options={{ tabBarLabel: 'Prières', tabBarIcon: ({ color, focused }) => <TabIcon icon={Sparkles} focused={focused} color={color} /> }}
+        name="serie/index"
+        options={{ tabBarLabel: 'Série', tabBarIcon: ({ color, focused }) => <TabIcon icon={Flame} focused={focused} color={color} /> }}
       />
-      {/* Voyance — bouton central */}
+      {/* Consulter — Voyance IA */}
       <Tabs.Screen
         name="ai/index"
         options={{ tabBarLabel: 'Consulter', tabBarIcon: ({ color, focused }) => <TabIcon icon={MessageCircle} focused={focused} color={color} /> }}
       />
-      {/* Livres */}
+      {/* Viral — Partage WhatsApp + Parrainage */}
       <Tabs.Screen
-        name="library/index"
-        options={{ tabBarLabel: 'Livres', tabBarIcon: ({ color, focused }) => <TabIcon icon={BookOpen} focused={focused} color={color} /> }}
+        name="viral/index"
+        options={{ tabBarLabel: 'Viral', tabBarIcon: ({ color, focused }) => <TabIcon icon={Share2} focused={focused} color={color} /> }}
       />
       {/* Profil */}
       <Tabs.Screen
@@ -89,6 +89,8 @@ export default function TabsLayout() {
       />
       {/* Onglets cachés — accessibles via navigation directe */}
       <Tabs.Screen name="home/index" options={{ href: null }} />
+      <Tabs.Screen name="prayers/index" options={{ href: null }} />
+      <Tabs.Screen name="library/index" options={{ href: null }} />
     </Tabs>
   );
 }
