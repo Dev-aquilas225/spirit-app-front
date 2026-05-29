@@ -8,6 +8,7 @@ COPY nest-cli.json tsconfig*.json ./
 RUN ./node_modules/.bin/nest build
 
 FROM node:20-alpine
+RUN apk add --no-cache curl
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev
