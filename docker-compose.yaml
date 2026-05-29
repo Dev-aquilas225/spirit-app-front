@@ -1,0 +1,15 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - PORT=3000
+      - EXPO_PUBLIC_API_BASE_URL=${EXPO_PUBLIC_API_BASE_URL:-https://api.oracle-plus.online}
+      - EXPO_PUBLIC_APP_URL=${EXPO_PUBLIC_APP_URL:-https://oracle-plus.online}
+      - EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB=${EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB:-}
+      - EXPO_PUBLIC_VAPID_PUBLIC_KEY=${EXPO_PUBLIC_VAPID_PUBLIC_KEY:-}
+      - EXPO_PUBLIC_ADMIN_EMAIL=${EXPO_PUBLIC_ADMIN_EMAIL:-}
+    restart: unless-stopped
