@@ -57,7 +57,15 @@ export class SubscriptionsService {
           amount: planInfo.price * 100,
           reference,
           callback_url: callbackUrl,
-          metadata: { userId, plan, credits: planInfo.credits },
+          metadata: {
+            userId,
+            plan,
+            credits: planInfo.credits,
+            custom_fields: [
+              { display_name: 'Marchand',    variable_name: 'merchant',  value: 'Oracle+' },
+              { display_name: 'Offre',       variable_name: 'plan_name', value: planInfo.name },
+            ],
+          },
         }, { headers: { Authorization: `Bearer ${paystackKey}` } });
         return { reference, paymentUrl: res.data.data.authorization_url, plan: planInfo };
       } catch (e: any) {
