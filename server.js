@@ -92,23 +92,18 @@ function createServer() {
 
     // Route dynamique : variables d'environnement runtime
     if (requestedPath === '/env-config.js') {
-      // Servir le fichier statique généré par entrypoint.sh au démarrage
-      // (les valeurs correctes sont écrites avant que Coolify puisse écraser process.env)
       const envFile = path.join(distDir, 'env-config.js');
-      if (fs.existsSync(envFile)) {
+      const exists = fs.existsSync(envFile);
+      console.log('[env-config] distDir=' + distDir + ' exists=' + exists);
+      if (exists) {
         const body = fs.readFileSync(envFile, 'utf-8');
-        res.writeHead(200, {
-          'Content-Type': 'application/javascript; charset=utf-8',
-          'Cache-Control': 'no-store',
-        });
+        console.log('[env-config] serving static, first 60:', body.slice(0, 60));
+        res.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'no-store' });
         res.end(body);
       } else {
-        // Fallback dynamique si le fichier n'existe pas encore
         const body = buildEnvConfig();
-        res.writeHead(200, {
-          'Content-Type': 'application/javascript; charset=utf-8',
-          'Cache-Control': 'no-store',
-        });
+        console.log('[env-config] fallback dynamic, first 60:', body.slice(0, 60));
+        res.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'no-store' });
         res.end(body);
       }
       return;
