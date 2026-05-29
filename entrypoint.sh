@@ -1,6 +1,16 @@
 #!/bin/sh
 set -e
 
+# Charger le .env Coolify s'il existe (monté dans /app/.env ou /.env)
+for f in /app/.env /.env; do
+  if [ -f "$f" ]; then
+    set -a
+    . "$f"
+    set +a
+    break
+  fi
+done
+
 HTML=/app/dist/index.html
 ENV_JS=/app/dist/env-config.js
 
