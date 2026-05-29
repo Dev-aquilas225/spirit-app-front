@@ -91,6 +91,18 @@ function createServer() {
     const requestedPath = decodeURIComponent(url.pathname);
 
     // Route dynamique : variables d'environnement runtime
+    // Debug temporaire — à supprimer après vérification
+    if (requestedPath === '/debug-env') {
+      const body = JSON.stringify({
+        EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB,
+        EXPO_PUBLIC_VAPID_PUBLIC_KEY: (process.env.EXPO_PUBLIC_VAPID_PUBLIC_KEY || '').slice(0, 20),
+        EXPO_PUBLIC_API_BASE_URL: process.env.EXPO_PUBLIC_API_BASE_URL,
+      });
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(body);
+      return;
+    }
+
     if (requestedPath === '/env-config.js') {
       const body = buildEnvConfig();
       res.writeHead(200, {
