@@ -96,11 +96,16 @@ export const useAIPromptsStore = create<AIPromptsStore>((set, get) => ({
 
   syncFromBackend: async () => {
     try {
-      const data = await http.get<{ section: string; prompt: string; isCustom: boolean }[]>('/ai/admin/settings');
-      if (!Array.isArray(data) || data.length === 0) return;
+      const raw = await http.get<Record<string, string> | { section: string; system_prompt?: string; prompt?: string }[]>('/ai/admin/settings');
+      if (!raw) return;
+      // Backend retourne soit un objet {section: prompt} soit un tableau
+      const lookup: Record<string, string> = Array.isArray(raw)
+        ? Object.fromEntries(raw.map(d => [d.section, d.system_prompt ?? d.prompt ?? '']))
+        : (raw as Record<string, string>);
+      if (Object.keys(lookup).length === 0) return;
       const merged = get().prompts.map(p => {
-        const remote = data.find(d => d.section === p.id);
-        return remote ? { ...p, systemPrompt: remote.prompt } : p;
+        const remotePrompt = lookup[p.id];
+        return remotePrompt ? { ...p, systemPrompt: remotePrompt } : p;
       });
       set({ prompts: merged });
       await StorageService.set(KEY, merged);
