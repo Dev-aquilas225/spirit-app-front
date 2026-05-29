@@ -24,7 +24,8 @@ async function bootstrap() {
     credentials: true,
   });
   app.setGlobalPrefix('api/v1');
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  // whitelist:false — routes use plain object bodies (no class-validator DTOs)
+  app.useGlobalPipes(new ValidationPipe({ whitelist: false, transform: true }));
   const port = process.env.PORT || 4200;
   await app.listen(port, '0.0.0.0');
   console.log(`Backend running on port ${port}`);
