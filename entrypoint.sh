@@ -1,23 +1,18 @@
 #!/bin/sh
 set -e
 
-# Charger les valeurs dans cet ordre de priorité :
-# 1. Variables déjà dans process.env (injectées par Coolify au runtime)
-# 2. .env.production commité dans le repo (valeurs de production correctes)
-# 3. .env Coolify monté (si présent)
-for f in /app/.env.production /app/.env /.env; do
-  if [ -f "$f" ]; then
-    set -a
-    . "$f"
-    set +a
-  fi
-done
+WEBROOT=/usr/share/nginx/html
+ENV_JS=$WEBROOT/env-config.js
 
-HTML=/app/dist/index.html
-ENV_JS=/app/dist/env-config.js
+# Charger .env.production (valeurs correctes commitées dans le repo)
+if [ -f /app/.env.production ]; then
+  set -a
+  . /app/.env.production
+  set +a
+fi
 
-# 1. Générer env-config.js MAINTENANT avec les valeurs chargées ci-dessus
-#    (avant que Coolify puisse écraser process.env dans Node.js)
+# Générer env-config.js avec les valeurs de .env.production
+# (ignore process.env de Coolify qui contient des valeurs obsolètes)
 cat > "$ENV_JS" << ENVEOF
 window.__ENV__ = {
   "EXPO_PUBLIC_API_BASE_URL":         "${EXPO_PUBLIC_API_BASE_URL:-https://api.oracle-plus.online}",
@@ -29,13 +24,12 @@ window.__ENV__ = {
 ENVEOF
 
 echo "[entrypoint] env-config.js généré — GOOGLE=${EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB:0:20}..."
-echo "[entrypoint] Contenu fichier: $(cat $ENV_JS | head -c 120)"
 
-# 2. Injecter <script src="/env-config.js"> dans index.html avant </head>
-if ! grep -q 'env-config.js' "$HTML"; then
+# Injecter <script src="/env-config.js"> dans index.html si absent
+HTML=$WEBROOT/index.html
+if [ -f "$HTML" ] && ! grep -q 'env-config.js' "$HTML"; then
   sed -i 's|</head>|<script src="/env-config.js"></script></head>|' "$HTML"
 fi
 
-# 3. Démarrer le serveur Node.js sur port 3000
-export PORT=3000
-exec node server.js
+# Démarrer nginx
+exec nginx -g 'daemon off;'
