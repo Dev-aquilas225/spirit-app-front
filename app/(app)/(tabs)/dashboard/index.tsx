@@ -13,6 +13,8 @@ import { AppIcon } from '../../../../src/components/common/AppIcon';
 import { CreditBadge } from '../../../../src/components/credits/CreditBadge';
 import { LoginModal } from '../../../../src/components/auth/LoginModal';
 import { DailyChallenge } from '../../../../src/components/gamification/DailyChallenge';
+import { NotifBlockedBanner } from '../../../../src/components/common/NotifBlockedBanner';
+import { useForceNotifications } from '../../../../src/hooks/useForceNotifications';
 import { getTodayMessage, getTodayPrayer } from '../../../../src/data/messages.data';
 import { useAuth } from '../../../../src/hooks/useAuth';
 import { useAccess } from '../../../../src/hooks/useAccess';
@@ -144,6 +146,7 @@ export default function DashboardScreen() {
   const [loginVisible, setLoginVisible] = useState(false);
   const firstName = user?.firstName?.trim() || user?.name?.split(' ')[0] || '';
   const today = formatDate(new Date().toISOString());
+  const { notifBlocked } = useForceNotifications(isAuthenticated);
 
   useEffect(() => {
     initialize().catch(() => {});
@@ -153,6 +156,7 @@ export default function DashboardScreen() {
 
   return (
     <View style={[s.root, { backgroundColor: colors.background }]}>
+      <NotifBlockedBanner visible={notifBlocked} />
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
