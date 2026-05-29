@@ -20,11 +20,9 @@ FROM node:20-alpine AS runner
 
 WORKDIR /app
 
-# Copier le build statique, le serveur et les valeurs de production
+# Copier tous les fichiers en une seule instruction pour invalider le cache ensemble
 COPY --from=builder /app/dist ./dist
-COPY server.js ./
-COPY entrypoint.sh ./
-COPY .env.production ./
+COPY --from=builder /app/server.js /app/entrypoint.sh /app/.env.production ./
 RUN chmod +x entrypoint.sh
 
 EXPOSE 3000
