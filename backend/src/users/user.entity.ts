@@ -19,6 +19,8 @@ export class User {
   @Column({ nullable: true }) magicLinkToken: string;
   @Column({ nullable: true }) magicLinkExpiry: Date;
   @Column({ nullable: true }) refreshToken: string;
+  // Nombre de téléchargements gratuits utilisés (abonnés : 1 gratuit puis payant)
+  @Column({ default: 0 }) freeDownloadsUsed: number;
   @CreateDateColumn() createdAt: Date;
   @UpdateDateColumn() updatedAt: Date;
 }
