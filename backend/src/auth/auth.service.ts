@@ -96,7 +96,7 @@ export class AuthService {
   async refresh(refreshToken: string) {
     try {
       const payload = this.jwt.verify(refreshToken, {
-        secret: this.cfg.get('JWT_REFRESH_SECRET', this.cfg.get('JWT_SECRET', 'oracle-plus-secret')),
+        secret: this.cfg.get<string>('JWT_REFRESH_SECRET') || this.cfg.get<string>('JWT_SECRET') || 'oracle-plus-secret',
       });
       const user = await this.users.findById(payload.sub);
       if (!user) throw new UnauthorizedException();

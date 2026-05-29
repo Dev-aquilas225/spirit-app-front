@@ -117,4 +117,27 @@ exports.SubscriptionsService = SubscriptionsService = __decorate([
     __metadata("design:paramtypes", [typeorm_2.Repository,
         users_service_1.UsersService])
 ], SubscriptionsService);
+async;
+getMySubscription(userId, string);
+{
+    return this.repo.findOne({
+        where: { userId, status: 'active' },
+        order: { createdAt: 'DESC' },
+    });
+}
+async;
+getHistory(userId, string);
+{
+    return this.repo.find({ where: { userId }, order: { createdAt: 'DESC' } });
+}
+async;
+cancel(userId, string);
+{
+    const sub = await this.repo.findOne({ where: { userId, status: 'active' } });
+    if (!sub)
+        return { success: false, message: 'Aucun abonnement actif' };
+    await this.repo.update(sub.id, { status: 'cancelled', autoRenew: false });
+    await this.users.update(userId, { subscriptionStatus: 'inactive' });
+    return { success: true, message: 'Abonnement annulé' };
+}
 //# sourceMappingURL=subscriptions.service.js.map

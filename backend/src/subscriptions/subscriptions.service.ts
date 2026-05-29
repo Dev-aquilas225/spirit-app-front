@@ -102,3 +102,22 @@ export class SubscriptionsService {
 
   getAll() { return this.repo.find({ order: { createdAt: 'DESC' } }); }
 }
+
+  async getMySubscription(userId: string) {
+    return this.repo.findOne({
+      where: { userId, status: 'active' },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async getHistory(userId: string) {
+    return this.repo.find({ where: { userId }, order: { createdAt: 'DESC' } });
+  }
+
+  async cancel(userId: string) {
+    const sub = await this.repo.findOne({ where: { userId, status: 'active' } });
+    if (!sub) return { success: false, message: 'Aucun abonnement actif' };
+    await this.repo.update(sub.id, { status: 'cancelled', autoRenew: false });
+    await this.users.update(userId, { subscriptionStatus: 'inactive' });
+    return { success: true, message: 'Abonnement annulé' };
+  }
