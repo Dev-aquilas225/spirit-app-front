@@ -20,6 +20,20 @@ FROM node:20-alpine AS runner
 
 WORKDIR /app
 
+# Déclarer les ARGs Coolify pour les recevoir au build
+ARG EXPO_PUBLIC_API_BASE_URL=https://api.oracle-plus.online
+ARG EXPO_PUBLIC_APP_URL=https://oracle-plus.online
+ARG EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB=
+ARG EXPO_PUBLIC_VAPID_PUBLIC_KEY=
+ARG EXPO_PUBLIC_ADMIN_EMAIL=
+
+# Convertir en ENV runtime pour que server.js et entrypoint.sh les lisent
+ENV EXPO_PUBLIC_API_BASE_URL=$EXPO_PUBLIC_API_BASE_URL
+ENV EXPO_PUBLIC_APP_URL=$EXPO_PUBLIC_APP_URL
+ENV EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB=$EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB
+ENV EXPO_PUBLIC_VAPID_PUBLIC_KEY=$EXPO_PUBLIC_VAPID_PUBLIC_KEY
+ENV EXPO_PUBLIC_ADMIN_EMAIL=$EXPO_PUBLIC_ADMIN_EMAIL
+
 # Copier le build statique et le serveur
 COPY --from=builder /app/dist ./dist
 COPY server.js ./
