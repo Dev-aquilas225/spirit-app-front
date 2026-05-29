@@ -33,48 +33,48 @@ export const palette = {
   overlay:     'rgba(0,0,0,0.65)',
 };
 
-// ── Thème CLAIR (bleu foncé sur fond blanc doré) ──────────────────────────────
+// ── Thème CLAIR — fond blanc pur, textes foncés, accents or profond ───────────
 export const lightColors = {
-  background:        '#F8F3E8',
-  surface:           '#FFFFFF',
-  surfaceSecondary:  '#FDF8EE',
+  background:        '#FFFFFF',
+  surface:           '#F7F4EE',
+  surfaceSecondary:  '#EEE8D8',
   card:              '#FFFFFF',
-  border:            '#E2D5B8',
-  borderLight:       'rgba(226,213,184,0.5)',
+  border:            '#D4C49A',
+  borderLight:       'rgba(180,150,80,0.25)',
   deepBlue:          palette.navy,
 
-  text:              '#0B1628',
-  textSecondary:     '#1E3A5F',
-  textTertiary:      '#5A7A9A',
+  text:              '#0A0F1E',
+  textSecondary:     '#2C3E60',
+  textTertiary:      '#4A6080',
   textInverse:       '#FFFFFF',
   textOnPurple:      '#FFFFFF',
 
-  primary:           '#9A7228',
+  primary:           '#7A5818',
   primaryLight:      '#C9A84C',
-  primaryDark:       '#7A5818',
-  primaryPale:       'rgba(154,114,40,0.10)',
+  primaryDark:       '#5A3E0E',
+  primaryPale:       'rgba(122,88,24,0.10)',
 
-  accent:            '#112240',
+  accent:            '#0B1628',
   accentLight:       '#1E3A5F',
 
   tabBar:            '#FFFFFF',
-  tabBarBorder:      '#E2D5B8',
-  tabBarActive:      '#9A7228',
-  tabBarInactive:    '#5A7A9A',
+  tabBarBorder:      '#D4C49A',
+  tabBarActive:      '#7A5818',
+  tabBarInactive:    '#4A6080',
 
   header:            '#FFFFFF',
-  headerText:        '#0B1628',
+  headerText:        '#0A0F1E',
 
-  premium:           '#9A7228',
-  premiumBackground: 'rgba(154,114,40,0.08)',
+  premium:           '#7A5818',
+  premiumBackground: 'rgba(122,88,24,0.08)',
   premiumBorder:     '#C9A84C',
 
-  buttonPrimary:     '#9A7228',
+  buttonPrimary:     '#7A5818',
   buttonPrimaryText: '#FFFFFF',
-  buttonSecondary:   '#0B1628',
+  buttonSecondary:   '#0A0F1E',
   buttonSecondaryText: '#FFFFFF',
-  buttonOutline:     '#9A7228',
-  buttonOutlineText: '#9A7228',
+  buttonOutline:     '#7A5818',
+  buttonOutlineText: '#7A5818',
 };
 
 // ── Thème SOMBRE (bleu nuit + or + blanc doré) ────────────────────────────────

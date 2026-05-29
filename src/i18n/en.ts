@@ -518,7 +518,7 @@ const en: Translations = {
       {
         title: 'Your rights',
         content:
-          'You can request the deletion of your data at any time by contacting support@spiritapp.com.',
+          'You can request the deletion of your data at any time by contacting tchingankonggeorges@gmail.com.',
       },
       {
         title: 'Cookies',

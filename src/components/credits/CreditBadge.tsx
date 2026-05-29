@@ -11,7 +11,7 @@ export function CreditBadge() {
   return (
     <TouchableOpacity
       style={[s.badge, isLow && s.badgeLow]}
-      onPress={() => router.push('/subscription/payment')}
+      onPress={() => router.push('/subscription' as any)}
     >
       <Zap size={13} color={isLow ? '#ff6b6b' : '#C9A84C'} fill={isLow ? '#ff6b6b' : '#C9A84C'} />
       <Text style={[s.text, isLow && s.textLow]}>{credits.toLocaleString()}</Text>

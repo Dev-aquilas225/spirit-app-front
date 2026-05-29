@@ -229,7 +229,7 @@ const fr = {
     editProfile: 'Modifier le profil',
     notifications: 'Notifications',
     language: 'Langue',
-    subscribeCta: "S'abonner — 5 000 FCFA/mois",
+    subscribeCta: "S'abonner — 8 000 FCFA/mois",
     manageSubscription: 'Gérer mon abonnement',
     paymentHistory: 'Historique paiements',
     referral: 'Parrainage',
@@ -259,7 +259,7 @@ const fr = {
     premiumSubtitle: 'Tous les accès sont déverrouillés',
     upgradeTitle: 'Oracle Plus Premium',
     upgradeSubtitle: 'Accès complet à votre accompagnement spirituel',
-    price: '5 000 FCFA',
+    price: '8 000 FCFA',
     perMonth: '/mois',
     included: 'Ce qui est inclus',
     features: {
@@ -278,7 +278,7 @@ const fr = {
       program: 'Programme personnalisé',
       programDesc: 'Un programme de prière adapté à votre vie',
     },
-    subscribeCta: "S'abonner maintenant — 5 000 FCFA/mois",
+    subscribeCta: "S'abonner maintenant — 8 000 FCFA/mois",
     disclaimer:
       'Sans engagement • Annulable à tout moment • Renouvellement automatique',
     mySubscription: 'MON ABONNEMENT',
@@ -525,56 +525,81 @@ const fr = {
     updatedOn: (date: string) => `Dernière mise à jour : ${date}`,
     privacySections: [
       {
-        title: 'Données collectées',
+        title: '1. Données collectées',
         content:
-          'Nous collectons : nom, numéro de téléphone, pays, langue, historique de prières et conversations de consultation stockées localement.',
+          'Nous collectons les informations suivantes : nom et prénom, adresse e-mail, pays et langue, historique de prières, conversations de consultation et rêves soumis à interprétation. Ces données sont nécessaires au fonctionnement du service.',
       },
       {
-        title: 'Utilisation des données',
+        title: '2. Utilisation des données',
         content:
-          'Vos données sont utilisées uniquement pour personnaliser votre expérience spirituelle et gérer votre abonnement.',
+          'Vos données sont utilisées exclusivement pour personnaliser votre expérience spirituelle, gérer votre abonnement et améliorer nos services. Elles ne sont jamais vendues ni partagées avec des tiers à des fins commerciales.',
       },
       {
-        title: 'Sécurité',
+        title: '3. Sécurité',
         content:
-          "Vos données sont chiffrées et stockées de façon sécurisée. L'accès est strictement limité aux services essentiels.",
+          "Vos données sont chiffrées en transit (HTTPS/TLS) et stockées de façon sécurisée sur des serveurs protégés. L'accès est strictement limité aux services essentiels au fonctionnement de l'application.",
       },
       {
-        title: 'Vos droits',
+        title: '4. Vos droits',
         content:
-          'Vous pouvez demander la suppression de vos données à tout moment en contactant support@spiritapp.com.',
+          'Conformément aux lois applicables sur la protection des données, vous disposez d\'un droit d\'accès, de rectification et de suppression de vos données. Pour exercer ces droits, contactez-nous à : tchingankonggeorges@gmail.com',
       },
       {
-        title: 'Cookies',
+        title: '5. Cookies',
         content:
-          "En version web, nous utilisons uniquement des cookies techniques essentiels. Aucun cookie publicitaire n'est utilisé.",
+          "En version web, nous utilisons uniquement des cookies techniques essentiels au fonctionnement de l'application. Aucun cookie publicitaire ou de traçage tiers n'est utilisé.",
+      },
+      {
+        title: '6. Conservation des données',
+        content:
+          'Vos données sont conservées pendant la durée de votre utilisation du service et supprimées dans un délai de 30 jours suivant votre demande de suppression de compte.',
+      },
+      {
+        title: '7. Contact',
+        content:
+          'Pour toute question relative à la confidentialité de vos données, contactez-nous à : tchingankonggeorges@gmail.com',
       },
     ],
     termsSections: [
       {
         title: '1. Acceptation des conditions',
         content:
-          "En utilisant Oracle Plus, vous acceptez les présentes conditions d'utilisation. L'application est destinée à un usage spirituel et éducatif personnel.",
+          "En utilisant Oracle Plus, vous acceptez les présentes conditions d'utilisation dans leur intégralité. L'application est destinée à un usage spirituel et éducatif personnel. Toute utilisation commerciale non autorisée est interdite.",
       },
       {
-        title: '2. Abonnement',
+        title: '2. Abonnement et paiement',
         content:
-          "L'abonnement Premium est facturé 5 000 FCFA/mois. Il est renouvelé automatiquement sauf annulation au moins 24h avant le renouvellement.",
+          "L'abonnement Premium est disponible en formule hebdomadaire (3 000 FCFA/semaine) ou mensuelle (8 000 FCFA/mois). Il est renouvelé automatiquement sauf annulation au moins 24h avant la date de renouvellement. Les paiements sont traités de façon sécurisée via Paystack.",
       },
       {
-        title: '3. Contenu',
+        title: '3. Propriété intellectuelle',
         content:
-          "Tout le contenu de l'application (prières, formations, livres) est protégé par le droit d'auteur. Toute reproduction non autorisée est interdite.",
+          "Tout le contenu de l'application (prières, formations, livres, textes, images) est protégé par le droit d'auteur et appartient à Oracle Plus. Toute reproduction, distribution ou utilisation non autorisée est strictement interdite.",
       },
       {
         title: '4. Confidentialité',
         content:
-          'Vos données personnelles sont traitées conformément à notre politique de confidentialité. Nous ne vendons jamais vos données à des tiers.',
+          'Vos données personnelles sont traitées conformément à notre politique de confidentialité disponible dans cette application. Nous ne vendons jamais vos données à des tiers.',
       },
       {
-        title: '5. Limitation de responsabilité',
+        title: '5. Avertissement médical',
         content:
-          "Oracle Plus est un outil d'accompagnement spirituel. Les conseils prodigués ne remplacent pas un suivi médical ou psychologique professionnel.",
+          "Oracle Plus est un outil d'accompagnement spirituel et de bien-être. Les conseils, prières et guidances prodigués dans l'application ne remplacent en aucun cas une consultation médicale, psychiatrique ou psychologique professionnelle. En cas de détresse sévère, consultez un professionnel de santé qualifié.",
+      },
+      {
+        title: '6. Limitation de responsabilité',
+        content:
+          "Oracle Plus fournit ses services \"en l'état\". Nous ne saurions être tenus responsables des décisions prises sur la base des contenus de l'application. L'utilisateur reste seul responsable de l'usage qu'il fait du service.",
+      },
+      {
+        title: '7. Modification des conditions',
+        content:
+          "Nous nous réservons le droit de modifier ces conditions à tout moment. Les utilisateurs seront informés de tout changement significatif. La poursuite de l'utilisation du service après notification vaut acceptation des nouvelles conditions.",
+      },
+      {
+        title: '8. Contact',
+        content:
+          'Pour toute question concernant ces conditions, contactez-nous à : tchingankonggeorges@gmail.com',
       },
     ],
   },
@@ -589,7 +614,7 @@ const fr = {
     slide3Subtitle: 'Un soutien spirituel pour chaque étape',
     slide4Title: 'Réussite & Identité',
     slide4Subtitle: 'Se connaître et avancer avec force',
-    slide5Title: 'Tout ça pour 5 000 FCFA/mois',
+    slide5Title: 'Tout ça pour 8 000 FCFA/mois',
     slide5Subtitle:
       'Accès illimité aux consultations, livres, formations et accompagnements. Sans engagement.',
     services1: [
@@ -639,7 +664,7 @@ const fr = {
       featureName ? `${featureName} — Abonnés uniquement` : 'Contenu Premium',
     inlineDesc:
       'Abonnez-vous pour accéder à ce contenu et à toutes les fonctionnalités premium.',
-    inlineCta: "S'abonner — 5 000 FCFA/mois",
+    inlineCta: "S'abonner — 8 000 FCFA/mois",
     fullTitle: (featureName?: string) => featureName ?? 'Contenu Premium',
     fullDesc:
       'Cette section est réservée aux abonnés. Rejoignez Oracle Plus Premium pour un accès illimité.',
@@ -649,9 +674,9 @@ const fr = {
   premiumBanner: {
     title: 'Passer Premium',
     subtitle: 'Guide spirituel, Livres, Formations & plus',
-    price1: '5 000',
+    price1: '8 000',
     price2: 'FCFA/mois',
-    compact: 'Passer Premium — 5 000 FCFA/mois',
+    compact: 'Passer Premium — 8 000 FCFA/mois',
   },
 
   prophetPage: {

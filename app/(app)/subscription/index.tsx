@@ -272,6 +272,7 @@ export default function BoutiqueScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const [tab, setTab] = useState<Tab>('subscriptions');
+  // L'onglet crédits redirige vers abonnements — les abonnements sont la priorité
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -289,7 +290,7 @@ export default function BoutiqueScreen() {
       <View style={{ paddingHorizontal: 20, paddingTop: 16 }}>
         <TabBar active={tab} onChange={setTab} />
       </View>
-      {tab === 'credits' ? <CreditsTab /> : <SubscriptionsTab />}
+      {tab === 'credits' ? <SubscriptionsTab /> : <SubscriptionsTab />}
     </View>
   );
 }

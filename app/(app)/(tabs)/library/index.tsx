@@ -26,7 +26,7 @@ export default function LibraryScreen() {
   const [cat, setCat] = useState('Tous');
 
   useEffect(() => {
-    http.get<Book[]>('/books').then(d => { setBooks((d as any) ?? []); setLoading(false); }).catch(() => { setBooks(DEMO_BOOKS); setLoading(false); });
+    http.get<Book[]>('/library').then(d => { setBooks(Array.isArray(d) ? d : []); setLoading(false); }).catch(() => { setBooks(DEMO_BOOKS); setLoading(false); });
   }, []);
 
   const open = async (b: Book) => {
