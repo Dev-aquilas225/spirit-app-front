@@ -116,39 +116,59 @@ export default function AppLayout() {
 }
 
 /**
- * Envoie la notification au format PWA Web (Vibration + Son système gérés par le navigateur)
+ * Notification de rappel d'expiration d'abonnement.
+ * Web : Service Worker push avec vibration. Natif : Expo local notification.
  */
 async function schedulePwaNotification(daysLeft: number) {
-  try {
-    if (typeof window === 'undefined' || typeof Notification === 'undefined') return;
+  const title = '⏳ Oracle Plus — Abonnement bientôt expiré';
+  const body  = daysLeft === 1
+    ? 'Votre abonnement expire demain. Renouvelez maintenant pour garder votre accès illimité.'
+    : `Votre abonnement expire dans ${daysLeft} jours. Renouvelez pour continuer à profiter d'Oracle Plus.`;
 
-    // 1. Demander la permission à l'utilisateur si ce n'est pas déjà fait
+  try {
+    // ── Natif (iOS / Android) ──────────────────────────────────────────────
+    if (typeof navigator === 'undefined' || typeof window === 'undefined') {
+      const { default: Notifs } = await import('expo-notifications');
+      await Notifs.scheduleNotificationAsync({
+        content: {
+          title,
+          body,
+          sound: true,
+          priority: (Notifs as any).AndroidNotificationPriority?.HIGH,
+          data: { url: '/subscription' },
+        },
+        trigger: null,
+      });
+      return;
+    }
+
+    // ── Web PWA ────────────────────────────────────────────────────────────
     if (Notification.permission === 'default') {
       await Notification.requestPermission();
     }
+    if (Notification.permission !== 'granted') return;
 
-    if (Notification.permission === 'granted') {
-      const titleText = 'Oracle Plus — Test de rappel';
-      const bodyText = `Test de rappel : Renouveler votre abonnement. Votre abonnement expire dans ${daysLeft} jour${daysLeft > 1 ? 's' : ''}.`;
+    const options: NotificationOptions = {
+      body,
+      icon: '/icon-192.png',
+      badge: '/favicon.png',
+      tag: 'expiry-reminder',
+      requireInteraction: true,
+      vibrate: [200, 100, 200],
+      data: { url: '/subscription' },
+      actions: [
+        { action: 'renew', title: 'Renouveler maintenant' },
+        { action: 'dismiss', title: 'Plus tard' },
+      ],
+    } as any;
 
-      // 2. Utiliser le Service Worker de la PWA pour envoyer une vraie notification système en arrière-plan
-      if ('serviceWorker' in navigator) {
-        const registration = await navigator.serviceWorker.ready;
-        if (registration && registration.showNotification) {
-          registration.showNotification(titleText, {
-            body: bodyText,
-            icon: '/icon.png',
-            badge: '/badge.png',
-            tag: 'expiry-reminder-daily',
-          } as NotificationOptions);
-          return;
-        }
-      }
-
-      // Fallback si le Service Worker n'est pas encore prêt sur le navigateur
-      new Notification(titleText, { body: bodyText, icon: '/icon.png' });
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.ready;
+      await reg.showNotification(title, options);
+    } else {
+      new Notification(title, options);
     }
-  } catch (error) {
-    console.log("Les notifications PWA ne sont pas pleinement supportées sur ce navigateur.");
+  } catch {
+    // Silencieux — ne jamais bloquer l'app
   }
 }
