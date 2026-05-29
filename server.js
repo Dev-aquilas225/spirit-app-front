@@ -4,6 +4,7 @@ const path = require('node:path');
 
 const distDir = path.join(__dirname, 'dist');
 const port = Number(process.env.PORT || 3000);
+// v5 — env-config.js servi depuis fichier statique écrit par entrypoint.sh
 
 const mimeTypes = {
   '.css': 'text/css; charset=utf-8',
