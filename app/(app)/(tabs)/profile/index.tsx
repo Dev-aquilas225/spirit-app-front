@@ -6,7 +6,7 @@ import { Image } from 'expo-image';
 import type { LucideIcon } from "lucide-react-native";
 import {
   Bell, BookOpen, Camera, Check, ChevronRight, CreditCard, Crown,
-  FileText, Gift, Globe, LogOut, MessageCircle,
+  Download, FileText, Gift, Globe, LogOut, MessageCircle,
   Pencil, Settings, Share2, ShieldCheck, Trash2, User, X,
 } from "lucide-react-native";
 import React, { useState } from "react";
@@ -19,6 +19,7 @@ import { Card } from "../../../../src/components/common/Card";
 import { useAuth } from "../../../../src/hooks/useAuth";
 import { usePremiumAccess } from "../../../../src/hooks/usePremiumAccess";
 import { useSubscription } from "../../../../src/hooks/useSubscription";
+import { usePWAInstall } from "../../../../src/hooks/usePWAInstall";
 import { useI18n } from "../../../../src/i18n";
 import { useAuthStore } from "../../../../src/store/auth.store";
 import { useTheme } from "../../../../src/theme";
@@ -449,6 +450,8 @@ export default function ProfileScreen() {
 
   const [editVisible, setEditVisible] = useState(false);
   const [langVisible, setLangVisible] = useState(false);
+  const { canShowNative, canShowIOS, isInstalled, install } = usePWAInstall();
+  const canInstallPWA = Platform.OS === 'web' && !isInstalled && (canShowNative || canShowIOS);
 
   const langLabel = LANGUAGES.find(l => l.code === user?.language)?.label ?? t.settings.french;
   // Admin détecté via le rôle JWT (mis par le backend depuis ADMIN_EMAILS)
@@ -612,6 +615,13 @@ export default function ProfileScreen() {
             <MenuItem icon={Gift}          label={t.profile.referral} onPress={() => router.push('/referral')} />
             <MenuItem icon={Share2}        label="Partager sur WhatsApp (+1000 crédits)" onPress={() => router.push('/viral-share' as any)} />
             <MenuItem icon={MessageCircle} label={t.profile.support}  onPress={() => router.push('/support')} />
+            {canInstallPWA && (
+              <MenuItem
+                icon={Download}
+                label="Installer l'application"
+                onPress={canShowNative ? install : () => router.push('/install-pwa' as any)}
+              />
+            )}
           </Card>
         </View>
 

@@ -56,7 +56,13 @@ function detectWebView(): boolean {
 export function usePWAInstall(): PWAInstallState {
   const [prompt,      setPrompt]      = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
-  const [dismissed,   setDismissed]   = useState(false);
+  const [dismissed,   setDismissed]   = useState(() => {
+    // Persister le dismiss en sessionStorage : réapparaît à la prochaine session
+    if (typeof sessionStorage !== 'undefined') {
+      return sessionStorage.getItem('@oracle/pwa_banner_dismissed') === '1';
+    }
+    return false;
+  });
   const [isIOSSafari, setIsIOSSafari] = useState(false);
   const [isWebView,   setIsWebView]   = useState(false);
 
@@ -96,6 +102,10 @@ export function usePWAInstall(): PWAInstallState {
     function onAppInstalled() {
       setIsInstalled(true);
       setPrompt(null);
+      // Effacer le dismiss pour que la bannière réapparaisse si l'app est désinstallée
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem('@oracle/pwa_banner_dismissed');
+      }
     }
 
     window.addEventListener('beforeinstallprompt', onBeforeInstall);
@@ -119,6 +129,9 @@ export function usePWAInstall(): PWAInstallState {
 
   function dismiss() {
     setDismissed(true);
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem('@oracle/pwa_banner_dismissed', '1');
+    }
   }
 
   return {
