@@ -41,21 +41,35 @@ export default function PaystackCallbackScreen() {
 
   async function verify() {
     try {
-      // Appeler verify/:ref — vérifie avec Paystack ET active le service (crédits ou abonnement)
+      // Récupérer le plan depuis localStorage (écrit par payment.tsx avant redirection)
+      let plan = '';
+      if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
+        try { plan = localStorage.getItem('paystack_plan') ?? ''; } catch {}
+      }
+
+      const CREDIT_PACKS = ['starter', 'standard', 'premium'];
+      const isCreditPack = CREDIT_PACKS.includes(plan);
+
       let verified = false;
       let attempts = 0;
+
       while (attempts < 10 && !verified) {
         attempts++;
-        const res = await PaymentService.verifyPayment(ref).catch(() => null);
-        if (res?.success) {
-          verified = true;
-          break;
+
+        if (isCreditPack) {
+          // Crédits : vérifier sans activer l'abonnement
+          const res = await PaymentService.verifyCreditPayment(ref).catch(() => null);
+          if (res?.success) { verified = true; break; }
+        } else {
+          // Abonnement : vérification standard
+          const res = await PaymentService.verifyPayment(ref).catch(() => null);
+          if (res?.success) { verified = true; break; }
         }
-        // Fallback : vérifier le statut en DB
+
+        // Fallback statut DB
         const status = await PaymentService.getStatus(ref).catch(() => null);
-        if (status?.status === 'active') {
-          verified = true;
-          break;
+        if (status?.status === 'active' || status?.status === 'success') {
+          verified = true; break;
         }
         if (status?.status === 'failed') {
           setStep('error');
@@ -71,14 +85,15 @@ export default function PaystackCallbackScreen() {
         return;
       }
 
-      // Rafraîchir profil + abonnement + crédits
-      await Promise.all([refreshUser(), loadSubscription(), fetchBalance()]).catch(() => {});
-
-      // Récupérer le plan depuis localStorage (écrit par payment.tsx avant redirection)
-      let plan = '';
-      if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
-        try { plan = localStorage.getItem('paystack_plan') ?? ''; } catch {}
+      // Rafraîchir selon le type
+      if (isCreditPack) {
+        // Crédits : rafraîchir solde uniquement, ne pas toucher à l'abonnement
+        await Promise.all([fetchBalance(), refreshUser()]).catch(() => {});
+      } else {
+        // Abonnement : tout rafraîchir
+        await Promise.all([refreshUser(), loadSubscription(), fetchBalance()]).catch(() => {});
       }
+
       setStep('success');
       const successUrl = plan
         ? `/subscription/success?reference=${ref}&plan=${plan}`

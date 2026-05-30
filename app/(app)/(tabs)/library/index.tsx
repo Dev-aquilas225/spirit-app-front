@@ -35,21 +35,28 @@ const COVER_HEIGHT = Math.round(CARD_WIDTH * 1.414);
 // ── Couverture livre ──────────────────────────────────────────────────────────
 function BookCover({ uri, title, size = 'card' }: { uri?: string; title: string; size?: 'card' | 'modal' }) {
   const [err, setErr] = useState(false);
-  const w = size === 'modal' ? 120 : CARD_WIDTH - 24;
-  const h = size === 'modal' ? 170 : COVER_HEIGHT;
+  // En mode carte : prend tout le coverWrap (width/height 100%)
+  // En mode modal : taille fixe
+  const modalStyle = { width: 120, height: 170, borderRadius: 10 } as const;
+  const cardStyle  = { width: '100%' as const, height: '100%' as const, borderRadius: 10 };
+
   if (uri && !err) {
     return (
       <Image
         source={{ uri }}
-        style={{ width: w, height: h, borderRadius: 10 }}
+        style={size === 'modal' ? modalStyle : cardStyle}
         resizeMode="cover"
         onError={() => setErr(true)}
       />
     );
   }
+  // Fallback : fond sombre avec initiales
   const initials = title.split(' ').slice(0, 2).map(w => w[0]?.toUpperCase() ?? '').join('');
   return (
-    <View style={{ width: w, height: h, borderRadius: 10, backgroundColor: '#1A2744', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(201,168,76,0.25)' }}>
+    <View style={[
+      size === 'modal' ? modalStyle : cardStyle,
+      { backgroundColor: '#1A2744', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(201,168,76,0.25)' }
+    ]}>
       <AppIcon icon={BookOpen} size={size === 'modal' ? 36 : 28} color="#C9A84C" strokeWidth={1.5} />
       <Text style={{ color: '#C9A84C', fontSize: 13, fontWeight: '900', marginTop: 8 }}>{initials}</Text>
     </View>
@@ -334,10 +341,16 @@ export default function LibraryScreen() {
               >
                 <View style={s.coverWrap}>
                   <BookCover uri={b.coverUrl} title={b.title} />
-                  <View style={[s.lockBadge, { backgroundColor: accessible ? '#10B981CC' : 'rgba(0,0,0,0.75)' }]}>
+                  {/* Overlay cadenas — toujours visible par-dessus la couverture */}
+                  {!accessible && (
+                    <View style={s.lockOverlayCard}>
+                      <AppIcon icon={Lock} size={22} color="#fff" strokeWidth={2.2} />
+                    </View>
+                  )}
+                  <View style={[s.lockBadge, { backgroundColor: accessible ? '#10B981DD' : 'rgba(30,10,60,0.85)' }]}>
                     <AppIcon icon={accessible ? Unlock : Lock} size={10} color="#fff" strokeWidth={2.5} />
                     <Text style={s.lockTxt}>
-                      {accessible ? (b.isFree ? 'Gratuit' : 'Inclus') : 'Abonnement'}
+                      {accessible ? (b.isFree ? 'Gratuit' : 'Inclus') : 'Abonner'}
                     </Text>
                   </View>
                 </View>
@@ -382,8 +395,9 @@ const s = StyleSheet.create({
   catActive:   { backgroundColor: '#C9A84C' },
   catTxt:      { fontSize: 13, fontWeight: '700' },
   card:        { flex: 1, borderRadius: 16, borderWidth: 1, padding: 12, gap: 8 },
-  coverWrap:   { width: '100%', height: COVER_HEIGHT, alignItems: 'center', justifyContent: 'center', position: 'relative', marginBottom: 4 },
-  lockBadge:   { position: 'absolute', bottom: 6, right: 6, flexDirection: 'row', alignItems: 'center', gap: 3, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 3 },
+  coverWrap:       { width: '100%', height: COVER_HEIGHT, alignItems: 'center', justifyContent: 'center', position: 'relative', marginBottom: 4, borderRadius: 10, overflow: 'hidden' },
+  lockOverlayCard: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(10,5,30,0.45)', alignItems: 'center', justifyContent: 'center' },
+  lockBadge:       { position: 'absolute', bottom: 6, right: 6, flexDirection: 'row', alignItems: 'center', gap: 3, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 3 },
   lockTxt:     { fontSize: 10, fontWeight: '700', color: '#fff' },
   bookTitle:   { fontSize: 13, fontWeight: '800', lineHeight: 18 },
   bookAuthor:  { fontSize: 11 },

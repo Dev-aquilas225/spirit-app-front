@@ -7,7 +7,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   ScrollView, StyleSheet, Text, TextInput,
-  TouchableOpacity, View, ActivityIndicator, Switch,
+  TouchableOpacity, View, ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import { ChevronLeft, Send, Bell, Sparkles, Clock, RefreshCw } from 'lucide-react-native';
@@ -30,6 +30,7 @@ export default function AdminNotifications() {
 
   // Cron notifications
   const [cronEnabled, setCronEnabled] = useState(true);
+  const [subsCount, setSubsCount]     = useState<number | null>(null);
   const [cronStatus, setCronStatus]   = useState<'idle'|'loading'|'ok'|'err'>('idle');
   const [lastGenerated, setLastGenerated] = useState<string | null>(null);
 
@@ -72,18 +73,13 @@ export default function AdminNotifications() {
     setTimeout(() => setCronStatus('idle'), 4000);
   };
 
-  const toggleCron = async (val: boolean) => {
-    setCronEnabled(val);
-    // Route backend réelle : POST /push/toggle
-    await http.post('/push/toggle', { enabled: val }).catch(() => {});
-  };
-
-  // Charger le statut push au montage
+  // Charger le statut push au montage — /push/status retourne { enabled, subsCount }
   useEffect(() => {
-    http.get<{ cronEnabled: boolean; lastSentAt: string | null; subsCount: number }>('/push/status')
+    http.get<{ enabled: boolean; subsCount: number; lastSentAt?: string | null }>('/push/status')
       .then(s => {
-        setCronEnabled(s.cronEnabled ?? true);
-        setLastGenerated(s.lastSentAt ?? null);
+        setCronEnabled(s.enabled ?? true);
+        setSubsCount(s.subsCount ?? null);
+        if (s.lastSentAt) setLastGenerated(s.lastSentAt);
       })
       .catch(() => {});
   }, []);
@@ -111,13 +107,19 @@ export default function AdminNotifications() {
             <Text style={s.cardTitle}>Message automatique — toutes les 5h</Text>
             <Text style={s.cardSub}>Oracle génère un message mystique et l'envoie à tous les utilisateurs</Text>
           </View>
-          <Switch
-            value={cronEnabled}
-            onValueChange={toggleCron}
-            trackColor={{ false: '#333', true: 'rgba(52,211,153,0.4)' }}
-            thumbColor={cronEnabled ? '#34D399' : '#666'}
-          />
+          {/* Badge statut cron (lecture seule — /push/toggle n'existe pas) */}
+          <View style={[s.cronBadge, { backgroundColor: cronEnabled ? 'rgba(52,211,153,0.15)' : 'rgba(239,68,68,0.15)' }]}>
+            <Text style={{ fontSize: 10, fontWeight: '800', color: cronEnabled ? '#34D399' : '#EF4444' }}>
+              {cronEnabled ? 'ACTIF' : 'INACTIF'}
+            </Text>
+          </View>
         </View>
+        {subsCount !== null && (
+          <View style={s.cronInfo}>
+            <AppIcon icon={Bell} size={14} color="rgba(255,255,255,0.4)" strokeWidth={2} />
+            <Text style={s.cronInfoTxt}>{subsCount} appareil{subsCount > 1 ? 's' : ''} abonné{subsCount > 1 ? 's' : ''} aux notifications push</Text>
+          </View>
+        )}
 
         <View style={s.cronInfo}>
           <AppIcon icon={Clock} size={14} color="rgba(255,255,255,0.4)" strokeWidth={2} />
@@ -220,6 +222,7 @@ const s = StyleSheet.create({
   cronInfo:   { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: 10 },
   cronInfoTxt:{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace' },
   lastSent:   { fontSize: 12, color: '#34D399', textAlign: 'center' },
+  cronBadge:  { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
   cronBtn:    { backgroundColor: 'rgba(52,211,153,0.15)', borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, borderWidth: 1, borderColor: 'rgba(52,211,153,0.3)' },
   cronBtnOk:  { backgroundColor: 'rgba(52,211,153,0.25)', borderColor: '#34D399' },
   cronBtnErr: { backgroundColor: 'rgba(239,68,68,0.15)', borderColor: '#EF4444' },

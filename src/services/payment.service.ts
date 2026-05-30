@@ -139,18 +139,27 @@ export const PaymentService = {
         : Array.isArray(raw?.payments) ? raw.payments
         : Array.isArray(raw?.transactions) ? raw.transactions
         : [];
-      return arr.map((item: any) => ({
-        id: item.id ?? `${item.reference ?? 'payment'}-${item.createdAt ?? Date.now()}`,
-        userId: item.userId ?? '',
-        amount: item.amount ?? 0,
-        currency: 'FCFA' as const,
-        method: (item.method as PaymentMethod) ?? 'card',
-        status: (item.status === 'success' || item.status === 'failed' || item.status === 'pending')
-          ? item.status : 'pending',
-        reference: item.reference ?? item.paymentReference ?? '',
-        createdAt: item.createdAt ?? item.updatedAt ?? new Date().toISOString(),
-        description: item.description ?? defaultDesc(item),
-      }));
+      return arr.map((item: any) => {
+        // 'active' = paiement réussi côté backend (abonnement activé)
+        const rawStatus = item.status ?? 'pending';
+        const status: 'success' | 'failed' | 'pending' =
+          rawStatus === 'success' || rawStatus === 'active' || rawStatus === 'completed'
+            ? 'success'
+            : rawStatus === 'failed' || rawStatus === 'cancelled' || rawStatus === 'expired'
+            ? 'failed'
+            : 'pending';
+        return {
+          id: item.id ?? `${item.reference ?? 'payment'}-${item.createdAt ?? Date.now()}`,
+          userId: item.userId ?? '',
+          amount: item.amount ?? 0,
+          currency: 'FCFA' as const,
+          method: (item.method as PaymentMethod) ?? 'card',
+          status,
+          reference: item.reference ?? item.paymentReference ?? '',
+          createdAt: item.createdAt ?? item.updatedAt ?? new Date().toISOString(),
+          description: item.description ?? defaultDesc(item),
+        };
+      });
     }
 
     // /subscriptions/me/history retourne TOUS les paiements (abonnements + crédits)
@@ -160,13 +169,24 @@ export const PaymentService = {
       http.get<any>('/library/purchases'),
     ]);
 
+    const CREDIT_PACK_IDS = ['starter', 'standard', 'premium'];
+
     const subItems = subRaw.status === 'fulfilled'
       ? normalizeItems(subRaw.value, (i) => {
-          const CREDIT_PACKS = ['starter', 'standard', 'premium'];
-          if (CREDIT_PACKS.includes(i.plan ?? '')) {
-            return `Recharge crédits — ${i.plan}`;
+          if (CREDIT_PACK_IDS.includes(i.plan ?? '') || CREDIT_PACK_IDS.includes(i.packId ?? '')) {
+            const packLabel: Record<string, string> = {
+              starter: 'Pack Départ (500 crédits)',
+              standard: 'Pack Standard (2 000 crédits)',
+              premium: 'Pack Premium (5 000 crédits)',
+            };
+            return packLabel[i.plan ?? i.packId ?? ''] ?? `Recharge crédits — ${i.plan ?? i.packId}`;
           }
-          return i.plan ? `Abonnement ${i.plan}` : 'Abonnement Oracle Plus';
+          const subLabel: Record<string, string> = {
+            weekly_plus: 'Abonnement Hebdomadaire',
+            monthly: 'Abonnement Mensuel',
+            yearly: 'Abonnement Annuel',
+          };
+          return subLabel[i.plan ?? ''] ?? (i.plan ? `Abonnement ${i.plan}` : 'Abonnement Oracle Plus');
         })
       : [];
 
