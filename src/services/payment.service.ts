@@ -162,6 +162,9 @@ export const PaymentService = {
    * Retourne l'URL de paiement vers laquelle rediriger l'utilisateur.
    */
   async initiate(plan: string, autoRenew = false): Promise<{ data?: InitiateResult; error?: string }> {
+    // Plans abonnement : 'weekly_plus' | 'monthly' | 'yearly'
+    // Plans crédits    : 'starter' (500 cr) | 'standard' (2000 cr) | 'premium' (5000 cr)
+    // Le backend distingue les deux types via le champ 'plan' et crédite en conséquence.
     try {
       const result = await http.post<any>('/subscriptions/initiate', { plan, autoRenew });
       // Backend retourne paymentUrl, frontend attend authorization_url
