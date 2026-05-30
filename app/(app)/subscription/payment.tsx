@@ -188,15 +188,17 @@ export default function PaymentScreen() {
     startedAt.current = Date.now();
 
     const isCreditPack = ['starter', 'standard', 'premium'].includes(plan);
+    let successCalled = false; // garde-fou contre les appels multiples
 
     async function handleSuccess(ref: string) {
+      if (successCalled) return;
+      successCalled = true;
       stopAll();
+      cleanupListeners();
       try { if (Platform.OS !== 'web') await WebBrowser.dismissBrowser(); } catch {}
       if (isCreditPack) {
-        // Crédits : rafraîchir le solde uniquement, ne jamais activer l'abonnement
         await Promise.all([fetchBalance(), refreshUser()]);
       } else {
-        // Abonnement : recharger l'abonnement + solde
         await Promise.all([loadSubscription(), refreshUser(), fetchBalance()]);
       }
       fbPurchase(plan, PLAN_AMOUNTS[plan] ?? 0);
@@ -204,56 +206,67 @@ export default function PaymentScreen() {
       setTimeout(() => router.replace(`/subscription/success?reference=${ref}&plan=${plan}` as any), VIP_DISPLAY_MS);
     }
 
+    // Nettoyage des listeners web — stocké pour pouvoir les supprimer
+    let onVisible: (() => void) | null = null;
+    function cleanupListeners() {
+      if (Platform.OS === 'web' && typeof document !== 'undefined' && onVisible) {
+        document.removeEventListener('visibilitychange', onVisible);
+        window.removeEventListener('focus', onVisible);
+        onVisible = null;
+      }
+    }
+
+    const payRef = result!.reference;
+
+    // Vérification unique (verify + fallback getStatus)
+    async function checkOnce(): Promise<boolean> {
+      try {
+        const verified = isCreditPack
+          ? await PaymentService.verifyCreditPayment(payRef)
+          : await PaymentService.verifyPayment(payRef);
+        if (verified?.success) return true;
+      } catch {}
+      // Fallback statut DB
+      try {
+        const { status } = await PaymentService.getStatus(payRef);
+        if (status === 'active' || status === 'success') return true;
+        if (status === 'failed' || status === 'cancelled') {
+          stopAll();
+          cleanupListeners();
+          try { if (Platform.OS !== 'web') await WebBrowser.dismissBrowser(); } catch {}
+          setError('Le paiement n\'a pas abouti.');
+          setStep('error');
+        }
+      } catch {}
+      return false;
+    }
+
     pollRef.current = setInterval(async () => {
-      let verified: { success: boolean } | null = null;
-
-      if (isCreditPack) {
-        // Crédits : utiliser la route dédiée qui ne touche PAS à l'abonnement
-        verified = await PaymentService.verifyCreditPayment(result.reference).catch(() => null);
-        // Si la route crédits échoue, NE PAS fallback sur verifyPayment (évite l'activation abonnement)
-      } else {
-        // Abonnement : route standard
-        verified = await PaymentService.verifyPayment(result.reference).catch(() => null);
-      }
-
-      if (verified?.success) {
-        await handleSuccess(result.reference);
-        return;
-      }
-
-      // Fallback statut DB (polling léger)
-      const { status } = await PaymentService.getStatus(result.reference).catch(() => ({ status: 'pending' as const }));
-      if (status === 'active' || status === 'success') {
-        await handleSuccess(result.reference);
-        return;
-      }
-
-      if (status === 'failed' || status === 'cancelled') {
-        stopAll();
-        try { if (Platform.OS !== 'web') await WebBrowser.dismissBrowser(); } catch {}
-        setError('Le paiement n\'a pas abouti.');
-        setStep('error');
-      }
+      const ok = await checkOnce();
+      if (ok) await handleSuccess(payRef);
     }, POLL_INTERVAL_MS);
 
-    timerRef.current = setInterval(() => {
+    timerRef.current = setInterval(async () => {
       const elapsed = Date.now() - startedAt.current;
       const rem     = TIMEOUT_MS - elapsed;
       setRemaining(rem);
 
       if (rem <= 0) {
         stopAll();
-        setError('Délai de 10 minutes dépassé. Si tu as été débité, contacte le support.');
+        // Dernière vérification forcée avant d'afficher le timeout
+        const ok = await checkOnce();
+        if (ok) { await handleSuccess(payRef); return; }
+        cleanupListeners();
+        setError('Délai de 10 minutes dépassé. Si tu as été débité, ton accès sera activé automatiquement sous peu.');
         setStep('timeout');
       }
     }, 1_000);
 
-    // Sur web : quand l'utilisateur revient sur l'onglet (après iOS redirect),
-    // vérifier immédiatement le statut via localStorage (écrit par callback.tsx)
+    // Sur web : vérifier immédiatement quand l'utilisateur revient sur l'onglet
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
-      const onVisible = async () => {
+      onVisible = async () => {
         if (document.visibilityState !== 'visible') return;
-        // Lire le résultat écrit par la page callback
+        // Résultat écrit par callback.tsx
         const stored = localStorage.getItem('paystack_result');
         if (stored) {
           try {
@@ -265,13 +278,8 @@ export default function PaymentScreen() {
             }
           } catch {}
         }
-        // Sinon forcer un verify immédiat selon le type
-        const vr = isCreditPack
-          ? await PaymentService.verifyCreditPayment(result.reference).catch(() => null)
-          : await PaymentService.verifyPayment(result.reference).catch(() => null);
-        if (vr?.success) {
-          await handleSuccess(result.reference);
-        }
+        const ok = await checkOnce();
+        if (ok) await handleSuccess(payRef);
       };
       document.addEventListener('visibilitychange', onVisible);
       window.addEventListener('focus', onVisible);

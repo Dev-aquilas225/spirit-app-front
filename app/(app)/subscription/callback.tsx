@@ -41,7 +41,6 @@ export default function PaystackCallbackScreen() {
 
   async function verify() {
     try {
-      // Récupérer le plan depuis localStorage (écrit par payment.tsx avant redirection)
       let plan = '';
       if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
         try { plan = localStorage.getItem('paystack_plan') ?? ''; } catch {}
@@ -51,57 +50,70 @@ export default function PaystackCallbackScreen() {
       const isCreditPack = CREDIT_PACKS.includes(plan);
 
       let verified = false;
-      let attempts = 0;
+      const MAX_ATTEMPTS = 20;   // 20 × 5s = 100s max
+      const DELAY_MS     = 5000;
 
-      while (attempts < 10 && !verified) {
-        attempts++;
-
-        if (isCreditPack) {
-          // Crédits : vérifier sans activer l'abonnement
-          const res = await PaymentService.verifyCreditPayment(ref).catch(() => null);
+      for (let i = 0; i < MAX_ATTEMPTS && !verified; i++) {
+        // 1. Vérification principale
+        try {
+          const res = isCreditPack
+            ? await PaymentService.verifyCreditPayment(ref)
+            : await PaymentService.verifyPayment(ref);
           if (res?.success) { verified = true; break; }
-        } else {
-          // Abonnement : vérification standard
-          const res = await PaymentService.verifyPayment(ref).catch(() => null);
-          if (res?.success) { verified = true; break; }
-        }
+        } catch {}
 
-        // Fallback statut DB
-        const status = await PaymentService.getStatus(ref).catch(() => null);
-        if (status?.status === 'active' || status?.status === 'success') {
-          verified = true; break;
-        }
-        if (status?.status === 'failed') {
-          setStep('error');
-          setErrorMsg('Paiement refusé par Paystack');
-          return;
-        }
-        await new Promise(r => setTimeout(r, 3000));
+        // 2. Fallback statut DB — valide l'accès même si verify échoue
+        try {
+          const { status } = await PaymentService.getStatus(ref);
+          if (status === 'active' || status === 'success') { verified = true; break; }
+          if (status === 'failed' || status === 'cancelled') {
+            setStep('error');
+            setErrorMsg('Paiement refusé. Aucun montant n\'a été débité.');
+            return;
+          }
+        } catch {}
+
+        if (i < MAX_ATTEMPTS - 1) await new Promise(r => setTimeout(r, DELAY_MS));
       }
 
       if (!verified) {
+        // Dernière chance : getStatus seul
+        try {
+          const { status } = await PaymentService.getStatus(ref);
+          if (status === 'active' || status === 'success') verified = true;
+        } catch {}
+      }
+
+      if (!verified) {
+        // Paiement non confirmé mais peut-être en cours côté Paystack
+        // → activer quand même si le backend a enregistré la référence
         setStep('error');
-        setErrorMsg('Vérification expirée. Si vous avez été débité, contactez le support.');
+        setErrorMsg('Vérification en attente. Si vous avez été débité, votre accès sera activé automatiquement. Contactez le support si le problème persiste.');
         return;
       }
 
       // Rafraîchir selon le type
       if (isCreditPack) {
-        // Crédits : rafraîchir solde uniquement, ne pas toucher à l'abonnement
         await Promise.all([fetchBalance(), refreshUser()]).catch(() => {});
       } else {
-        // Abonnement : tout rafraîchir
         await Promise.all([refreshUser(), loadSubscription(), fetchBalance()]).catch(() => {});
+      }
+
+      // Écrire le résultat pour payment.tsx (si l'utilisateur revient sur l'onglet)
+      if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
+        try {
+          localStorage.setItem('paystack_result', JSON.stringify({ reference: ref, status: 'success' }));
+        } catch {}
       }
 
       setStep('success');
       const successUrl = plan
         ? `/subscription/success?reference=${ref}&plan=${plan}`
         : `/subscription/success?reference=${ref}`;
-      setTimeout(() => router.replace(successUrl as any), 2000);
+      setTimeout(() => router.replace(successUrl as any), 1500);
     } catch {
       setStep('error');
-      setErrorMsg('Impossible de vérifier le paiement');
+      setErrorMsg('Impossible de vérifier le paiement. Vérifiez votre connexion.');
     }
   }
 

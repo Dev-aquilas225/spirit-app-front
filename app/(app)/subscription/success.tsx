@@ -41,7 +41,13 @@ export default function PaymentSuccessScreen() {
   const amount       = PLAN_AMOUNTS[plan ?? ''] ?? 0;
 
   useEffect(() => {
-    Promise.all([refreshUser(), loadSubscription(), fetchBalance()]).catch(() => {});
+    const CREDIT_PACKS = ['starter', 'standard', 'premium'];
+    const isCreditPack = CREDIT_PACKS.includes(plan ?? '');
+    // Pour les crédits : ne pas appeler loadSubscription (évite d'écraser l'état)
+    const tasks = isCreditPack
+      ? [fetchBalance(), refreshUser()]
+      : [refreshUser(), loadSubscription(), fetchBalance()];
+    Promise.all(tasks).catch(() => {});
     Animated.sequence([
       Animated.spring(scaleAnim, { toValue: 1, tension: 50, friction: 6, useNativeDriver: true }),
       Animated.timing(fadeAnim,  { toValue: 1, duration: 500, useNativeDriver: true }),
