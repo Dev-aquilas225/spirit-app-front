@@ -74,8 +74,16 @@ export default function PaystackCallbackScreen() {
       // Rafraîchir profil + abonnement + crédits
       await Promise.all([refreshUser(), loadSubscription(), fetchBalance()]).catch(() => {});
 
+      // Récupérer le plan depuis localStorage (écrit par payment.tsx avant redirection)
+      let plan = '';
+      if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
+        try { plan = localStorage.getItem('paystack_plan') ?? ''; } catch {}
+      }
       setStep('success');
-      setTimeout(() => router.replace(`/subscription/success?reference=${ref}` as any), 2000);
+      const successUrl = plan
+        ? `/subscription/success?reference=${ref}&plan=${plan}`
+        : `/subscription/success?reference=${ref}`;
+      setTimeout(() => router.replace(successUrl as any), 2000);
     } catch {
       setStep('error');
       setErrorMsg('Impossible de vérifier le paiement');

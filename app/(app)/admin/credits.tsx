@@ -57,8 +57,20 @@ export default function AdminCreditsScreen() {
         if (!amount || amount <= 0) return;
         setCrediting(user.id);
         try {
-          await http.post('/admin/credits/add', { userId: user.id, amount });
-          Alert.alert('Succès', `+${amount} crédits ajoutés.`);
+          // Essayer plusieurs routes selon la version du backend
+          let ok = false;
+          try {
+            await http.post(`/admin/users/${user.id}/credits`, { amount });
+            ok = true;
+          } catch {}
+          if (!ok) {
+            try {
+              await http.post('/admin/credits/add', { userId: user.id, amount });
+              ok = true;
+            } catch {}
+          }
+          if (!ok) throw new Error('Route admin introuvable');
+          Alert.alert('Succès', `+${amount} crédits ajoutés à ${user.firstName ?? user.email}.`);
           await load();
         } catch (e: any) {
           Alert.alert('Erreur', e?.message ?? 'Impossible de créditer');

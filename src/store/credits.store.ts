@@ -105,9 +105,14 @@ export const useCreditsStore = create<CreditsState>((set, get) => ({
 
   fetchBalance: async () => {
     try {
-      const res = await http.get<{ credits: number; adsAvailable: number }>('/credits/me');
+      // Essayer plusieurs routes selon la version du backend
+      let res: any = null;
+      try { res = await http.get<any>('/credits/me'); } catch {}
+      if (!res?.credits && res?.credits !== 0) {
+        try { res = await http.get<any>('/credits'); } catch {}
+      }
       if (res?.credits !== undefined) {
-        set({ credits: res.credits, adsAvailable: res.adsAvailable ?? 3 });
+        set({ credits: res.credits, adsAvailable: res.adsAvailable ?? res.adsRemaining ?? 3 });
         await StorageService.set(CREDITS_KEY, res.credits);
       }
     } catch { /* offline — keep local cache */ }
@@ -116,48 +121,60 @@ export const useCreditsStore = create<CreditsState>((set, get) => ({
   spend: async (action: CreditAction): Promise<boolean> => {
     const cost = CREDIT_COSTS[action];
     if (get().credits < cost) return false;
+    // Déduire localement immédiatement pour une UX réactive
+    const optimistic = get().credits - cost;
+    set({ credits: optimistic });
+    await StorageService.set(CREDITS_KEY, optimistic);
     try {
-      const res = await http.post<{ credits: number }>('/credits/deduct', { amount: cost, action });
-      const next = res?.credits ?? (get().credits - cost);
-      set({ credits: next });
-      await StorageService.set(CREDITS_KEY, next);
-      return true;
-    } catch {
-      const next = get().credits - cost;
-      set({ credits: next });
-      await StorageService.set(CREDITS_KEY, next);
-      return true;
-    }
+      // Essayer plusieurs routes selon la version du backend
+      let res: any = null;
+      try { res = await http.post<{ credits: number }>('/credits/deduct', { amount: cost, action }); } catch {}
+      if (!res) {
+        try { res = await http.post<{ credits: number }>('/credits/spend', { amount: cost, description: action }); } catch {}
+      }
+      if (res?.credits !== undefined) {
+        set({ credits: res.credits });
+        await StorageService.set(CREDITS_KEY, res.credits);
+      }
+    } catch { /* déjà déduit localement */ }
+    return true;
   },
 
   spendWords: async (wordCount: number): Promise<boolean> => {
     if (wordCount <= 0) return true;
     if (get().credits < wordCount) return false;
+    const optimistic = get().credits - wordCount;
+    set({ credits: optimistic });
+    await StorageService.set(CREDITS_KEY, optimistic);
     try {
-      const res = await http.post<{ credits: number }>('/credits/deduct', { amount: wordCount, action: 'word_generation' });
-      const next = res?.credits ?? (get().credits - wordCount);
-      set({ credits: next });
-      await StorageService.set(CREDITS_KEY, next);
-      if (next <= 0) sendLowCreditsNotification();
-      return true;
-    } catch {
-      const next = get().credits - wordCount;
-      set({ credits: next });
-      await StorageService.set(CREDITS_KEY, next);
-      if (next <= 0) sendLowCreditsNotification();
-      return true;
-    }
+      let res: any = null;
+      try { res = await http.post<{ credits: number }>('/credits/deduct', { amount: wordCount, action: 'word_generation' }); } catch {}
+      if (!res) {
+        try { res = await http.post<{ credits: number }>('/credits/spend', { amount: wordCount, description: 'word_generation' }); } catch {}
+      }
+      if (res?.credits !== undefined) {
+        set({ credits: res.credits });
+        await StorageService.set(CREDITS_KEY, res.credits);
+      }
+    } catch {}
+    if (get().credits <= 0) sendLowCreditsNotification();
+    return true;
   },
 
   adReward: async () => {
     try {
-      const res = await http.post<{ credits: number }>('/credits/add', { amount: 100 });
+      let res: any = null;
+      try { res = await http.post<{ credits: number }>('/credits/ad-reward', {}); } catch {}
+      if (!res) {
+        try { res = await http.post<{ credits: number }>('/credits/add', { amount: 100 }); } catch {}
+      }
       if (res?.credits !== undefined) {
-        set({ credits: res.credits, adsAvailable: (res as any).adsRemaining ?? get().adsAvailable });
+        set({ credits: res.credits, adsAvailable: res.adsRemaining ?? Math.max(0, get().adsAvailable - 1) });
         await StorageService.set(CREDITS_KEY, res.credits);
         return;
       }
     } catch {}
+    // Fallback local
     const next = get().credits + 100;
     const ads = Math.max(0, get().adsAvailable - 1);
     set({ credits: next, adsAvailable: ads });
@@ -165,15 +182,14 @@ export const useCreditsStore = create<CreditsState>((set, get) => ({
   },
 
   purchase: async (packId, reference) => {
-    // 1. Notifier le backend que le paiement est confirmé → créditer le compte
+    // 1. Notifier le backend — essayer plusieurs clés selon la version
     try {
-      await http.post('/credits/purchase', { packId, reference });
+      await http.post('/credits/purchase', { pack: packId, packId, reference });
     } catch {
-      // Fallback : essayer la route générique de vérification
       try { await http.post(`/subscriptions/verify/${reference}`, {}); } catch {}
     }
     // 2. Resynchroniser le solde depuis le backend (source de vérité)
-    try { await get().fetchBalance(); } catch {}
+    await get().fetchBalance();
   },
 
   canAfford: (action: CreditAction): boolean => get().credits >= CREDIT_COSTS[action],

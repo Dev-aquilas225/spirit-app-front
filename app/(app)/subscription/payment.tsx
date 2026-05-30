@@ -204,7 +204,7 @@ export default function PaymentScreen() {
         // Pixel : Purchase confirmé
         fbPurchase(plan, PLAN_AMOUNTS[plan] ?? 0);
         setStep('vip');
-        setTimeout(() => router.replace(`/subscription/success?reference=${result.reference}` as any), VIP_DISPLAY_MS);
+        setTimeout(() => router.replace(`/subscription/success?reference=${result.reference}&plan=${plan}` as any), VIP_DISPLAY_MS);
         return;
       }
 
@@ -221,7 +221,7 @@ export default function PaymentScreen() {
         // Pixel : Purchase confirmé (fallback)
         fbPurchase(plan, PLAN_AMOUNTS[plan] ?? 0);
         setStep('vip');
-        setTimeout(() => router.replace(`/subscription/success?reference=${result.reference}` as any), VIP_DISPLAY_MS);
+        setTimeout(() => router.replace(`/subscription/success?reference=${result.reference}&plan=${plan}` as any), VIP_DISPLAY_MS);
         return;
       }
 
@@ -260,7 +260,7 @@ export default function PaymentScreen() {
               stopAll();
               await Promise.all([loadSubscription(), refreshUser(), fetchBalance()]);
               setStep('vip');
-              setTimeout(() => router.replace('/subscription/success'), VIP_DISPLAY_MS);
+              setTimeout(() => router.replace(`/subscription/success?plan=${plan}` as any), VIP_DISPLAY_MS);
               return;
             }
           } catch {}
@@ -269,13 +269,20 @@ export default function PaymentScreen() {
         const vr = await PaymentService.verifyPayment(result.reference).catch(() => null);
         if (vr?.success) {
           stopAll();
+          const isCreditPack2 = ['starter','standard','premium'].includes(plan);
+          if (isCreditPack2) await purchaseCredits(plan, result.reference);
           await Promise.all([loadSubscription(), refreshUser(), fetchBalance()]);
           setStep('vip');
-          setTimeout(() => router.replace(`/subscription/success?reference=${result.reference}` as any), VIP_DISPLAY_MS);
+          setTimeout(() => router.replace(`/subscription/success?reference=${result.reference}&plan=${plan}` as any), VIP_DISPLAY_MS);
         }
       };
       document.addEventListener('visibilitychange', onVisible);
       window.addEventListener('focus', onVisible);
+    }
+
+    // Sauvegarder le plan pour que callback.tsx puisse le passer à success.tsx
+    if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
+      try { localStorage.setItem('paystack_plan', plan); } catch {}
     }
 
     await openPaystackUrl(result.authorization_url);
