@@ -221,15 +221,56 @@ export const LibraryService = {
   },
 
   /**
-   * Enregistre un téléchargement côté backend (compteur freeDownloadsUsed)
-   * puis retourne l'URL du fichier pour ouvrir le reader.
+   * Enregistre un téléchargement côté backend et retourne l'URL de téléchargement.
+   * Le backend peut retourner { fileUrl, downloadUrl, url } ou rien.
+   * Dans tous les cas on retourne l'URL à utiliser (signée ou construite).
    */
   async download(id: string): Promise<{ fileUrl: string; error?: string }> {
     try {
-      await http.post(`/library/${id}/download`, {});
+      const res = await http.post<any>(`/library/${id}/download`, {});
+      // Le backend peut retourner l'URL sous différentes clés
+      const url: string | undefined =
+        res?.fileUrl ?? res?.downloadUrl ?? res?.url ?? res?.signedUrl;
+      if (url) return { fileUrl: url };
     } catch {
-      // Erreur non bloquante — on ouvre quand même le reader
+      // Non bloquant — on utilise l'URL construite
     }
     return { fileUrl: LibraryService.getFileUrl(id) };
+  },
+
+  /**
+   * Télécharge le fichier PDF avec authentification JWT et déclenche
+   * le téléchargement natif du navigateur (blob + <a download>).
+   * Sur natif (iOS/Android), utilise WebBrowser.
+   */
+  async downloadAndSave(id: string, title: string): Promise<{ error?: string }> {
+    const { fileUrl } = await LibraryService.download(id);
+    try {
+      if (typeof window !== 'undefined') {
+        // Web : fetch avec JWT → blob → <a download>
+        const { StorageService } = await import('./storage.service');
+        const { STORAGE_KEYS } = await import('../utils/constants');
+        const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
+        const headers: Record<string, string> = {};
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        const res = await fetch(fileUrl, { headers });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = `${title.replace(/[^a-z0-9]/gi, '_')}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+        return {};
+      }
+    } catch (e: any) {
+      return { error: e?.message ?? 'Téléchargement échoué' };
+    }
+    return {};
   },
 };

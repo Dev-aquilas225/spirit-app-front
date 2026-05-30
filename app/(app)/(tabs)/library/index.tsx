@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, FlatList, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Dimensions, FlatList, Image, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { BookOpen, CheckCircle2, CreditCard, Download, Lock, Search, Star, X, Zap } from 'lucide-react-native';
@@ -104,11 +104,23 @@ export default function LibraryScreen() {
   const handleDownload = async (b: Book) => {
     if (!hasSubscription && credits < b.tokenCost) { setSelectedBook(b); return; }
     setDownloading(b.id);
-    await LibraryService.download(b.id);
-    setDownloading(null);
-    await completeMission('read_book');
-    await earnBadge('book_reader');
-    router.push({ pathname: '/library/reader', params: { id: b.id, title: b.title } } as any);
+    try {
+      if (Platform.OS === 'web') {
+        // Web : téléchargement direct blob+auth sans passer par le reader
+        const { error } = await LibraryService.downloadAndSave(b.id, b.title);
+        if (error) {
+          // Fallback : naviguer vers le reader qui gère l'erreur proprement
+          router.push({ pathname: '/library/reader', params: { id: b.id, title: b.title } } as any);
+        }
+      } else {
+        // Natif : le reader ouvre WebBrowser
+        router.push({ pathname: '/library/reader', params: { id: b.id, title: b.title } } as any);
+      }
+      await completeMission('read_book');
+      await earnBadge('book_reader');
+    } finally {
+      setDownloading(null);
+    }
   };
 
   const filtered = books.filter(b => (cat === 'Tous' || b.category === cat) && (b.title.toLowerCase().includes(search.toLowerCase()) || b.author.toLowerCase().includes(search.toLowerCase())));
