@@ -10,7 +10,7 @@
  * ouvertes — elles se rechargent automatiquement.
  */
 
-const CACHE_VERSION = 'oracle-plus-v14';
+const CACHE_VERSION = 'oracle-plus-v15';
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 
 // Ressources mises en cache à l'installation (shell minimal)
@@ -115,32 +115,39 @@ self.addEventListener('push', (event) => {
   const title   = data.title   ?? '✨ Oracle Plus';
   const body    = data.body    ?? 'Un nouveau message spirituel vous attend.';
   const url     = data.url     ?? '/';
-  const isAdmin = data.admin   === true;   // notif manuelle admin → renotify + requireInteraction
+  const isAdmin = data.admin   === true;
 
-  // tag unique par envoi admin (timestamp) pour que chaque notif manuelle sonne
+  // Tag unique par envoi pour que chaque notification sonne distinctement
   const tag = isAdmin
     ? `oracle-admin-${Date.now()}`
-    : (data.tag ?? 'oracle-plus-default');
+    : (data.tag ?? `oracle-${Date.now()}`);
 
   const actions = data.actions ?? [
-    { action: 'open',    title: 'Ouvrir Oracle Plus' },
+    { action: 'open',    title: '🙏 Ouvrir Oracle Plus' },
     { action: 'dismiss', title: 'Ignorer' },
   ];
 
+  // Options de notification — compatibilité maximale Android/iOS PWA
+  const notifOptions = {
+    body,
+    icon:               '/icon-192.png',
+    badge:              '/icon-maskable-192.png',
+    image:              data.image ?? undefined,
+    // Vibration : pattern [durée_on, durée_off, ...] en ms
+    vibrate:            [200, 100, 200, 100, 400],
+    // sound est ignoré par la plupart des navigateurs modernes
+    // Le son système est déclenché automatiquement si silent:false
+    tag,
+    renotify:           true,    // force le son même si même tag
+    requireInteraction: isAdmin, // notif admin reste jusqu'au clic
+    silent:             false,   // JAMAIS silencieux
+    timestamp:          Date.now(),
+    actions,
+    data: { url, title, body },
+  };
+
   event.waitUntil(
-    self.registration.showNotification(title, {
-      body,
-      icon:               '/icon-192.png',
-      badge:              '/icon-maskable-192.png',
-      vibrate:            [300, 100, 300, 100, 300],  // 3 vibrations
-      sound:              '/notification.wav',         // son personnalisé (si supporté)
-      tag,
-      renotify:           true,   // toujours sonner, même si même tag
-      requireInteraction: isAdmin, // notif admin reste jusqu'au clic
-      silent:             false,
-      actions,
-      data: { url },
-    }),
+    self.registration.showNotification(title, notifOptions)
   );
 });
 

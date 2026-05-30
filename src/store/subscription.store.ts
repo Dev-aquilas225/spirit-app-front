@@ -73,7 +73,7 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => ({
    * Étape 2 : vérifier le paiement après retour de Paystack.
    * Appeler avec la référence obtenue depuis initiatePayment.
    */
-  verifyPayment: async (reference: string) => {
+  verifyPayment: async (reference: string, planHint?: string) => {
     set({ isLoading: true, paymentError: null });
 
     const result = await PaymentService.verifyPayment(reference);
@@ -83,12 +83,27 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => ({
       return false;
     }
 
+    // Packs crédits : ne jamais activer l'abonnement
+    const CREDIT_PACK_IDS = ['starter', 'standard', 'premium'];
+    const isCreditPack =
+      CREDIT_PACK_IDS.includes(planHint ?? '') ||
+      CREDIT_PACK_IDS.includes(result.subscription?.plan ?? '') ||
+      CREDIT_PACK_IDS.includes((result as any).plan ?? '');
+
+    if (isCreditPack) {
+      // Juste rafraîchir les paiements, ne pas toucher à l'abonnement
+      const payments = await PaymentService.getPaymentHistory().catch(() => get().payments);
+      set({ payments, pendingReference: null, isLoading: false });
+      return true;
+    }
+
+    // Abonnement réel : vérifier la date d'expiration
     const subscription = result.subscription ?? await PaymentService.getMySubscription();
     const isActive = subscription
       ? subscription.status === 'active' && isSubscriptionActive(subscription.expiryDate)
       : false;
 
-    const payments = await PaymentService.getPaymentHistory();
+    const payments = await PaymentService.getPaymentHistory().catch(() => get().payments);
 
     set({
       subscription,
@@ -99,6 +114,7 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => ({
       isLoading: false,
     });
 
+    // upgradeToSubscriber uniquement si abonnement réel actif et non expiré
     if (isActive) {
       useAuthStore.getState().upgradeToSubscriber();
     }

@@ -167,8 +167,15 @@ export const PaymentService = {
       ? normalizeItems(creditRaw.value, (i) => i.packId ? `Recharge crédits — ${i.packId}` : 'Achat de crédits')
       : [];
 
+    // Achats de livres
+    let bookItems: PaymentRecord[] = [];
+    try {
+      const bookRaw = await http.get<any>('/library/purchases');
+      bookItems = normalizeItems(bookRaw, (i) => i.title ? `Livre — ${i.title}` : 'Achat de livre');
+    } catch {}
+
     // Merge and sort by date descending
-    return [...subItems, ...creditItems].sort(
+    return [...subItems, ...creditItems, ...bookItems].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
   },

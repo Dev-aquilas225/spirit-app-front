@@ -124,7 +124,10 @@ export default function AdminAnalyticsScreen() {
     else setRefreshing(true);
     try {
       const [s, viralStats, subsData, recentPay] = await Promise.all([
-        http.get<AdminStats>('/admin/stats').catch(() => null),
+        // Stats globales — essayer plusieurs routes
+        http.get<AdminStats>('/admin/stats').catch(() =>
+          http.get<AdminStats>('/admin/dashboard').catch(() => null)
+        ),
         ViralShareService.adminGetStats().then(r => r ? ({
           totalRequests:    (r.pending ?? 0) + (r.approved ?? 0) + (r.rejected ?? 0),
           approvedRequests: r.approved ?? 0,
@@ -132,8 +135,12 @@ export default function AdminAnalyticsScreen() {
           totalCreditsAwarded: r.totalCreditsAwarded ?? 0,
         }) : null).catch(() => null),
         PaymentService.adminGetAll().catch(() => []),
-        // Paiements récents (abonnements + crédits)
-        http.get<RecentPayment[]>('/admin/payments/recent').catch(() => []),
+        // Paiements récents — essayer plusieurs routes
+        http.get<RecentPayment[]>('/admin/payments/recent').catch(() =>
+          http.get<RecentPayment[]>('/admin/payments').catch(() =>
+            http.get<RecentPayment[]>('/subscriptions/admin/all').catch(() => [])
+          )
+        ),
       ]);
       if (s) setStats(s as AdminStats);
       if (viralStats) setViral(viralStats as ViralStats);
@@ -297,8 +304,13 @@ export default function AdminAnalyticsScreen() {
                 <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 2 }}>
                   {p.plan} · {new Date(p.createdAt).toLocaleString('fr-FR', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}
                 </Text>
+                {p.reference ? (
+                  <Text style={{ fontSize: 10, color: colors.textTertiary, marginTop: 1 }}>
+                    Réf: {p.reference}
+                  </Text>
+                ) : null}
               </View>
-              <View style={{ alignItems: 'flex-end', gap: 3 }}>
+              <View style={{ alignItems: 'flex-end', gap: 4 }}>
                 <Text style={{ fontSize: 13, fontWeight: '800', color: colors.primary }}>
                   {(p.amount ?? 0).toLocaleString('fr-FR')} FCFA
                 </Text>
@@ -312,6 +324,26 @@ export default function AdminAnalyticsScreen() {
                     {p.status}
                   </Text>
                 </View>
+                {/* Bouton révoquer */}
+                {(p.status === 'success' || p.status === 'active') && (
+                  <TouchableOpacity
+                    style={[st.revokeBtn]}
+                    onPress={async () => {
+                      if (!p.id && !p.reference) return;
+                      try {
+                        await http.post('/admin/payments/revoke', { paymentId: p.id, reference: p.reference }).catch(() =>
+                          http.delete(`/admin/payments/${p.id ?? p.reference}`)
+                        );
+                        // Rafraîchir
+                        load(true);
+                      } catch {
+                        alert('Impossible de révoquer ce paiement');
+                      }
+                    }}
+                  >
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: '#EF4444' }}>Révoquer</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
           ))}
@@ -341,6 +373,7 @@ const st = StyleSheet.create({
   card:        { borderRadius: 16, borderWidth: 1, padding: 16 },
   barBg:       { height: 8, borderRadius: 4, overflow: 'hidden' },
   barFill:     { height: '100%', borderRadius: 4 },
-  payRow:      { flexDirection: 'row', alignItems: 'center', paddingBottom: 10, borderBottomWidth: 0.5 },
+  payRow:      { flexDirection: 'row', alignItems: 'flex-start', paddingBottom: 10, borderBottomWidth: 0.5 },
   statusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  revokeBtn:   { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: '#EF444440', backgroundColor: '#EF444412' },
 });
