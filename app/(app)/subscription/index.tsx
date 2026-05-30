@@ -11,7 +11,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { fbViewContent } from '../../../src/utils/fbpixel';
 import {
-  Calendar, Check, Clock, Crown, Infinity,
+  Calendar, Check, Clock, Crown, History, Infinity,
   ShoppingBag, Sparkles, Star, Zap,
 } from 'lucide-react-native';
 import { AppIcon } from '../../../src/components/common/AppIcon';
@@ -79,6 +79,14 @@ function CreditsTab() {
         <Text style={ct.balanceNote}>
           {hasSubscription ? 'Abonnement actif — accès illimité' : '2 000 crédits offerts à l\'inscription'}
         </Text>
+        <TouchableOpacity
+          style={ct.historyLink}
+          onPress={() => router.push('/subscription/history' as any)}
+          activeOpacity={0.8}
+        >
+          <AppIcon icon={History} size={13} color="rgba(201,168,76,0.7)" strokeWidth={2.2} />
+          <Text style={ct.historyLinkText}>Voir l'historique des paiements</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Tarifs */}
@@ -323,6 +331,8 @@ const ct = StyleSheet.create({
   balanceNote: { fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 18 },
   subBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(201,168,76,0.2)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, borderWidth: 1, borderColor: '#C9A84C' },
   subBadgeText: { color: '#C9A84C', fontSize: 11, fontWeight: '700' },
+  historyLink: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10, alignSelf: 'flex-start' },
+  historyLinkText: { fontSize: 12, color: 'rgba(201,168,76,0.7)', fontWeight: '600', textDecorationLine: 'underline' },
   infoBox: { borderRadius: 14, borderWidth: 1, padding: 16, gap: 10 },
   infoTitle: { fontSize: 14, fontWeight: '800', marginBottom: 4 },
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
