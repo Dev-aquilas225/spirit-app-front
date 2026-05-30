@@ -24,8 +24,9 @@ export default function AdminNotifications() {
   const [title, setTitle]   = useState('');
   const [body, setBody]     = useState('');
   const [target, setTarget] = useState<Target>('all');
-  const [sending, setSending] = useState(false);
-  const [sent, setSent]       = useState(false);
+  const [sending, setSending]   = useState(false);
+  const [sent, setSent]         = useState(false);
+  const [sentCount, setSentCount] = useState(0);
 
   // Cron notifications
   const [cronEnabled, setCronEnabled] = useState(true);
@@ -36,11 +37,22 @@ export default function AdminNotifications() {
     if (!title.trim() || !body.trim()) return;
     setSending(true);
     try {
-      // Route backend réelle : POST /push/send
-      const res = await http.post<{ sent: number; failed: number }>('/push/send', { title, body });
+      // admin:true → le SW crée un tag unique et force renotify + requireInteraction
+      const res = await http.post<{ sent: number; failed: number }>('/push/send', {
+        title,
+        body,
+        target,
+        admin: true,
+        url: '/',
+        actions: [
+          { action: 'open',    title: 'Ouvrir Oracle Plus' },
+          { action: 'dismiss', title: 'Ignorer' },
+        ],
+      });
       setSent(true);
+      setSentCount((res as any)?.sent ?? 0);
       setTitle(''); setBody('');
-      setTimeout(() => setSent(false), 3000);
+      setTimeout(() => setSent(false), 4000);
     } catch (e: any) {
       alert('Erreur envoi : ' + (e?.message ?? 'inconnue'));
     }
@@ -185,7 +197,9 @@ export default function AdminNotifications() {
             ? <ActivityIndicator color="#fff" />
             : <>
                 <AppIcon icon={Send} size={18} color="#fff" strokeWidth={2.5} />
-                <Text style={s.sendTxt}>{sent ? 'Envoyé ✓' : 'Envoyer'}</Text>
+                <Text style={s.sendTxt}>
+                  {sent ? `Envoyé ✓ (${sentCount} destinataires)` : 'Envoyer'}
+                </Text>
               </>
           }
         </TouchableOpacity>

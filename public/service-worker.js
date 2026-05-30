@@ -10,7 +10,7 @@
  * ouvertes — elles se rechargent automatiquement.
  */
 
-const CACHE_VERSION = 'oracle-plus-v12';
+const CACHE_VERSION = 'oracle-plus-v13';
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 
 // Ressources mises en cache à l'installation (shell minimal)
@@ -112,23 +112,33 @@ self.addEventListener('push', (event) => {
   let data = {};
   try { data = event.data?.json() ?? {}; } catch { data = {}; }
 
-  const title = data.title ?? '✨ Oracle Plus';
-  const body  = data.body  ?? 'Un nouveau message spirituel vous attend.';
-  const url   = data.url   ?? '/';
+  const title   = data.title   ?? '✨ Oracle Plus';
+  const body    = data.body    ?? 'Un nouveau message spirituel vous attend.';
+  const url     = data.url     ?? '/';
+  const isAdmin = data.admin   === true;   // notif manuelle admin → renotify + requireInteraction
 
-  // tag = identifiant unique par type de notification
-  // → si l'utilisateur reçoit 2 pushes "matin" en retard, un seul s'affiche
-  const tag = data.tag ?? 'oracle-plus-default';
+  // tag unique par envoi admin (timestamp) pour que chaque notif manuelle sonne
+  const tag = isAdmin
+    ? `oracle-admin-${Date.now()}`
+    : (data.tag ?? 'oracle-plus-default');
+
+  const actions = data.actions ?? [
+    { action: 'open',    title: 'Ouvrir Oracle Plus' },
+    { action: 'dismiss', title: 'Ignorer' },
+  ];
 
   event.waitUntil(
     self.registration.showNotification(title, {
       body,
-      icon:    '/icon-192.png',
-      badge:   '/icon-maskable-192.png',
-      vibrate: [200, 100, 200],
-      tag,                    // déduplique : remplace la notif précédente du même tag
-      renotify: false,        // ne re-sonne pas si la notif du même tag est déjà là
-      requireInteraction: false,
+      icon:               '/icon-192.png',
+      badge:              '/icon-maskable-192.png',
+      vibrate:            [300, 100, 300, 100, 300],  // 3 vibrations
+      sound:              '/notification.wav',         // son personnalisé (si supporté)
+      tag,
+      renotify:           true,   // toujours sonner, même si même tag
+      requireInteraction: isAdmin, // notif admin reste jusqu'au clic
+      silent:             false,
+      actions,
       data: { url },
     }),
   );
