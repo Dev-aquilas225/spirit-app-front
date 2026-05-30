@@ -30,12 +30,7 @@ export default function PaystackCallbackScreen() {
 
   useEffect(() => {
     if (!ref) { setStep('error'); setErrorMsg('Référence manquante'); return; }
-
-    // Écrire dans localStorage pour que payment.tsx le lise si l'onglet est encore ouvert
-    if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
-      localStorage.setItem('paystack_result', JSON.stringify({ reference: ref, status: 'success' }));
-    }
-
+    // NE PAS écrire localStorage ici — seulement après vérification backend réussie
     verify();
   }, [ref]);
 
@@ -99,10 +94,11 @@ export default function PaystackCallbackScreen() {
         await Promise.all([refreshUser(), loadSubscription(), fetchBalance()]).catch(() => {});
       }
 
-      // Écrire le résultat pour payment.tsx (si l'utilisateur revient sur l'onglet)
+      // Signaler à payment.tsx (si ouvert) que la vérification backend a réussi
+      // NOTE : on écrit APRÈS vérification — jamais avant
       if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
         try {
-          localStorage.setItem('paystack_result', JSON.stringify({ reference: ref, status: 'success' }));
+          localStorage.setItem('paystack_verified', JSON.stringify({ reference: ref, ts: Date.now() }));
         } catch {}
       }
 

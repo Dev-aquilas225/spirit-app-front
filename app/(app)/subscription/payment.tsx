@@ -266,15 +266,19 @@ export default function PaymentScreen() {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
       onVisible = async () => {
         if (document.visibilityState !== 'visible') return;
-        // Résultat écrit par callback.tsx
-        const stored = localStorage.getItem('paystack_result');
+        // callback.tsx écrit 'paystack_verified' SEULEMENT après vérification backend réussie
+        // On re-vérifie quand même avec le backend pour éviter toute manipulation locale
+        const stored = localStorage.getItem('paystack_verified');
         if (stored) {
           try {
-            const { reference: ref, status: st } = JSON.parse(stored);
-            if (ref === result.reference && (st === 'success' || st === 'active')) {
-              localStorage.removeItem('paystack_result');
-              await handleSuccess(ref);
-              return;
+            const { reference: verifiedRef, ts } = JSON.parse(stored);
+            const age = Date.now() - (ts ?? 0);
+            // Valide seulement si la référence correspond ET récente (< 10 min)
+            if (verifiedRef === payRef && age < 10 * 60 * 1000) {
+              localStorage.removeItem('paystack_verified');
+              // Re-vérifier avec le backend — ne jamais faire confiance au localStorage seul
+              const ok = await checkOnce();
+              if (ok) { await handleSuccess(payRef); return; }
             }
           } catch {}
         }
