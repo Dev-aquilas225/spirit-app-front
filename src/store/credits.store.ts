@@ -72,8 +72,8 @@ export type CreditAction = keyof typeof CREDIT_COSTS;
 
 export const CREDIT_PACKS = [
   { id: 'starter',  label: 'Pack Départ',   credits: 500,  price: 500,  priceLabel: '500 FCFA' },
-  { id: 'standard', label: 'Pack Standard', credits: 1000, price: 1000, priceLabel: '1 000 FCFA', badge: '⭐ Populaire' },
-  { id: 'premium',  label: 'Pack Premium',  credits: 2500, price: 2500, priceLabel: '2 500 FCFA', badge: '🏆 Meilleure valeur' },
+  { id: 'standard', label: 'Pack Standard', credits: 2000, price: 1000, priceLabel: '1 000 FCFA', badge: '⭐ Populaire' },
+  { id: 'premium',  label: 'Pack Premium',  credits: 5000, price: 2500, priceLabel: '2 500 FCFA', badge: '🏆 Meilleure valeur' },
 ] as const;
 
 export type CreditPackId = typeof CREDIT_PACKS[number]['id'];

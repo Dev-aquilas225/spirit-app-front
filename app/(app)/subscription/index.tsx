@@ -161,8 +161,8 @@ function SubscriptionsTab() {
   const [loading, setLoading] = useState<SubscriptionPlan | null>(null);
   const [selected, setSelected] = useState<SubscriptionPlan>('monthly');
 
-  const PLAN_ICONS = { weekly: Clock, weekly_plus: Star, monthly: Crown } as const;
-  const PLAN_COLORS = { weekly: '#3B82F6', weekly_plus: '#8B5CF6', monthly: '#C9A84C' } as const;
+  const PLAN_ICONS: Record<string, any>    = { weekly: Clock, weekly_plus: Star, monthly: Crown, yearly: Crown };
+  const PLAN_COLORS: Record<string, string> = { weekly: '#3B82F6', weekly_plus: '#8B5CF6', monthly: '#C9A84C', yearly: '#10B981' };
 
   const handleSubscribe = (plan: SubscriptionPlan) => {
     setSelected(plan);

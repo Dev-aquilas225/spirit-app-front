@@ -47,7 +47,7 @@ function fmt(iso: string | null) {
 function userName(sub: AdminSubscription) {
   const u = sub.user;
   if (u?.firstName || u?.lastName) return `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim();
-  return u?.email ?? u?.phone ?? 'Inconnu';
+  return u?.email ?? 'Inconnu';
 }
 
 /* ─── Composant card ────────────────────────────────────────────────────── */
@@ -77,7 +77,7 @@ function SubscriptionCard({
             {userName(sub)}
           </Text>
           <Text style={[s.cardSub, { color: colors.textSecondary }]} numberOfLines={1}>
-            {sub.user?.email ?? sub.user?.phone ?? '—'}
+            {sub.user?.email ?? '—'}
           </Text>
         </View>
         <View style={[s.badge, { backgroundColor: cfg.bg }]}>
@@ -87,16 +87,14 @@ function SubscriptionCard({
 
       {/* Infos */}
       <View style={[s.infoRow, { borderTopColor: colors.border }]}>
-        <InfoCell label="Montant"    value={`${sub.amount.toLocaleString()} FCFA`} />
+        <InfoCell label="Montant"    value={sub.amount > 0 ? `${sub.amount.toLocaleString()} FCFA` : '—'} />
         <InfoCell label="Créé le"   value={fmt(sub.createdAt)} />
-        <InfoCell label="Référence" value={sub.paymentReference?.slice(-12) ?? '—'} mono />
+        <InfoCell label="Référence" value={sub.reference?.slice(-12) ?? '—'} mono />
       </View>
 
-      {sub.status === 'active' && (
+      {sub.status === 'active' && sub.expiresAt && (
         <View style={[s.infoRow, { borderTopColor: colors.border }]}>
-          <InfoCell label="Début"    value={fmt(sub.startDate)} />
-          <InfoCell label="Expiration" value={fmt(sub.endDate)} />
-          <InfoCell label="Via"      value={sub.paymentProvider ?? '—'} />
+          <InfoCell label="Expiration" value={fmt(sub.expiresAt)} />
         </View>
       )}
 
@@ -178,11 +176,10 @@ export default function AdminSubscriptionsScreen() {
     if (filter !== 'all' && s.status !== filter) return false;
     if (search.trim()) {
       const q = search.toLowerCase();
-      const name = userName(s).toLowerCase();
+      const name  = userName(s).toLowerCase();
       const email = (s.user?.email ?? '').toLowerCase();
-      const phone = (s.user?.phone ?? '').toLowerCase();
-      const ref   = (s.paymentReference ?? '').toLowerCase();
-      if (!name.includes(q) && !email.includes(q) && !phone.includes(q) && !ref.includes(q)) return false;
+      const ref   = (s.reference ?? '').toLowerCase();
+      if (!name.includes(q) && !email.includes(q) && !ref.includes(q)) return false;
     }
     return true;
   });

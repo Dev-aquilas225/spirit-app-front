@@ -83,21 +83,19 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => ({
       return false;
     }
 
-    // Packs crédits : ne jamais activer l'abonnement
+    // Packs crédits : ne pas toucher à l'abonnement, juste rafraîchir les paiements
     const CREDIT_PACK_IDS = ['starter', 'standard', 'premium'];
     const isCreditPack =
       CREDIT_PACK_IDS.includes(planHint ?? '') ||
-      CREDIT_PACK_IDS.includes(result.subscription?.plan ?? '') ||
-      CREDIT_PACK_IDS.includes((result as any).plan ?? '');
+      CREDIT_PACK_IDS.includes(result.subscription?.plan ?? '');
 
     if (isCreditPack) {
-      // Juste rafraîchir les paiements, ne pas toucher à l'abonnement
       const payments = await PaymentService.getPaymentHistory().catch(() => get().payments);
       set({ payments, pendingReference: null, isLoading: false });
       return true;
     }
 
-    // Abonnement réel : vérifier la date d'expiration
+    // Abonnement : récupérer l'état à jour depuis le backend
     const subscription = result.subscription ?? await PaymentService.getMySubscription();
     const isActive = subscription
       ? subscription.status === 'active' && isSubscriptionActive(subscription.expiryDate)
@@ -114,7 +112,6 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => ({
       isLoading: false,
     });
 
-    // upgradeToSubscriber uniquement si abonnement réel actif et non expiré
     if (isActive) {
       useAuthStore.getState().upgradeToSubscriber();
     }
