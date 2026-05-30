@@ -147,7 +147,13 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification(title, notifOptions)
+    self.registration.showNotification(title, notifOptions).then(() => {
+      // Envoyer un message aux pages ouvertes pour déclencher le son côté page
+      // (les SW ne peuvent pas jouer d'audio directement)
+      return self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+        clients.forEach((client) => client.postMessage({ type: 'PLAY_NOTIFICATION_SOUND' }));
+      });
+    })
   );
 });
 

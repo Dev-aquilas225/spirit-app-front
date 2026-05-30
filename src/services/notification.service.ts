@@ -18,6 +18,18 @@ Notifications.setNotificationHandler({
   }),
 });
 
+// Canal Android requis pour son + vibration sur Android 8+
+if (Platform.OS === 'android') {
+  Notifications.setNotificationChannelAsync('oracle-default', {
+    name: 'Oracle Plus',
+    importance: Notifications.AndroidImportance.HIGH,
+    sound: 'default',
+    vibrationPattern: [0, 250, 250, 250],
+    enableVibrate: true,
+    showBadge: true,
+  }).catch(() => {});
+}
+
 export const NotificationService = {
   async requestPermissions(): Promise<boolean> {
     if (Platform.OS === 'web') return false;
@@ -66,11 +78,13 @@ export const NotificationService = {
           body: content.body,
           sound: true,
           priority: Notifications.AndroidNotificationPriority.HIGH,
+          ...(Platform.OS === 'android' ? { channelId: 'oracle-default' } : {}),
         },
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.DAILY,
           hour,
           minute,
+          ...(Platform.OS === 'android' ? { channelId: 'oracle-default' } : {}),
         },
       });
     }
@@ -82,7 +96,13 @@ export const NotificationService = {
 
   async sendLocalNotification(title: string, body: string): Promise<void> {
     await Notifications.scheduleNotificationAsync({
-      content: { title, body, sound: true },
+      content: {
+        title,
+        body,
+        sound: true,
+        priority: Notifications.AndroidNotificationPriority.HIGH,
+        ...(Platform.OS === 'android' ? { channelId: 'oracle-default' } : {}),
+      },
       trigger: null,
     });
   },

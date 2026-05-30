@@ -2,13 +2,10 @@
  * Bibliothèque Spirituelle — Oracle Plus
  *
  * Flux d'accès :
- *  1. Clic sur un livre → modal avec prix FCFA
- *  2. Bouton "Acheter ce livre" → paiement Paystack (indépendant abonnement/crédits)
- *  3. Après paiement confirmé → cadenas vert → bouton "Télécharger le PDF"
- *  4. Téléchargement : fetch avec JWT → blob → <a download> (web) / WebBrowser (natif)
- *
- * L'abonnement et les crédits ne donnent PAS accès aux livres.
- * Chaque livre doit être acheté individuellement via Paystack.
+ *  1. Clic sur un livre → modal détail
+ *  2. Si canRead/isFree → bouton "Télécharger le PDF"
+ *  3. Sinon → rediriger vers l'abonnement (accès via abonnement actif)
+ *  4. Téléchargement : fileUrl retournée par le backend (avec JWT si nécessaire)
  */
 import React, { useEffect, useState } from 'react';
 import {
@@ -21,7 +18,7 @@ import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import {
   BookOpen, CheckCircle2, Download, Lock, Search,
-  ShoppingCart, Unlock, X, Zap,
+  Unlock, X, Zap,
 } from 'lucide-react-native';
 import { AppIcon } from '../../../../src/components/common/AppIcon';
 import { useTheme } from '../../../../src/theme';
@@ -30,6 +27,7 @@ import { http } from '../../../../src/services/http.client';
 import { LibraryService } from '../../../../src/services/library.service';
 import { StorageService } from '../../../../src/services/storage.service';
 import { STORAGE_KEYS } from '../../../../src/utils/constants';
+import { useAccess } from '../../../../src/hooks/useAccess';
 
 const CARD_WIDTH   = (Dimensions.get('window').width - 24 - 12) / 2;
 const COVER_HEIGHT = Math.round(CARD_WIDTH * 1.414);
@@ -62,17 +60,22 @@ interface Book {
   id: string; title: string; author: string; category: string;
   coverUrl?: string; price: number; pages: number;
   description?: string; isFree?: boolean;
+  canRead?: boolean; fileUrl?: string;
 }
 
 const CATS = ['Tous', 'Prière', 'Prophétie', 'Sagesse', 'Guérison', 'Formation'];
 
-// ── Téléchargement réel avec auth JWT ────────────────────────────────────────
-async function downloadBook(bookId: string, title: string): Promise<string | null> {
+// ── Téléchargement avec auth JWT ─────────────────────────────────────────────
+async function downloadBook(book: Book): Promise<string | null> {
   try {
-    const { fileUrl } = await LibraryService.download(bookId);
+    // Utiliser fileUrl du livre si disponible, sinon construire depuis l'API
+    const fileUrl = book.fileUrl ?? LibraryService.getFileUrl(book.id);
 
     if (Platform.OS !== 'web') {
-      await WebBrowser.openBrowserAsync(fileUrl);
+      await WebBrowser.openBrowserAsync(fileUrl, {
+        presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
+        toolbarColor: '#1A1A3E',
+      });
       return null;
     }
 
@@ -82,13 +85,13 @@ async function downloadBook(bookId: string, title: string): Promise<string | nul
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
     const res = await fetch(fileUrl, { headers });
-    if (!res.ok) throw new Error(`Erreur serveur ${res.status} — fichier introuvable`);
+    if (!res.ok) throw new Error(`Erreur ${res.status} — fichier introuvable ou accès refusé`);
 
     const blob = await res.blob();
     const blobUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = blobUrl;
-    a.download = `${title.replace(/[^a-z0-9]/gi, '_')}.pdf`;
+    a.download = `${book.title.replace(/[^a-z0-9]/gi, '_')}.pdf`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -103,119 +106,66 @@ async function downloadBook(bookId: string, title: string): Promise<string | nul
 export default function LibraryScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const user = useAuthStore((s) => s.user);
+  const { hasSubscription } = useAccess();
 
   const [books, setBooks]               = useState<Book[]>([]);
   const [loading, setLoading]           = useState(true);
   const [search, setSearch]             = useState('');
   const [cat, setCat]                   = useState('Tous');
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
-  // IDs des livres achetés (chargés depuis le backend + mis à jour après achat)
-  const [purchasedIds, setPurchasedIds] = useState<Set<string>>(new Set());
   const [downloading, setDownloading]   = useState(false);
-  const [paying, setPaying]             = useState(false);
   const [payError, setPayError]         = useState('');
+  const [showIOSTip, setShowIOSTip]     = useState(false);
 
-  useEffect(() => {
-    loadBooks();
-    loadPurchased();
-  }, []);
+  useEffect(() => { loadBooks(); }, []);
 
   async function loadBooks() {
     try {
-      const raw = await http.get<any[]>('/library');
-      const normalized: Book[] = (Array.isArray(raw) ? raw : []).map(b => ({
+      // Le backend retourne canRead=true si l'utilisateur a accès (abonnement actif)
+      const raw = await LibraryService.getAll();
+      const normalized: Book[] = raw.map(b => ({
         id: b.id,
         title: b.title ?? 'Sans titre',
         author: b.author ?? 'Prophète Georges',
         category: b.category ?? 'Prière',
-        coverUrl: b.coverUrl ?? LibraryService.getCoverUrl(b.coverImage) ?? undefined,
-        price: b.price ?? b.amount ?? b.tokenCost ?? 500,
+        coverUrl: LibraryService.getCoverUrl(b.coverImage) ?? undefined,
+        price: 0,
         pages: b.pages ?? 0,
         description: b.description,
         isFree: b.isFree ?? false,
+        canRead: b.canRead ?? b.isFree ?? false,
+        fileUrl: b.fileUrl ?? undefined,
       }));
-      setBooks(normalized);
+      setBooks(normalized.length > 0 ? normalized : DEMO_BOOKS);
     } catch {
       setBooks(DEMO_BOOKS);
     }
     setLoading(false);
   }
 
-  async function loadPurchased() {
-    try {
-      // Récupérer les livres déjà achetés par l'utilisateur
-      const raw = await http.get<any>('/library/purchased');
-      const ids: string[] = Array.isArray(raw)
-        ? raw.map((b: any) => b.id ?? b.bookId)
-        : Array.isArray(raw?.data) ? raw.data.map((b: any) => b.id ?? b.bookId)
-        : [];
-      setPurchasedIds(new Set(ids));
-    } catch {
-      // Silencieux — l'utilisateur devra acheter
-    }
-  }
-
-  const isPurchased = (b: Book) => b.isFree || purchasedIds.has(b.id);
-
-  // ── Acheter un livre via Paystack ─────────────────────────────────────────
-  const handleBuyBook = async (b: Book) => {
-    setPayError('');
-    setPaying(true);
-    try {
-      // Initier le paiement Paystack pour ce livre spécifique
-      const res = await http.post<any>('/library/purchase/initiate', {
-        bookId: b.id,
-        amount: b.price,
-      });
-
-      const payUrl: string = res?.authorization_url ?? res?.paymentUrl ?? res?.url ?? '';
-      if (!payUrl) throw new Error('URL de paiement non reçue du serveur');
-
-      // Sauvegarder le bookId pour le récupérer après retour Paystack
-      if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
-        localStorage.setItem('pending_book_id', b.id);
-        localStorage.setItem('pending_book_title', b.title);
-        localStorage.setItem('pending_book_ref', res?.reference ?? '');
-      }
-
-      if (Platform.OS === 'web') {
-        // Web : ouvrir dans le même onglet (Paystack redirige vers /library/callback)
-        window.location.href = payUrl;
-      } else {
-        // Natif : WebBrowser
-        const result = await WebBrowser.openAuthSessionAsync(payUrl, 'oracle-plus://library/callback');
-        if (result.type === 'success') {
-          // Vérifier le paiement
-          const ref = res?.reference ?? '';
-          if (ref) {
-            await http.post('/library/purchase/verify', { reference: ref, bookId: b.id }).catch(() => null);
-            setPurchasedIds(prev => new Set([...prev, b.id]));
-          }
-        }
-      }
-    } catch (e: any) {
-      setPayError(e?.message ?? 'Erreur lors de l\'initiation du paiement');
-    }
-    setPaying(false);
-  };
+  // Un livre est accessible si : gratuit, abonnement actif, ou canRead=true (backend)
+  const isAccessible = (b: Book) => b.isFree || b.canRead || hasSubscription;
 
   // ── Télécharger ─────────────────────────────────────────────────────────────
-  const [showIOSTip, setShowIOSTip] = useState(false);
-
   const handleDownload = async (b: Book) => {
     setDownloading(true);
     setShowIOSTip(false);
-    const err = await downloadBook(b.id, b.title);
+    setPayError('');
+    const err = await downloadBook(b);
     setDownloading(false);
     if (err) {
       setPayError(err);
     } else if (Platform.OS === 'web') {
       setSelectedBook(null);
     } else if (Platform.OS === 'ios') {
-      // Sur iOS, afficher les instructions pour sauvegarder dans Fichiers
       setShowIOSTip(true);
     }
+  };
+
+  // ── Accès refusé → rediriger vers abonnement ──────────────────────────────
+  const handleRequestAccess = () => {
+    setSelectedBook(null);
+    router.push('/subscription' as any);
   };
 
   const filtered = books.filter(b =>
@@ -257,7 +207,7 @@ export default function LibraryScreen() {
         <View style={s.overlay}>
           <View style={[s.modalBox, { backgroundColor: colors.surface }]}>
             {selectedBook && (() => {
-              const purchased = isPurchased(selectedBook);
+              const accessible = isAccessible(selectedBook);
               return (
                 <>
                   <TouchableOpacity style={s.modalClose} onPress={() => { setSelectedBook(null); setPayError(''); }}>
@@ -268,8 +218,8 @@ export default function LibraryScreen() {
                   <View style={{ alignItems: 'center', marginBottom: 16 }}>
                     <View style={{ position: 'relative' }}>
                       <BookCover uri={selectedBook.coverUrl} title={selectedBook.title} size="modal" />
-                      <View style={[s.lockOverlay, { backgroundColor: purchased ? '#10B981' : '#EF4444' }]}>
-                        <AppIcon icon={purchased ? Unlock : Lock} size={14} color="#fff" strokeWidth={2.5} />
+                      <View style={[s.lockOverlay, { backgroundColor: accessible ? '#10B981' : '#EF4444' }]}>
+                        <AppIcon icon={accessible ? Unlock : Lock} size={14} color="#fff" strokeWidth={2.5} />
                       </View>
                     </View>
                     <Text style={{ fontSize: 17, fontWeight: '900', color: colors.text, marginTop: 12, textAlign: 'center' }}>
@@ -294,13 +244,13 @@ export default function LibraryScreen() {
                     </View>
                   ) : null}
 
-                  {/* ── ACHETÉ : bouton télécharger ── */}
-                  {purchased ? (
+                  {/* ── ACCESSIBLE : bouton télécharger ── */}
+                  {accessible ? (
                     <View style={{ gap: 10 }}>
                       <View style={[s.badge, { backgroundColor: '#10B98118', borderColor: '#10B98140' }]}>
                         <AppIcon icon={CheckCircle2} size={14} color="#10B981" strokeWidth={2.5} />
                         <Text style={{ color: '#10B981', fontWeight: '800', fontSize: 13 }}>
-                          {selectedBook.isFree ? 'Livre gratuit' : 'Livre acheté'}
+                          {selectedBook.isFree ? 'Livre gratuit' : 'Inclus dans votre abonnement'}
                         </Text>
                       </View>
                       <TouchableOpacity
@@ -332,38 +282,28 @@ export default function LibraryScreen() {
                       )}
                     </View>
                   ) : (
-                    /* ── NON ACHETÉ : payer via Paystack ── */
+                    /* ── ACCÈS RESTREINT : abonnement requis ── */
                     <View style={{ gap: 10 }}>
-                      {/* Prix */}
-                      <View style={[s.priceBox, { backgroundColor: colors.primary + '12', borderColor: colors.primary + '35' }]}>
-                        <Zap size={16} color={colors.primary} strokeWidth={2.5} />
-                        <Text style={{ fontSize: 18, fontWeight: '900', color: colors.primary }}>
-                          {selectedBook.price.toLocaleString('fr-FR')} FCFA
-                        </Text>
-                        <Text style={{ fontSize: 11, color: colors.textSecondary, flex: 1, textAlign: 'right' }}>
-                          Achat unique
+                      <View style={[s.priceBox, { backgroundColor: '#EF444412', borderColor: '#EF444435' }]}>
+                        <AppIcon icon={Lock} size={16} color="#EF4444" strokeWidth={2.5} />
+                        <Text style={{ fontSize: 14, fontWeight: '700', color: '#EF4444', flex: 1 }}>
+                          Abonnement requis pour accéder à ce livre
                         </Text>
                       </View>
 
                       <TouchableOpacity
                         style={[s.actionBtn, { backgroundColor: colors.primary }]}
-                        onPress={() => handleBuyBook(selectedBook)}
-                        disabled={paying}
+                        onPress={handleRequestAccess}
                         activeOpacity={0.85}
                       >
-                        {paying
-                          ? <ActivityIndicator color="#1A1A3E" />
-                          : <>
-                              <AppIcon icon={ShoppingCart} size={18} color="#1A1A3E" strokeWidth={2.5} />
-                              <Text style={[s.actionBtnTxt, { color: '#1A1A3E' }]}>
-                                Acheter ce livre — {selectedBook.price.toLocaleString('fr-FR')} FCFA
-                              </Text>
-                            </>
-                        }
+                        <AppIcon icon={Zap} size={18} color="#1A1A3E" strokeWidth={2.5} />
+                        <Text style={[s.actionBtnTxt, { color: '#1A1A3E' }]}>
+                          Voir les offres d'abonnement
+                        </Text>
                       </TouchableOpacity>
 
                       <Text style={{ fontSize: 11, color: colors.textTertiary, textAlign: 'center', lineHeight: 16 }}>
-                        🔒 Paiement sécurisé via Paystack · Accès permanent après achat
+                        Accès à toute la bibliothèque inclus dans l'abonnement
                       </Text>
                     </View>
                   )}
@@ -385,19 +325,19 @@ export default function LibraryScreen() {
           contentContainerStyle={{ padding: 12, gap: 12 }}
           columnWrapperStyle={{ gap: 12 }}
           renderItem={({ item: b }) => {
-            const purchased = isPurchased(b);
+            const accessible = isAccessible(b);
             return (
               <TouchableOpacity
-                style={[s.card, { backgroundColor: colors.surface, borderColor: purchased ? colors.primary + '50' : colors.border }]}
+                style={[s.card, { backgroundColor: colors.surface, borderColor: accessible ? colors.primary + '50' : colors.border }]}
                 onPress={() => { setPayError(''); setSelectedBook(b); }}
                 activeOpacity={0.85}
               >
                 <View style={s.coverWrap}>
                   <BookCover uri={b.coverUrl} title={b.title} />
-                  <View style={[s.lockBadge, { backgroundColor: purchased ? '#10B981CC' : 'rgba(0,0,0,0.75)' }]}>
-                    <AppIcon icon={purchased ? Unlock : Lock} size={10} color="#fff" strokeWidth={2.5} />
+                  <View style={[s.lockBadge, { backgroundColor: accessible ? '#10B981CC' : 'rgba(0,0,0,0.75)' }]}>
+                    <AppIcon icon={accessible ? Unlock : Lock} size={10} color="#fff" strokeWidth={2.5} />
                     <Text style={s.lockTxt}>
-                      {purchased ? (b.isFree ? 'Gratuit' : 'Acheté') : `${b.price.toLocaleString('fr-FR')} F`}
+                      {accessible ? (b.isFree ? 'Gratuit' : 'Inclus') : 'Abonnement'}
                     </Text>
                   </View>
                 </View>
@@ -405,15 +345,15 @@ export default function LibraryScreen() {
                 <Text style={[s.bookAuthor, { color: colors.textSecondary }]} numberOfLines={1}>{b.author}</Text>
                 <TouchableOpacity
                   style={[s.dlBtn, {
-                    backgroundColor: purchased ? colors.primary : colors.primary + '18',
-                    borderColor: purchased ? colors.primary : colors.primary + '35',
+                    backgroundColor: accessible ? colors.primary : colors.primary + '18',
+                    borderColor: accessible ? colors.primary : colors.primary + '35',
                   }]}
                   onPress={() => { setPayError(''); setSelectedBook(b); }}
                   activeOpacity={0.8}
                 >
-                  <AppIcon icon={purchased ? Download : ShoppingCart} size={12} color={purchased ? '#1A1A3E' : '#C9A84C'} strokeWidth={2.5} />
-                  <Text style={[s.dlTxt, { color: purchased ? '#1A1A3E' : '#C9A84C' }]}>
-                    {purchased ? 'Télécharger' : 'Acheter'}
+                  <AppIcon icon={accessible ? Download : Lock} size={12} color={accessible ? '#1A1A3E' : '#C9A84C'} strokeWidth={2.5} />
+                  <Text style={[s.dlTxt, { color: accessible ? '#1A1A3E' : '#C9A84C' }]}>
+                    {accessible ? 'Télécharger' : "S'abonner"}
                   </Text>
                 </TouchableOpacity>
               </TouchableOpacity>

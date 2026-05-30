@@ -44,9 +44,20 @@ export default function AppLayout() {
   // Rappels crédits bas + série quotidienne
   useEffect(() => {
     scheduleAppReminders();
-    // Vérifier toutes les heures
     const interval = setInterval(scheduleAppReminders, 60 * 60 * 1000);
     return () => clearInterval(interval);
+  }, []);
+
+  // Jouer le son de notification quand le SW signale une push reçue
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type === 'PLAY_NOTIFICATION_SOUND') {
+        playNotificationSound();
+      }
+    };
+    navigator.serviceWorker.addEventListener('message', handler);
+    return () => navigator.serviceWorker.removeEventListener('message', handler);
   }, []);
 
   return (
@@ -127,6 +138,32 @@ export default function AppLayout() {
  * Rappels automatiques : crédits bas, prière quotidienne, série.
  * Déclenché au démarrage et toutes les heures.
  */
+/** Joue le son de notification via l'API Web Audio (contourne les restrictions SW) */
+function playNotificationSound() {
+  try {
+    if (typeof window === 'undefined' || typeof AudioContext === 'undefined') return;
+    const ctx = new AudioContext();
+    // Deux bips courts : 880Hz puis 1100Hz
+    const beep = (freq: number, start: number, duration: number) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0, ctx.currentTime + start);
+      gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + start + 0.01);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + start + duration);
+      osc.start(ctx.currentTime + start);
+      osc.stop(ctx.currentTime + start + duration + 0.05);
+    };
+    beep(880,  0,    0.12);
+    beep(1100, 0.18, 0.18);
+    // Fermer le contexte après lecture
+    setTimeout(() => ctx.close().catch(() => {}), 600);
+  } catch { /* silencieux si AudioContext non disponible */ }
+}
+
 async function scheduleAppReminders() {
   if (typeof window === 'undefined') return;
   if (Notification.permission !== 'granted') return;
@@ -158,7 +195,7 @@ async function scheduleAppReminders() {
   }
 
   // ── Rappel crédits bas (< 100) ─────────────────────────────────────────────
-  const { useCreditsStore } = await import('../src/store/credits.store');
+  const { useCreditsStore } = await import('../../src/store/credits.store');
   const credits = useCreditsStore.getState().credits;
   const lastLowCredit = localStorage.getItem('@oracle/reminder_low_credits');
   if (credits > 0 && credits < 100 && lastLowCredit !== today) {
@@ -171,25 +208,27 @@ async function scheduleAppReminders() {
   }
 }
 
-/** Affiche une notification locale via le Service Worker */
+/** Affiche une notification locale via le Service Worker et joue le son */
 async function showLocalNotif(title: string, body: string, url: string) {
   try {
     if ('serviceWorker' in navigator) {
       const reg = await navigator.serviceWorker.ready;
       await reg.showNotification(title, {
         body,
-        icon:    '/icon-192.png',
-        badge:   '/favicon.png',
-        vibrate: [200, 100, 200],
-        silent:  false,
-        tag:     `oracle-reminder-${Date.now()}`,
+        icon:     '/icon-192.png',
+        badge:    '/favicon.png',
+        vibrate:  [200, 100, 200, 100, 400],
+        silent:   false,
+        tag:      `oracle-reminder-${Date.now()}`,
         renotify: true,
-        data:    { url },
+        data:     { url },
         actions: [
           { action: 'open',    title: 'Ouvrir' },
           { action: 'dismiss', title: 'Plus tard' },
         ],
       } as any);
+      // Jouer le son côté page (les SW ne peuvent pas jouer d'audio)
+      playNotificationSound();
     }
   } catch { /* silencieux */ }
 }

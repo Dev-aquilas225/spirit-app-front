@@ -147,7 +147,6 @@ export default function PaymentScreen() {
   const { initiatePayment, paymentError, clearPaymentError, loadSubscription } = useSubscription();
   const refreshUser    = useAuthStore((s) => s.refreshUser);
   const fetchBalance    = useCreditsStore((s) => s.fetchBalance);
-  const purchaseCredits = useCreditsStore((s) => s.purchase);
 
   const [step, setStep]         = useState<Step>('confirm');
   const [reference, setRef]     = useState<string | null>(null);
@@ -188,43 +187,44 @@ export default function PaymentScreen() {
     setStep('waiting');
     startedAt.current = Date.now();
 
+    const isCreditPack = ['starter', 'standard', 'premium'].includes(plan);
+
+    async function handleSuccess(ref: string) {
+      stopAll();
+      try { if (Platform.OS !== 'web') await WebBrowser.dismissBrowser(); } catch {}
+      if (isCreditPack) {
+        // Crédits : rafraîchir le solde uniquement, ne jamais activer l'abonnement
+        await Promise.all([fetchBalance(), refreshUser()]);
+      } else {
+        // Abonnement : recharger l'abonnement + solde
+        await Promise.all([loadSubscription(), refreshUser(), fetchBalance()]);
+      }
+      fbPurchase(plan, PLAN_AMOUNTS[plan] ?? 0);
+      setStep('vip');
+      setTimeout(() => router.replace(`/subscription/success?reference=${ref}&plan=${plan}` as any), VIP_DISPLAY_MS);
+    }
+
     pollRef.current = setInterval(async () => {
-      // Appeler verifyPayment() qui vérifie avec Paystack ET active le service
-      const verified = await PaymentService.verifyPayment(result.reference).catch(() => null);
+      let verified: { success: boolean } | null = null;
+
+      if (isCreditPack) {
+        // Crédits : utiliser la route dédiée qui ne touche PAS à l'abonnement
+        verified = await PaymentService.verifyCreditPayment(result.reference).catch(() => null);
+        // Si la route crédits échoue, NE PAS fallback sur verifyPayment (évite l'activation abonnement)
+      } else {
+        // Abonnement : route standard
+        verified = await PaymentService.verifyPayment(result.reference).catch(() => null);
+      }
 
       if (verified?.success) {
-        stopAll();
-        try { if (Platform.OS !== 'web') await WebBrowser.dismissBrowser(); } catch {}
-        const isCreditPack = ['starter','standard','premium'].includes(plan);
-        if (isCreditPack) {
-          // Pack crédits : créditer le compteur UNIQUEMENT — ne pas toucher à l'abonnement
-          await purchaseCredits(plan, result.reference);
-          await Promise.all([refreshUser(), fetchBalance()]);
-        } else {
-          // Abonnement : activer normalement
-          await Promise.all([loadSubscription(), refreshUser(), fetchBalance()]);
-        }
-        fbPurchase(plan, PLAN_AMOUNTS[plan] ?? 0);
-        setStep('vip');
-        setTimeout(() => router.replace(`/subscription/success?reference=${result.reference}&plan=${plan}` as any), VIP_DISPLAY_MS);
+        await handleSuccess(result.reference);
         return;
       }
 
-      // Fallback : vérifier le statut en DB si verifyPayment échoue
+      // Fallback statut DB (polling léger)
       const { status } = await PaymentService.getStatus(result.reference).catch(() => ({ status: 'pending' as const }));
       if (status === 'active' || status === 'success') {
-        stopAll();
-        try { if (Platform.OS !== 'web') await WebBrowser.dismissBrowser(); } catch {}
-        const isCreditPack = ['starter','standard','premium'].includes(plan);
-        if (isCreditPack) {
-          await purchaseCredits(plan, result.reference);
-          await Promise.all([refreshUser(), fetchBalance()]);
-        } else {
-          await Promise.all([loadSubscription(), refreshUser(), fetchBalance()]);
-        }
-        fbPurchase(plan, PLAN_AMOUNTS[plan] ?? 0);
-        setStep('vip');
-        setTimeout(() => router.replace(`/subscription/success?reference=${result.reference}&plan=${plan}` as any), VIP_DISPLAY_MS);
+        await handleSuccess(result.reference);
         return;
       }
 
@@ -260,27 +260,17 @@ export default function PaymentScreen() {
             const { reference: ref, status: st } = JSON.parse(stored);
             if (ref === result.reference && (st === 'success' || st === 'active')) {
               localStorage.removeItem('paystack_result');
-              stopAll();
-              await Promise.all([loadSubscription(), refreshUser(), fetchBalance()]);
-              setStep('vip');
-              setTimeout(() => router.replace(`/subscription/success?plan=${plan}` as any), VIP_DISPLAY_MS);
+              await handleSuccess(ref);
               return;
             }
           } catch {}
         }
-        // Sinon forcer un verify immédiat
-        const vr = await PaymentService.verifyPayment(result.reference).catch(() => null);
+        // Sinon forcer un verify immédiat selon le type
+        const vr = isCreditPack
+          ? await PaymentService.verifyCreditPayment(result.reference).catch(() => null)
+          : await PaymentService.verifyPayment(result.reference).catch(() => null);
         if (vr?.success) {
-          stopAll();
-          const isCreditPack2 = ['starter','standard','premium'].includes(plan);
-          if (isCreditPack2) {
-            await purchaseCredits(plan, result.reference);
-            await Promise.all([refreshUser(), fetchBalance()]);
-          } else {
-            await Promise.all([loadSubscription(), refreshUser(), fetchBalance()]);
-          }
-          setStep('vip');
-          setTimeout(() => router.replace(`/subscription/success?reference=${result.reference}&plan=${plan}` as any), VIP_DISPLAY_MS);
+          await handleSuccess(result.reference);
         }
       };
       document.addEventListener('visibilitychange', onVisible);

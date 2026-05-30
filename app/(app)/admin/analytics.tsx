@@ -9,35 +9,15 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import {
-  ArrowLeft, BarChart2, BookOpen, MessageCircle,
+  ArrowLeft, BarChart2,
   RefreshCw, Share2, TrendingUp, Users, Zap,
 } from 'lucide-react-native';
 import { AppIcon } from '../../../src/components/common/AppIcon';
 import { useTheme } from '../../../src/theme';
-import { http } from '../../../src/services/http.client';
 import { PaymentService } from '../../../src/services/payment.service';
 import { ViralShareService } from '../../../src/services/viral-share.service';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-interface AdminStats {
-  totalUsers: number;
-  activeSubscriptions: number;
-  totalCreditsDistributed: number;
-  totalConversations: number;
-  onlineNow?: number;
-  newUsersToday?: number;
-  newUsersThisWeek?: number;
-  newUsersThisMonth?: number;
-  totalRevenue?: number;
-  revenueThisMonth?: number;
-  revenueThisWeek?: number;
-  avgCreditsPerUser?: number;
-  totalBooksRead?: number;
-  totalDownloads?: number;
-  conversionRate?: number;
-  recentPayments?: RecentPayment[];
-}
 
 interface RecentPayment {
   id: string;
@@ -46,6 +26,8 @@ interface RecentPayment {
   amount: number;
   status: string;
   createdAt: string;
+  reference?: string;
+  paymentReference?: string;
 }
 
 interface ViralStats {
@@ -112,7 +94,6 @@ function ProgressBar({ label, value, max, color }: { label: string; value: numbe
 
 export default function AdminAnalyticsScreen() {
   const { colors } = useTheme();
-  const [stats, setStats] = useState<AdminStats | null>(null);
   const [viral, setViral] = useState<ViralStats | null>(null);
   const [subs, setSubs] = useState<any[]>([]);
   const [recentPayments, setRecentPayments] = useState<RecentPayment[]>([]);
@@ -123,29 +104,35 @@ export default function AdminAnalyticsScreen() {
     if (!silent) setLoading(true);
     else setRefreshing(true);
     try {
-      const [s, viralStats, subsData, recentPay] = await Promise.all([
-        // Stats globales — essayer plusieurs routes
-        http.get<AdminStats>('/admin/stats').catch(() =>
-          http.get<AdminStats>('/admin/dashboard').catch(() => null)
-        ),
+      const [viralStats, subsData] = await Promise.all([
         ViralShareService.adminGetStats().then(r => r ? ({
-          totalRequests:    (r.pending ?? 0) + (r.approved ?? 0) + (r.rejected ?? 0),
-          approvedRequests: r.approved ?? 0,
-          pendingRequests:  r.pending ?? 0,
+          totalRequests:       (r.pending ?? 0) + (r.approved ?? 0) + (r.rejected ?? 0),
+          approvedRequests:    r.approved ?? 0,
+          pendingRequests:     r.pending ?? 0,
           totalCreditsAwarded: r.totalCreditsAwarded ?? 0,
         }) : null).catch(() => null),
+        // Seule route admin confirmée : /subscriptions/admin/all
         PaymentService.adminGetAll().catch(() => []),
-        // Paiements récents — essayer plusieurs routes
-        http.get<RecentPayment[]>('/admin/payments/recent').catch(() =>
-          http.get<RecentPayment[]>('/admin/payments').catch(() =>
-            http.get<RecentPayment[]>('/subscriptions/admin/all').catch(() => [])
-          )
-        ),
       ]);
-      if (s) setStats(s as AdminStats);
+
       if (viralStats) setViral(viralStats as ViralStats);
-      setSubs(Array.isArray(subsData) ? subsData : []);
-      setRecentPayments(Array.isArray(recentPay) ? recentPay : []);
+
+      const allSubs = Array.isArray(subsData) ? subsData : [];
+      setSubs(allSubs);
+
+      // Normaliser les abonnements en RecentPayment pour la liste
+      const normalized: RecentPayment[] = allSubs.map((s: any) => ({
+        id:        s.id,
+        userEmail: s.user?.email ?? s.userEmail ?? undefined,
+        plan:      s.plan ?? 'unknown',
+        amount:    s.amount ?? 0,
+        status:    s.status ?? 'pending',
+        createdAt: s.createdAt ?? new Date().toISOString(),
+        reference: s.paymentReference ?? s.reference ?? undefined,
+      }));
+      // Trier par date décroissante
+      normalized.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setRecentPayments(normalized);
     } catch { /* silencieux */ }
     setLoading(false);
     setRefreshing(false);
@@ -153,15 +140,19 @@ export default function AdminAnalyticsScreen() {
 
   useEffect(() => { load(); }, []);
 
-  // Calculs dérivés
-  const totalUsers     = stats?.totalUsers ?? 0;
-  const activeSubs     = stats?.activeSubscriptions ?? 0;
-  const convRate       = totalUsers > 0 ? ((activeSubs / totalUsers) * 100).toFixed(1) : '0';
-  const revenueMonth   = stats?.revenueThisMonth ?? subs.filter(s => {
+  // Calculs dérivés depuis /subscriptions/admin/all (seule source disponible)
+  const now            = new Date();
+  const activeSubs     = subs.filter(s => s.status === 'active').length;
+  const totalSubs      = subs.length;
+  const revenueMonth   = subs.filter(s => {
     const d = new Date(s.createdAt ?? s.startDate ?? '');
-    return d.getMonth() === new Date().getMonth();
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   }).reduce((acc, s) => acc + (s.amount ?? 0), 0);
-  const revenueTotal   = stats?.totalRevenue ?? subs.reduce((acc, s) => acc + (s.amount ?? 0), 0);
+  const revenueTotal   = subs.reduce((acc, s) => acc + (s.amount ?? 0), 0);
+  const revenueWeek    = subs.filter(s => {
+    const d = new Date(s.createdAt ?? s.startDate ?? '');
+    return (now.getTime() - d.getTime()) < 7 * 24 * 3600 * 1000;
+  }).reduce((acc, s) => acc + (s.amount ?? 0), 0);
 
   // Répartition plans
   const planCounts: Record<string, number> = {};
@@ -197,100 +188,67 @@ export default function AdminAnalyticsScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* ── Section 1 : Utilisateurs ── */}
-      <SectionTitle title="Utilisateurs" icon={Users} color="#60A5FA" />
+      {/* ── Section 1 : Abonnements ── */}
+      <SectionTitle title="Abonnements" icon={Users} color="#60A5FA" />
       <View style={st.kpiGrid}>
-        <KpiCard label="Total inscrits"     value={totalUsers}                          color="#60A5FA" icon={Users}      />
-        <KpiCard label="En ligne"           value={stats?.onlineNow ?? '—'}             color="#34D399" icon={TrendingUp} />
-        <KpiCard label="Nouveaux aujourd'hui" value={stats?.newUsersToday ?? '—'}       color="#A78BFA" icon={Users}      />
-        <KpiCard label="Ce mois"            value={stats?.newUsersThisMonth ?? '—'}     color="#F472B6" icon={TrendingUp} />
+        <KpiCard label="Total abonnements"  value={totalSubs}                           color="#60A5FA" icon={Users}      />
+        <KpiCard label="Actifs"             value={activeSubs}                          color="#34D399" icon={TrendingUp} />
+        <KpiCard label="Cette semaine"      value={subs.filter(s => (now.getTime() - new Date(s.createdAt ?? '').getTime()) < 7*24*3600*1000).length} color="#A78BFA" icon={Users} />
+        <KpiCard label="Ce mois"            value={subs.filter(s => { const d = new Date(s.createdAt ?? ''); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); }).length} color="#F472B6" icon={TrendingUp} />
       </View>
 
-      {/* ── Section 2 : Revenus & Abonnements ── */}
-      <SectionTitle title="Revenus & Abonnements" icon={TrendingUp} color="#34D399" />
+      {/* ── Section 2 : Revenus ── */}
+      <SectionTitle title="Revenus" icon={TrendingUp} color="#34D399" />
       <View style={st.kpiGrid}>
-        <KpiCard label="Abonnés actifs"     value={activeSubs}                          color="#34D399" icon={Zap}        sub={`${convRate}% conversion`} />
-        <KpiCard label="Revenu ce mois"     value={`${revenueMonth.toLocaleString('fr-FR')} FCFA`} color="#C9A84C" icon={TrendingUp} />
-        <KpiCard label="Revenu total"       value={`${revenueTotal.toLocaleString('fr-FR')} FCFA`} color="#C9A84C" icon={BarChart2}  />
-        <KpiCard label="Crédits distribués" value={stats?.totalCreditsDistributed ?? 0} color="#F59E0B" icon={Zap}        />
+        <KpiCard label="Revenu total"       value={`${revenueTotal.toLocaleString('fr-FR')} F`}  color="#C9A84C" icon={BarChart2}  />
+        <KpiCard label="Ce mois"            value={`${revenueMonth.toLocaleString('fr-FR')} F`}  color="#34D399" icon={TrendingUp} />
+        <KpiCard label="Cette semaine"      value={`${revenueWeek.toLocaleString('fr-FR')} F`}   color="#A78BFA" icon={TrendingUp} />
+        <KpiCard label="Moy. par abonnement" value={totalSubs > 0 ? `${Math.round(revenueTotal / totalSubs).toLocaleString('fr-FR')} F` : '—'} color="#F59E0B" icon={Zap} />
       </View>
 
-      {/* Répartition plans */}
+
+
+      {/* ── Section 3 : Répartition plans ── */}
       {Object.keys(planCounts).length > 0 && (
         <View style={[st.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Text style={{ fontSize: 13, fontWeight: '800', color: colors.text, marginBottom: 14 }}>
             Répartition des plans
           </Text>
           <View style={{ gap: 12 }}>
-            {Object.entries(planCounts).map(([plan, count]) => (
-              <ProgressBar
-                key={plan}
-                label={plan}
-                value={count}
-                max={activeSubs || 1}
-                color="#34D399"
-              />
+            {Object.entries(planCounts).sort((a, b) => b[1] - a[1]).map(([plan, count]) => (
+              <ProgressBar key={plan} label={plan} value={count} max={totalSubs || 1} color="#34D399" />
             ))}
           </View>
         </View>
       )}
 
-      {/* ── Section 3 : Usage IA ── */}
-      <SectionTitle title="Usage IA" icon={MessageCircle} color="#A78BFA" />
-      <View style={st.kpiGrid}>
-        <KpiCard label="Conversations"      value={stats?.totalConversations ?? 0}      color="#A78BFA" icon={MessageCircle} />
-        <KpiCard label="Moy. crédits/user"  value={stats?.avgCreditsPerUser ?? '—'}     color="#818CF8" icon={Zap}           />
-      </View>
-
-      {/* ── Section 4 : Bibliothèque ── */}
-      <SectionTitle title="Bibliothèque" icon={BookOpen} color="#60A5FA" />
-      <View style={st.kpiGrid}>
-        <KpiCard label="Livres lus"         value={stats?.totalBooksRead ?? '—'}        color="#60A5FA" icon={BookOpen}   />
-        <KpiCard label="Téléchargements"    value={stats?.totalDownloads ?? '—'}        color="#34D399" icon={BookOpen}   />
-      </View>
-
-      {/* ── Section 5 : Viralité ── */}
-      <SectionTitle title="Viralité & Partages" icon={Share2} color="#25D366" />
-      <View style={st.kpiGrid}>
-        <KpiCard label="Demandes totales"   value={viral?.totalRequests ?? '—'}         color="#25D366" icon={Share2}     />
-        <KpiCard label="Approuvées"         value={viral?.approvedRequests ?? '—'}      color="#34D399" icon={Share2}     />
-        <KpiCard label="En attente"         value={viral?.pendingRequests ?? '—'}       color="#F59E0B" icon={Share2}     />
-        <KpiCard label="Crédits viraux"     value={viral?.totalCreditsAwarded ?? '—'}   color="#C9A84C" icon={Zap}        />
-      </View>
-
-      {/* ── Section 6 : Taux de conversion ── */}
-      <SectionTitle title="Conversion" icon={BarChart2} color="#F472B6" />
-      <View style={[st.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <View style={{ gap: 14 }}>
-          <ProgressBar
-            label="Inscrits → Abonnés"
-            value={activeSubs}
-            max={totalUsers || 1}
-            color="#34D399"
-          />
-          {viral && (
+      {/* ── Section 4 : Viralité ── */}
+      {viral && (
+        <>
+          <SectionTitle title="Viralité & Partages" icon={Share2} color="#25D366" />
+          <View style={st.kpiGrid}>
+            <KpiCard label="Demandes totales"   value={viral.totalRequests}         color="#25D366" icon={Share2} />
+            <KpiCard label="Approuvées"         value={viral.approvedRequests}      color="#34D399" icon={Share2} />
+            <KpiCard label="En attente"         value={viral.pendingRequests}       color="#F59E0B" icon={Share2} />
+            <KpiCard label="Crédits viraux"     value={viral.totalCreditsAwarded}   color="#C9A84C" icon={Zap}   />
+          </View>
+          <View style={[st.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <ProgressBar
               label="Partages → Approuvés"
               value={viral.approvedRequests}
               max={viral.totalRequests || 1}
               color="#25D366"
             />
-          )}
-          <ProgressBar
-            label="Utilisateurs actifs (conversations)"
-            value={stats?.totalConversations ?? 0}
-            max={(totalUsers || 1) * 3}
-            color="#A78BFA"
-          />
-        </View>
-      </View>
+          </View>
+        </>
+      )}
 
       {/* ── Section 7 : Paiements récents ── */}
       <SectionTitle title="Paiements récents" icon={TrendingUp} color="#C9A84C" />
       {recentPayments.length === 0 ? (
         <View style={[st.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Text style={{ color: colors.textTertiary, textAlign: 'center', fontSize: 13 }}>
-            Aucun paiement récent — vérifiez la route /admin/payments/recent
+            Aucun abonnement enregistré pour le moment.
           </Text>
         </View>
       ) : (
@@ -324,24 +282,20 @@ export default function AdminAnalyticsScreen() {
                     {p.status}
                   </Text>
                 </View>
-                {/* Bouton révoquer */}
-                {(p.status === 'success' || p.status === 'active') && (
+                {/* Bouton activer (pour les abonnements en attente) */}
+                {(p.status === 'pending') && p.id && (
                   <TouchableOpacity
-                    style={[st.revokeBtn]}
+                    style={[st.activateBtn]}
                     onPress={async () => {
-                      if (!p.id && !p.reference) return;
                       try {
-                        await http.post('/admin/payments/revoke', { paymentId: p.id, reference: p.reference }).catch(() =>
-                          http.delete(`/admin/payments/${p.id ?? p.reference}`)
-                        );
-                        // Rafraîchir
+                        await PaymentService.adminActivate(p.id);
                         load(true);
                       } catch {
-                        alert('Impossible de révoquer ce paiement');
+                        alert('Impossible d\'activer cet abonnement');
                       }
                     }}
                   >
-                    <Text style={{ fontSize: 10, fontWeight: '700', color: '#EF4444' }}>Révoquer</Text>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: '#10B981' }}>Activer</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -375,5 +329,5 @@ const st = StyleSheet.create({
   barFill:     { height: '100%', borderRadius: 4 },
   payRow:      { flexDirection: 'row', alignItems: 'flex-start', paddingBottom: 10, borderBottomWidth: 0.5 },
   statusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  revokeBtn:   { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: '#EF444440', backgroundColor: '#EF444412' },
+  activateBtn: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: '#10B98140', backgroundColor: '#10B98112' },
 });
