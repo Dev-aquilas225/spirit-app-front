@@ -201,14 +201,20 @@ export default function LibraryScreen() {
   };
 
   // ── Télécharger ─────────────────────────────────────────────────────────────
+  const [showIOSTip, setShowIOSTip] = useState(false);
+
   const handleDownload = async (b: Book) => {
     setDownloading(true);
+    setShowIOSTip(false);
     const err = await downloadBook(b.id, b.title);
     setDownloading(false);
     if (err) {
       setPayError(err);
     } else if (Platform.OS === 'web') {
       setSelectedBook(null);
+    } else if (Platform.OS === 'ios') {
+      // Sur iOS, afficher les instructions pour sauvegarder dans Fichiers
+      setShowIOSTip(true);
     }
   };
 
@@ -311,6 +317,19 @@ export default function LibraryScreen() {
                             </>
                         }
                       </TouchableOpacity>
+
+                      {/* Tip iOS — visible après téléchargement */}
+                      {showIOSTip && Platform.OS === 'ios' && (
+                        <View style={[s.iosTip, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                          <Text style={{ fontSize: 18, textAlign: 'center' }}>📤</Text>
+                          <Text style={{ color: colors.text, fontSize: 12, fontWeight: '700', textAlign: 'center' }}>
+                            Pour sauvegarder sur iPhone :
+                          </Text>
+                          <Text style={{ color: colors.textSecondary, fontSize: 11, textAlign: 'center', lineHeight: 17 }}>
+                            Dans le navigateur → icône <Text style={{ fontWeight: '800' }}>Partager ↑</Text> → <Text style={{ fontWeight: '800' }}>"Enregistrer dans Fichiers"</Text>
+                          </Text>
+                        </View>
+                      )}
                     </View>
                   ) : (
                     /* ── NON ACHETÉ : payer via Paystack ── */
@@ -439,4 +458,5 @@ const s = StyleSheet.create({
   actionBtn:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, borderRadius: 14, paddingVertical: 15 },
   actionBtnTxt:{ fontSize: 15, fontWeight: '800' },
   errorBox:    { borderRadius: 10, borderWidth: 1, padding: 10, marginBottom: 4 },
+  iosTip:      { borderRadius: 12, borderWidth: 1, padding: 12, gap: 6, marginTop: 4 },
 });

@@ -261,6 +261,15 @@ export function PWAInstallBanner() {
                 </View>
               </View>
 
+              {/* Avantages après installation */}
+              <View style={styles.iosBenefits}>
+                <Text style={styles.iosBenefitsTitle}>✅ Après installation :</Text>
+                <Text style={styles.iosBenefitItem}>🔔 Notifications push (iOS 16.4+)</Text>
+                <Text style={styles.iosBenefitItem}>📥 Téléchargement PDF facilité</Text>
+                <Text style={styles.iosBenefitItem}>⚡ Accès rapide depuis l'écran d'accueil</Text>
+                <Text style={styles.iosBenefitItem}>🌐 Fonctionne hors connexion</Text>
+              </View>
+
               {/* Indicateur flèche bas (barre Safari est en bas sur iOS) */}
               <View style={styles.arrowHint}>
                 <ArrowUp
@@ -501,6 +510,26 @@ const styles = StyleSheet.create({
   bold: {
     fontWeight: "700",
     color: "#C9A84C",
+  },
+  iosBenefits: {
+    backgroundColor: 'rgba(201,168,76,0.08)',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(201,168,76,0.2)',
+    padding: 12,
+    gap: 6,
+    marginTop: 4,
+  },
+  iosBenefitsTitle: {
+    color: '#C9A84C',
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  iosBenefitItem: {
+    color: 'rgba(255,255,255,0.75)',
+    fontSize: 12,
+    lineHeight: 18,
   },
   arrowHint: {
     flexDirection: "row",
