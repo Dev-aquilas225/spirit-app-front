@@ -41,7 +41,7 @@ export default function LibraryReader() {
   async function startDownload() {
     setLoading(true); setError('');
     try {
-      // 1. Vérifier l'accès
+      // 1. Vérifier l'accès via le backend
       const { data, error: bookErr } = await LibraryService.getOne(id!);
       if (bookErr || !data) {
         setError('Livre introuvable. Vérifiez votre connexion.');
@@ -52,8 +52,8 @@ export default function LibraryReader() {
         setLoading(false); return;
       }
 
-      // 2. Enregistrer le téléchargement + récupérer l'URL
-      const { fileUrl } = await LibraryService.download(id!);
+      // 2. Utiliser fileUrl du livre (retournée par le backend) ou construire l'URL
+      const fileUrl = data.fileUrl ?? LibraryService.getFileUrl(id!);
 
       if (Platform.OS !== 'web') {
         // ── Natif : ouvrir dans WebBrowser ──────────────────────────────────

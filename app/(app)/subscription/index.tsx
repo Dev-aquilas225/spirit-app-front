@@ -20,6 +20,7 @@ import { useTheme } from '../../../src/theme';
 import { useAccess } from '../../../src/hooks/useAccess';
 import { useSubscription } from '../../../src/hooks/useSubscription';
 import { useCreditsStore, CREDIT_PACKS } from '../../../src/store/credits.store';
+import { useAuthStore } from '../../../src/store/auth.store';
 import { SUBSCRIPTION_PLANS, SubscriptionPlan } from '../../../src/services/payment.service';
 import { http } from '../../../src/services/http.client';
 import { formatDate } from '../../../src/utils/helpers';
@@ -280,12 +281,17 @@ function SubscriptionsTab() {
 export default function BoutiqueScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
-  // Lire le paramètre ?tab= pour ouvrir directement l'onglet crédits ou abonnements
   const { tab: tabParam } = useLocalSearchParams<{ tab?: string }>();
   const [tab, setTab] = useState<Tab>(tabParam === 'credits' ? 'credits' : 'subscriptions');
+  const fetchBalance = useCreditsStore((s) => s.fetchBalance);
+  const { loadSubscription } = useSubscription();
+  const refreshUser = useAuthStore((s) => s.refreshUser);
 
-  // Pixel : ViewContent à l'ouverture de la boutique
-  useEffect(() => { fbViewContent('boutique_oracle_plus'); }, []);
+  // Rafraîchir le solde et l'abonnement à chaque ouverture de la boutique
+  useEffect(() => {
+    Promise.all([fetchBalance(), loadSubscription(), refreshUser()]).catch(() => {});
+    fbViewContent('boutique_oracle_plus');
+  }, []);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>

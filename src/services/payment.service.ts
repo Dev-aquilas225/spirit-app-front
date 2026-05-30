@@ -132,12 +132,6 @@ export const PaymentService = {
   },
 
   async getPaymentHistory(): Promise<PaymentRecord[]> {
-    // Fetch subscription payments and credit purchases in parallel, merge by date desc
-    const [subRaw, creditRaw] = await Promise.allSettled([
-      http.get<any>('/subscriptions/me/history'),
-      http.get<any>('/credits/history'),
-    ]);
-
     function normalizeItems(raw: any, defaultDesc: (item: any) => string): PaymentRecord[] {
       const arr: any[] = Array.isArray(raw)
         ? raw
@@ -159,46 +153,57 @@ export const PaymentService = {
       }));
     }
 
+    // /subscriptions/me/history retourne TOUS les paiements (abonnements + crédits)
+    // /credits/history n'existe pas (404) — ne pas l'appeler
+    const [subRaw, bookRaw] = await Promise.allSettled([
+      http.get<any>('/subscriptions/me/history'),
+      http.get<any>('/library/purchases'),
+    ]);
+
     const subItems = subRaw.status === 'fulfilled'
-      ? normalizeItems(subRaw.value, (i) => i.plan ? `Abonnement ${i.plan}` : 'Abonnement Oracle Plus')
+      ? normalizeItems(subRaw.value, (i) => {
+          const CREDIT_PACKS = ['starter', 'standard', 'premium'];
+          if (CREDIT_PACKS.includes(i.plan ?? '')) {
+            return `Recharge crédits — ${i.plan}`;
+          }
+          return i.plan ? `Abonnement ${i.plan}` : 'Abonnement Oracle Plus';
+        })
       : [];
 
-    const creditItems = creditRaw.status === 'fulfilled'
-      ? normalizeItems(creditRaw.value, (i) => i.packId ? `Recharge crédits — ${i.packId}` : 'Achat de crédits')
+    const bookItems = bookRaw.status === 'fulfilled'
+      ? normalizeItems(bookRaw.value, (i) => i.title ? `Livre — ${i.title}` : 'Achat de livre')
       : [];
 
-    // Achats de livres
-    let bookItems: PaymentRecord[] = [];
-    try {
-      const bookRaw = await http.get<any>('/library/purchases');
-      bookItems = normalizeItems(bookRaw, (i) => i.title ? `Livre — ${i.title}` : 'Achat de livre');
-    } catch {}
-
-    // Merge and sort by date descending
-    return [...subItems, ...creditItems, ...bookItems].sort(
+    return [...subItems, ...bookItems].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
   },
 
   /**
-   * Initier un paiement Paystack.
-   * Retourne l'URL de paiement vers laquelle rediriger l'utilisateur.
+   * Initier un paiement Paystack (abonnement ou pack crédits).
+   * Le backend utilise /subscriptions/initiate pour les deux types.
+   * La distinction crédits/abonnement se fait via le champ `plan`.
    */
   async initiate(plan: string, autoRenew = false): Promise<{ data?: InitiateResult; error?: string }> {
-    // Plans abonnement : 'weekly_plus' | 'monthly' | 'yearly'
-    // Plans crédits    : 'starter' (500 cr) | 'standard' (2000 cr) | 'premium' (5000 cr)
-    // Le backend distingue les deux types via le champ 'plan' et crédite en conséquence.
+    const CREDIT_PACKS = ['starter', 'standard', 'premium'];
+    const isCreditPack = CREDIT_PACKS.includes(plan);
+
     try {
-      const result = await http.post<any>('/subscriptions/initiate', { plan, autoRenew });
-      // Backend retourne paymentUrl, frontend attend authorization_url
+      const result = await http.post<any>('/subscriptions/initiate', {
+        plan,
+        autoRenew: isCreditPack ? false : autoRenew,
+        // Indiquer explicitement le type pour que le backend puisse distinguer
+        ...(isCreditPack ? { type: 'credits', packId: plan } : {}),
+      });
+
       const normalized: InitiateResult = {
-        reference: result.reference ?? '',
-        authorization_url: result.authorization_url ?? result.paymentUrl ?? '',
-        subscriptionId: result.subscriptionId ?? '',
-        access_code: result.access_code ?? '',
-        amount: result.amount ?? 0,
-        currency: result.currency ?? 'FCFA',
-        plan: result.plan ?? 'monthly',
+        reference:         result.reference ?? '',
+        authorization_url: result.authorization_url ?? result.paymentUrl ?? result.checkoutUrl ?? '',
+        subscriptionId:    result.subscriptionId ?? '',
+        access_code:       result.access_code ?? '',
+        amount:            result.amount ?? 0,
+        currency:          result.currency ?? 'FCFA',
+        plan:              result.plan ?? plan,
       };
       return { data: normalized };
     } catch (e) {
@@ -207,7 +212,24 @@ export const PaymentService = {
   },
 
   /**
-   * Vérifier le paiement après retour de la page Paystack.
+   * Vérifier un paiement de pack crédits via /subscriptions/verify/{ref}.
+   * NE PAS appeler loadSubscription() après — juste rafraîchir le solde crédits.
+   */
+  async verifyCreditPayment(reference: string): Promise<{ success: boolean; credits?: number; error?: string }> {
+    try {
+      const data = await http.get<any>(`/subscriptions/verify/${reference}`);
+      // Le backend confirme le paiement ; on extrait le solde crédits si disponible
+      return {
+        success: true,
+        credits: data?.credits ?? data?.balance ?? data?.subscription?.credits,
+      };
+    } catch (e) {
+      return { success: false, error: (e as ApiError).message };
+    }
+  },
+
+  /**
+   * Vérifier le paiement d'un abonnement après retour de Paystack.
    */
   async verifyPayment(reference: string): Promise<{ success: boolean; subscription?: Subscription; error?: string }> {
     try {

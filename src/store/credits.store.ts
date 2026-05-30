@@ -23,7 +23,8 @@ async function sendLowCreditsNotification() {
           body,
           sound: true,
           data: { url: '/subscription' },
-          ...(Platform.OS === 'android' ? { priority: 'high', vibrate: [0, 250, 250, 250] } : {}),
+          priority: Notifs.AndroidNotificationPriority?.HIGH,
+          ...(Platform.OS === 'android' ? { channelId: 'oracle-default' } : {}),
         },
         trigger: null,
       });
@@ -105,12 +106,7 @@ export const useCreditsStore = create<CreditsState>((set, get) => ({
 
   fetchBalance: async () => {
     try {
-      // Essayer plusieurs routes selon la version du backend
-      let res: any = null;
-      try { res = await http.get<any>('/credits/me'); } catch {}
-      if (!res?.credits && res?.credits !== 0) {
-        try { res = await http.get<any>('/credits'); } catch {}
-      }
+      const res = await http.get<any>('/credits/me');
       if (res?.credits !== undefined) {
         set({ credits: res.credits, adsAvailable: res.adsAvailable ?? res.adsRemaining ?? 3 });
         await StorageService.set(CREDITS_KEY, res.credits);
@@ -126,12 +122,7 @@ export const useCreditsStore = create<CreditsState>((set, get) => ({
     set({ credits: optimistic });
     await StorageService.set(CREDITS_KEY, optimistic);
     try {
-      // Essayer plusieurs routes selon la version du backend
-      let res: any = null;
-      try { res = await http.post<{ credits: number }>('/credits/deduct', { amount: cost, action }); } catch {}
-      if (!res) {
-        try { res = await http.post<{ credits: number }>('/credits/spend', { amount: cost, description: action }); } catch {}
-      }
+      const res = await http.post<{ credits: number }>('/credits/deduct', { amount: cost, action });
       if (res?.credits !== undefined) {
         set({ credits: res.credits });
         await StorageService.set(CREDITS_KEY, res.credits);
@@ -147,11 +138,7 @@ export const useCreditsStore = create<CreditsState>((set, get) => ({
     set({ credits: optimistic });
     await StorageService.set(CREDITS_KEY, optimistic);
     try {
-      let res: any = null;
-      try { res = await http.post<{ credits: number }>('/credits/deduct', { amount: wordCount, action: 'word_generation' }); } catch {}
-      if (!res) {
-        try { res = await http.post<{ credits: number }>('/credits/spend', { amount: wordCount, description: 'word_generation' }); } catch {}
-      }
+      const res = await http.post<{ credits: number }>('/credits/deduct', { amount: wordCount, action: 'word_generation' });
       if (res?.credits !== undefined) {
         set({ credits: res.credits });
         await StorageService.set(CREDITS_KEY, res.credits);
@@ -163,18 +150,14 @@ export const useCreditsStore = create<CreditsState>((set, get) => ({
 
   adReward: async () => {
     try {
-      let res: any = null;
-      try { res = await http.post<{ credits: number }>('/credits/ad-reward', {}); } catch {}
-      if (!res) {
-        try { res = await http.post<{ credits: number }>('/credits/add', { amount: 100 }); } catch {}
-      }
+      const res = await http.post<{ credits: number; adsRemaining?: number }>('/credits/add', { amount: 100 });
       if (res?.credits !== undefined) {
         set({ credits: res.credits, adsAvailable: res.adsRemaining ?? Math.max(0, get().adsAvailable - 1) });
         await StorageService.set(CREDITS_KEY, res.credits);
         return;
       }
     } catch {}
-    // Fallback local
+    // Fallback local si le backend ne répond pas
     const next = get().credits + 100;
     const ads = Math.max(0, get().adsAvailable - 1);
     set({ credits: next, adsAvailable: ads });
@@ -182,13 +165,15 @@ export const useCreditsStore = create<CreditsState>((set, get) => ({
   },
 
   purchase: async (packId, reference) => {
-    // 1. Notifier le backend — essayer plusieurs clés selon la version
+    // Le backend confirme le paiement via /subscriptions/verify/{ref}
+    // (même route pour abonnements et crédits — le backend distingue via le plan)
+    // On ne fait que resynchroniser le solde après confirmation.
     try {
-      await http.post('/credits/purchase', { pack: packId, packId, reference });
+      await http.get<any>(`/subscriptions/verify/${reference}`);
     } catch {
-      try { await http.post(`/subscriptions/verify/${reference}`, {}); } catch {}
+      // Ignorer l'erreur : le polling dans payment.tsx a déjà vérifié
     }
-    // 2. Resynchroniser le solde depuis le backend (source de vérité)
+    // Resynchroniser le solde depuis le backend (source de vérité)
     await get().fetchBalance();
   },
 
