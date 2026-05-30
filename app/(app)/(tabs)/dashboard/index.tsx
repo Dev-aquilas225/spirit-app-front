@@ -15,7 +15,7 @@ import { LoginModal } from '../../../../src/components/auth/LoginModal';
 import { DailyChallenge } from '../../../../src/components/gamification/DailyChallenge';
 import { NotifBlockedBanner } from '../../../../src/components/common/NotifBlockedBanner';
 import { useForceNotifications } from '../../../../src/hooks/useForceNotifications';
-import { getTodayMessage, getTodayPrayer } from '../../../../src/data/messages.data';
+import { getTodayMessage } from '../../../../src/data/messages.data';
 import { useAuth } from '../../../../src/hooks/useAuth';
 import { useAccess } from '../../../../src/hooks/useAccess';
 import { useAuthStore } from '../../../../src/store/auth.store';
@@ -65,12 +65,11 @@ function XPBar() {
 
 function DailyThought() {
   const msg = getTodayMessage();
-  const prayer = getTodayPrayer();
   const { colors } = useTheme();
   if (!msg) return null;
   return (
-    <View style={{ gap: 10, marginTop: 4 }}>
-      {/* Parole du jour */}
+    <View style={{ marginTop: 4 }}>
+      {/* Parole du jour — seule section conservée */}
       <View style={{ backgroundColor: colors.primaryPale, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.primary + '25' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 }}>
           <AppIcon icon={Sparkles} size={12} color={colors.primary} strokeWidth={2.5} />
@@ -79,20 +78,6 @@ function DailyThought() {
         <Text style={{ fontSize: 14, color: colors.text, lineHeight: 22, fontStyle: 'italic' }} numberOfLines={4}>"{msg.content}"</Text>
         {msg.verse && <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '600', marginTop: 10, letterSpacing: 0.3 }}>— {msg.verse}</Text>}
       </View>
-      {/* Prière du jour */}
-      <TouchableOpacity
-        style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.border }}
-        onPress={() => router.push('/(app)/(tabs)/serie' as any)}
-        activeOpacity={0.85}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-          <AppIcon icon={Heart} size={12} color='#F472B6' strokeWidth={2.5} />
-          <Text style={{ fontSize: 9, fontWeight: '800', color: '#F472B6', letterSpacing: 2, textTransform: 'uppercase' }}>PRIÈRE DU JOUR</Text>
-        </View>
-        <Text style={{ fontSize: 12, fontWeight: '800', color: colors.text, marginBottom: 6 }}>{prayer.title}</Text>
-        <Text style={{ fontSize: 13, color: colors.text, lineHeight: 21 }} numberOfLines={3}>{prayer.intro}</Text>
-        <Text style={{ color: colors.textSecondary, fontSize: 11, fontWeight: '600', marginTop: 8, fontStyle: 'italic' }}>"{prayer.verse}" — {prayer.verseRef}</Text>
-      </TouchableOpacity>
     </View>
   );
 }
