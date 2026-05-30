@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet } from 'react-native';
 import type { LucideIcon } from 'lucide-react-native';
-import { CircleCheck, CircleX, CreditCard, Crown, Hourglass, Zap } from 'lucide-react-native';
+import { BookOpen, CircleCheck, CircleX, CreditCard, Crown, Hourglass, Zap } from 'lucide-react-native';
 import { useTheme } from '../../../src/theme';
 import { useI18n } from '../../../src/i18n';
 import { useSubscription } from '../../../src/hooks/useSubscription';
@@ -50,9 +50,10 @@ export default function PaymentHistoryScreen() {
           renderItem={({ item }: { item: PaymentRecord }) => {
             const status = statusConfig[item.status];
             const isCredit = /cr.dit|recharge|starter|standard|premium/i.test(item.description);
-            const typeIcon = isCredit ? Zap : Crown;
-            const typeLabel = isCredit ? 'Crédits' : 'Abonnement';
-            const typeColor = isCredit ? '#F59E0B' : colors.primary;
+            const isBook   = /livre|book/i.test(item.description);
+            const typeIcon  = isBook ? BookOpen : isCredit ? Zap : Crown;
+            const typeLabel = isBook ? 'Livre' : isCredit ? 'Crédits' : 'Abonnement';
+            const typeColor = isBook ? '#60A5FA' : isCredit ? '#F59E0B' : colors.primary;
             return (
               <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <View style={styles.topRow}>

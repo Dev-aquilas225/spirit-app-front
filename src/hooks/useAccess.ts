@@ -17,8 +17,9 @@ export function useAccess() {
   const canAfford = useCreditsStore((s) => s.canAfford);
 
   const isAdmin = user?.role === 'admin';
-  // subscriber role OR active subscription from store
-  const hasSubscription = isAdmin || user?.role === 'subscriber' || isSubActive;
+  // Source de vérité : isSubActive du store (vérifie status === 'active' ET date d'expiration)
+  // Le role 'subscriber' seul ne suffit pas — il peut rester après expiration ou être mis par erreur
+  const hasSubscription = isAdmin || isSubActive;
 
   /**
    * Returns true if the user can perform the action.

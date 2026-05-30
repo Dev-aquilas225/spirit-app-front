@@ -195,13 +195,15 @@ export default function PaymentScreen() {
       if (verified?.success) {
         stopAll();
         try { if (Platform.OS !== 'web') await WebBrowser.dismissBrowser(); } catch {}
-        // Pour les packs crédits : créditer explicitement via /credits/purchase
         const isCreditPack = ['starter','standard','premium'].includes(plan);
         if (isCreditPack) {
+          // Pack crédits : créditer le compteur UNIQUEMENT — ne pas toucher à l'abonnement
           await purchaseCredits(plan, result.reference);
+          await Promise.all([refreshUser(), fetchBalance()]);
+        } else {
+          // Abonnement : activer normalement
+          await Promise.all([loadSubscription(), refreshUser(), fetchBalance()]);
         }
-        await Promise.all([loadSubscription(), refreshUser(), fetchBalance()]);
-        // Pixel : Purchase confirmé
         fbPurchase(plan, PLAN_AMOUNTS[plan] ?? 0);
         setStep('vip');
         setTimeout(() => router.replace(`/subscription/success?reference=${result.reference}&plan=${plan}` as any), VIP_DISPLAY_MS);
@@ -216,9 +218,10 @@ export default function PaymentScreen() {
         const isCreditPack = ['starter','standard','premium'].includes(plan);
         if (isCreditPack) {
           await purchaseCredits(plan, result.reference);
+          await Promise.all([refreshUser(), fetchBalance()]);
+        } else {
+          await Promise.all([loadSubscription(), refreshUser(), fetchBalance()]);
         }
-        await Promise.all([loadSubscription(), refreshUser(), fetchBalance()]);
-        // Pixel : Purchase confirmé (fallback)
         fbPurchase(plan, PLAN_AMOUNTS[plan] ?? 0);
         setStep('vip');
         setTimeout(() => router.replace(`/subscription/success?reference=${result.reference}&plan=${plan}` as any), VIP_DISPLAY_MS);
@@ -270,8 +273,12 @@ export default function PaymentScreen() {
         if (vr?.success) {
           stopAll();
           const isCreditPack2 = ['starter','standard','premium'].includes(plan);
-          if (isCreditPack2) await purchaseCredits(plan, result.reference);
-          await Promise.all([loadSubscription(), refreshUser(), fetchBalance()]);
+          if (isCreditPack2) {
+            await purchaseCredits(plan, result.reference);
+            await Promise.all([refreshUser(), fetchBalance()]);
+          } else {
+            await Promise.all([loadSubscription(), refreshUser(), fetchBalance()]);
+          }
           setStep('vip');
           setTimeout(() => router.replace(`/subscription/success?reference=${result.reference}&plan=${plan}` as any), VIP_DISPLAY_MS);
         }

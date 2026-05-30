@@ -35,13 +35,19 @@ export default function AppLayout() {
   }, []);
 
   useEffect(() => {
-    if (!isActive) return;
-    
-    // Déclenchement automatique chaque jour si l'abonnement expire dans ≤ 7 jours
-    if (daysUntilExpiry > 0 && daysUntilExpiry <= 7) {
+    // Rappel expiration abonnement (≤ 7 jours)
+    if (isActive && daysUntilExpiry > 0 && daysUntilExpiry <= 7) {
       schedulePwaNotification(daysUntilExpiry);
     }
   }, [isActive, daysUntilExpiry]);
+
+  // Rappels crédits bas + série quotidienne
+  useEffect(() => {
+    scheduleAppReminders();
+    // Vérifier toutes les heures
+    const interval = setInterval(scheduleAppReminders, 60 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <Stack screenOptions={{
@@ -90,6 +96,7 @@ export default function AppLayout() {
       <Stack.Screen name="formations/reader/[id]" />
       <Stack.Screen name="formations/admin" />
       <Stack.Screen name="library/reader" />
+      <Stack.Screen name="library/callback" />
       <Stack.Screen name="books/admin" />
 
       {/* Compte & Paramètres */}
@@ -114,6 +121,77 @@ export default function AppLayout() {
       <Stack.Screen name="serie/prayer" />
     </Stack>
   );
+}
+
+/**
+ * Rappels automatiques : crédits bas, prière quotidienne, série.
+ * Déclenché au démarrage et toutes les heures.
+ */
+async function scheduleAppReminders() {
+  if (typeof window === 'undefined') return;
+  if (Notification.permission !== 'granted') return;
+
+  const now   = new Date();
+  const hour  = now.getHours();
+  const today = now.toDateString();
+
+  // ── Rappel prière du matin (6h–7h) ────────────────────────────────────────
+  const lastMorning = localStorage.getItem('@oracle/reminder_morning');
+  if (hour >= 6 && hour < 7 && lastMorning !== today) {
+    localStorage.setItem('@oracle/reminder_morning', today);
+    await showLocalNotif(
+      '🌅 Prière du matin',
+      'Commencez votre journée avec Oracle Plus — votre prière quotidienne vous attend.',
+      '/serie',
+    );
+  }
+
+  // ── Rappel prière du soir (18h–19h) ───────────────────────────────────────
+  const lastEvening = localStorage.getItem('@oracle/reminder_evening');
+  if (hour >= 18 && hour < 19 && lastEvening !== today) {
+    localStorage.setItem('@oracle/reminder_evening', today);
+    await showLocalNotif(
+      '🌙 Prière du soir',
+      'Terminez votre journée dans la paix — votre prière du soir est prête.',
+      '/serie',
+    );
+  }
+
+  // ── Rappel crédits bas (< 100) ─────────────────────────────────────────────
+  const { useCreditsStore } = await import('../src/store/credits.store');
+  const credits = useCreditsStore.getState().credits;
+  const lastLowCredit = localStorage.getItem('@oracle/reminder_low_credits');
+  if (credits > 0 && credits < 100 && lastLowCredit !== today) {
+    localStorage.setItem('@oracle/reminder_low_credits', today);
+    await showLocalNotif(
+      '⚡ Crédits presque épuisés',
+      `Il vous reste ${credits} crédits. Rechargez pour continuer à consulter le Prophète.`,
+      '/subscription?tab=credits',
+    );
+  }
+}
+
+/** Affiche une notification locale via le Service Worker */
+async function showLocalNotif(title: string, body: string, url: string) {
+  try {
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.ready;
+      await reg.showNotification(title, {
+        body,
+        icon:    '/icon-192.png',
+        badge:   '/favicon.png',
+        vibrate: [200, 100, 200],
+        silent:  false,
+        tag:     `oracle-reminder-${Date.now()}`,
+        renotify: true,
+        data:    { url },
+        actions: [
+          { action: 'open',    title: 'Ouvrir' },
+          { action: 'dismiss', title: 'Plus tard' },
+        ],
+      } as any);
+    }
+  } catch { /* silencieux */ }
 }
 
 /**
