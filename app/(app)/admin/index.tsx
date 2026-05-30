@@ -8,7 +8,14 @@ import { useTheme } from '../../../src/theme';
 import { http } from '../../../src/services/http.client';
 import { Env } from '../../../src/utils/env';
 
-interface Stats { totalUsers: number; activeSubscriptions: number; totalCreditsDistributed: number; totalConversations: number; }
+interface Stats {
+  totalUsers: number;
+  activeSubscriptions: number;
+  totalCreditsDistributed: number;
+  totalConversations: number;
+  onlineNow?: number;
+  recentEmails?: string[];
+}
 
 const SECTIONS = [
   { id: 'users',    label: 'Utilisateurs',   icon: Users,          color: '#60A5FA', route: '/admin/users' },
@@ -25,12 +32,34 @@ export default function AdminHome() {
   const { user } = useAuth();
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [recentUsers, setRecentUsers] = useState<{ email: string; createdAt: string }[]>([]);
+  const [showEmails, setShowEmails] = useState(false);
+
+  async function loadStats() {
+    try {
+      const [s, users] = await Promise.all([
+        http.get<Stats>('/admin/stats'),
+        http.get<{ email: string; createdAt: string }[]>('/admin/users').catch(() => []),
+      ]);
+      setStats(s as any);
+      // Trier par date d'inscription décroissante
+      const sorted = (Array.isArray(users) ? users : [])
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setRecentUsers(sorted);
+    } catch {
+      // silencieux
+    }
+    setLoading(false);
+  }
 
   useEffect(() => {
     if (!user) { router.replace('/dashboard'); return; }
     const isAdmin = user.role === 'admin' || Env.ADMIN_EMAILS().includes((user.email ?? '').toLowerCase());
     if (!isAdmin) { router.replace('/dashboard'); return; }
-    http.get<Stats>('/admin/stats').then(d => { setStats(d as any); setLoading(false); }).catch(() => setLoading(false));
+    loadStats();
+    // Rafraîchir les stats toutes les 30s (connectés en temps réel)
+    const interval = setInterval(loadStats, 30_000);
+    return () => clearInterval(interval);
   }, [user]);
 
   return (
@@ -44,19 +73,50 @@ export default function AdminHome() {
       </View>
 
       {loading ? <ActivityIndicator color="#C9A84C" /> : stats && (
-        <View style={s.statsGrid}>
-          {[
-            { label: 'Utilisateurs', value: stats.totalUsers, color: '#60A5FA' },
-            { label: 'Abonnements', value: stats.activeSubscriptions, color: '#34D399' },
-            { label: 'Crédits distribués', value: stats.totalCreditsDistributed, color: '#C9A84C' },
-            { label: 'Conversations', value: stats.totalConversations, color: '#A78BFA' },
-          ].map(st => (
-            <View key={st.label} style={[s.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Text style={[s.statVal, { color: st.color }]}>{st.value?.toLocaleString() ?? '—'}</Text>
-              <Text style={[s.statLbl, { color: colors.textSecondary }]}>{st.label}</Text>
+        <>
+          <View style={s.statsGrid}>
+            {[
+              { label: 'Inscrits', value: stats.totalUsers ?? recentUsers.length, color: '#60A5FA' },
+              { label: 'Abonnés actifs', value: stats.activeSubscriptions, color: '#34D399' },
+              { label: 'En ligne', value: stats.onlineNow ?? '—', color: '#F472B6' },
+              { label: 'Conversations', value: stats.totalConversations, color: '#A78BFA' },
+            ].map(st => (
+              <View key={st.label} style={[s.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <Text style={[s.statVal, { color: st.color }]}>{typeof st.value === 'number' ? st.value.toLocaleString() : st.value}</Text>
+                <Text style={[s.statLbl, { color: colors.textSecondary }]}>{st.label}</Text>
+              </View>
+            ))}
+          </View>
+
+          {/* Liste emails inscrits */}
+          <TouchableOpacity
+            style={[s.emailsToggle, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            onPress={() => setShowEmails(v => !v)}
+            activeOpacity={0.8}
+          >
+            <Text style={[s.emailsToggleTxt, { color: colors.text }]}>
+              {recentUsers.length} emails inscrits {showEmails ? '▲' : '▼'}
+            </Text>
+          </TouchableOpacity>
+
+          {showEmails && (
+            <View style={[s.emailsList, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              {recentUsers.slice(0, 50).map((u, i) => (
+                <View key={i} style={[s.emailRow, { borderBottomColor: colors.border }]}>
+                  <Text style={{ fontSize: 12, color: colors.text, flex: 1 }}>{u.email}</Text>
+                  <Text style={{ fontSize: 10, color: colors.textTertiary }}>
+                    {new Date(u.createdAt).toLocaleDateString('fr-FR')}
+                  </Text>
+                </View>
+              ))}
+              {recentUsers.length > 50 && (
+                <Text style={{ fontSize: 11, color: colors.textTertiary, textAlign: 'center', padding: 8 }}>
+                  + {recentUsers.length - 50} autres — voir Utilisateurs
+                </Text>
+              )}
             </View>
-          ))}
-        </View>
+          )}
+        </>
       )}
 
       <View style={s.grid}>
@@ -84,5 +144,9 @@ const s = StyleSheet.create({
   grid:{ gap:12 },
   card:{ flexDirection:'row', alignItems:'center', gap:14, borderRadius:16, borderWidth:1, padding:16 },
   cardIcon:{ width:46, height:46, borderRadius:13, alignItems:'center', justifyContent:'center' },
-  cardLabel:{ flex:1, fontSize:15, fontWeight:'700' },
+  cardLabel:     { flex:1, fontSize:15, fontWeight:'700' },
+  emailsToggle:  { borderRadius:12, borderWidth:1, padding:14, alignItems:'center' },
+  emailsToggleTxt:{ fontSize:13, fontWeight:'700' },
+  emailsList:    { borderRadius:12, borderWidth:1, overflow:'hidden' },
+  emailRow:      { flexDirection:'row', alignItems:'center', paddingHorizontal:14, paddingVertical:10, borderBottomWidth:0.5 },
 });
