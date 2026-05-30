@@ -57,7 +57,10 @@ export default function LibraryReader() {
 
       if (Platform.OS !== 'web') {
         // ── Natif : ouvrir dans WebBrowser ──────────────────────────────────
-        await WebBrowser.openBrowserAsync(fileUrl);
+        await WebBrowser.openBrowserAsync(fileUrl, {
+          presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
+          toolbarColor: '#1A1A3E',
+        });
         setDone(true);
         setLoading(false);
         return;
@@ -167,8 +170,23 @@ export default function LibraryReader() {
           <Text style={{ color: colors.textSecondary, textAlign: 'center', lineHeight: 22 }}>
             {Platform.OS === 'web'
               ? 'Le fichier PDF a été téléchargé dans votre dossier Téléchargements.'
-              : 'Le livre s\'est ouvert dans votre navigateur.'}
+              : Platform.OS === 'ios'
+                ? 'Le livre s\'est ouvert dans le navigateur. Pour le sauvegarder : appuyez sur l\'icône Partager ↑ puis "Enregistrer dans Fichiers".'
+                : 'Le livre s\'est ouvert dans le navigateur. Appuyez sur ⋮ puis "Télécharger" pour le sauvegarder.'}
           </Text>
+          {Platform.OS === 'ios' && (
+            <View style={[s.iosTip, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Text style={{ fontSize: 22, textAlign: 'center' }}>📤</Text>
+              <Text style={{ color: colors.text, fontSize: 13, fontWeight: '700', textAlign: 'center' }}>
+                Comment sauvegarder sur iPhone
+              </Text>
+              <Text style={{ color: colors.textSecondary, fontSize: 12, textAlign: 'center', lineHeight: 18 }}>
+                1. Dans le navigateur ouvert, appuyez sur l'icône <Text style={{ fontWeight: '800' }}>Partager ↑</Text>{'\n'}
+                2. Faites défiler et appuyez sur <Text style={{ fontWeight: '800' }}>"Enregistrer dans Fichiers"</Text>{'\n'}
+                3. Choisissez un dossier et appuyez sur <Text style={{ fontWeight: '800' }}>Enregistrer</Text>
+              </Text>
+            </View>
+          )}
           <TouchableOpacity
             onPress={startDownload}
             style={[s.actionBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}
@@ -202,6 +220,7 @@ const s = StyleSheet.create({
   center:      { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 28, gap: 14 },
   heading:     { fontSize: 20, fontWeight: '800', textAlign: 'center' },
   successIcon: { width: 88, height: 88, borderRadius: 44, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  iosTip:      { width: '100%', borderRadius: 14, borderWidth: 1, padding: 16, gap: 8, marginTop: 8 },
   actionBtn:   {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingHorizontal: 28, paddingVertical: 14,
