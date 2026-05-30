@@ -18,11 +18,12 @@ interface Stats {
 }
 
 const SECTIONS = [
-  { id: 'users',    label: 'Utilisateurs',   icon: Users,          color: '#60A5FA', route: '/admin/users' },
+  { id: 'analytics',label: 'Analytics',       icon: BarChart2,      color: '#F472B6', route: '/admin/analytics' },
+  { id: 'users',    label: 'Utilisateurs',    icon: Users,          color: '#60A5FA', route: '/admin/users' },
   { id: 'credits',  label: 'Crédits',         icon: Zap,            color: '#C9A84C', route: '/admin/credits' },
   { id: 'books',    label: 'Bibliothèque',    icon: BookOpen,       color: '#34D399', route: '/admin/books' },
-  { id: 'ai',       label: 'Paramètres Guides', icon: MessageCircle,  color: '#A78BFA', route: '/admin/ai-settings' },
-  { id: 'viral',    label: 'Partages Viraux',  icon: Share2,         color: '#25D366', route: '/admin/viral-shares' },
+  { id: 'ai',       label: 'Paramètres Guides', icon: MessageCircle, color: '#A78BFA', route: '/admin/ai-settings' },
+  { id: 'viral',    label: 'Partages Viraux', icon: Share2,         color: '#25D366', route: '/admin/viral-shares' },
   { id: 'notifs',   label: 'Notifications',   icon: Bell,           color: '#F472B6', route: '/admin/notifications' },
   { id: 'settings', label: 'Paramètres',      icon: Settings,       color: '#9CA3AF', route: '/settings' },
 ] as const;

@@ -102,6 +102,7 @@ export default function AppLayout() {
 
       {/* Admin */}
       <Stack.Screen name="admin/index" />
+      <Stack.Screen name="admin/analytics" />
       <Stack.Screen name="admin/users" />
       <Stack.Screen name="admin/ai-settings" />
       <Stack.Screen name="admin/books" />
