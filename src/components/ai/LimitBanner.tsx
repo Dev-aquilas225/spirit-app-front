@@ -27,7 +27,7 @@ export function LimitBanner({ remaining, limitReached }: LimitBannerProps) {
           </Text>
         </View>
         <TouchableOpacity
-          onPress={() => router.push('/subscription')}
+          onPress={() => router.push('/subscription?tab=credits' as any)}
           style={[styles.btn, { backgroundColor: '#C9A84C' }]}
         >
           <Text style={styles.btnText}>{t.common.premium}</Text>

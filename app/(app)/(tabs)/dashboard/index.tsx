@@ -204,7 +204,7 @@ export default function DashboardScreen() {
                 <Text style={[s.statTxt, { color: colors.primary }]}>Abonnement actif</Text>
               </View>
             ) : (
-              <TouchableOpacity style={s.statItem} onPress={() => router.push('/subscription' as any)}>
+              <TouchableOpacity style={s.statItem} onPress={() => router.push('/subscription?tab=credits' as any)}>
                 <AppIcon icon={Zap} size={13} color={colors.primary} strokeWidth={2.2} />
                 <Text style={[s.statTxt, { color: colors.primary }]}>{credits.toLocaleString()} crédits</Text>
               </TouchableOpacity>

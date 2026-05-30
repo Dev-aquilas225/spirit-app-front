@@ -8,7 +8,7 @@ import {
   Linking, Platform, ScrollView, StyleSheet,
   Text, TouchableOpacity, View, ActivityIndicator,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import {
   Calendar, Check, Clock, Crown, Infinity,
   ShoppingBag, Sparkles, Star, Zap,
@@ -271,8 +271,9 @@ function SubscriptionsTab() {
 export default function BoutiqueScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
-  const [tab, setTab] = useState<Tab>('subscriptions');
-  // L'onglet crédits redirige vers abonnements — les abonnements sont la priorité
+  // Lire le paramètre ?tab= pour ouvrir directement l'onglet crédits ou abonnements
+  const { tab: tabParam } = useLocalSearchParams<{ tab?: string }>();
+  const [tab, setTab] = useState<Tab>(tabParam === 'credits' ? 'credits' : 'subscriptions');
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -290,7 +291,7 @@ export default function BoutiqueScreen() {
       <View style={{ paddingHorizontal: 20, paddingTop: 16 }}>
         <TabBar active={tab} onChange={setTab} />
       </View>
-      {tab === 'credits' ? <SubscriptionsTab /> : <SubscriptionsTab />}
+      {tab === 'credits' ? <CreditsTab /> : <SubscriptionsTab />}
     </View>
   );
 }

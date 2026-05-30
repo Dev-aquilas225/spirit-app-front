@@ -42,7 +42,7 @@ export function NoCreditsBanner({ action }: Props) {
           </TouchableOpacity>
           <TouchableOpacity
             style={[s.btn, s.btnGold]}
-            onPress={() => router.push('/subscription')}
+            onPress={() => router.push('/subscription?tab=credits' as any)}
             activeOpacity={0.8}
           >
             <AppIcon icon={Crown} size={13} color="#0B1628" strokeWidth={2.5} />
