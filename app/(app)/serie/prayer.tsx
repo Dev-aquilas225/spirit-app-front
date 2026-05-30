@@ -18,6 +18,7 @@ export default function SeriePrayerScreen() {
   const insets = useSafeAreaInsets();
   const { day, index } = useLocalSearchParams<{ day: string; index: string }>();
 
+  // L'index passé en paramètre est déjà calculé avec l'offset du jour dans serie/index.tsx
   const prayerIndex = parseInt(index ?? '0', 10) % DAILY_PRAYERS_FR.length;
   const prayer = DAILY_PRAYERS_FR[prayerIndex];
   const dayNum = parseInt(day ?? '1', 10);

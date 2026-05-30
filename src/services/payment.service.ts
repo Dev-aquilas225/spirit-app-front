@@ -132,29 +132,45 @@ export const PaymentService = {
   },
 
   async getPaymentHistory(): Promise<PaymentRecord[]> {
-    try {
-      const raw = await http.get<any>('/subscriptions/me/history');
-      // Le backend peut retourner un tableau direct, ou { data: [...] }, ou { payments: [...] }
-      const result: Partial<PaymentRecord>[] = Array.isArray(raw)
+    // Fetch subscription payments and credit purchases in parallel, merge by date desc
+    const [subRaw, creditRaw] = await Promise.allSettled([
+      http.get<any>('/subscriptions/me/history'),
+      http.get<any>('/credits/history'),
+    ]);
+
+    function normalizeItems(raw: any, defaultDesc: (item: any) => string): PaymentRecord[] {
+      const arr: any[] = Array.isArray(raw)
         ? raw
         : Array.isArray(raw?.data) ? raw.data
         : Array.isArray(raw?.payments) ? raw.payments
+        : Array.isArray(raw?.transactions) ? raw.transactions
         : [];
-      return result.map((item: any) => ({
+      return arr.map((item: any) => ({
         id: item.id ?? `${item.reference ?? 'payment'}-${item.createdAt ?? Date.now()}`,
         userId: item.userId ?? '',
         amount: item.amount ?? 0,
-        currency: 'FCFA',
+        currency: 'FCFA' as const,
         method: (item.method as PaymentMethod) ?? 'card',
         status: (item.status === 'success' || item.status === 'failed' || item.status === 'pending')
           ? item.status : 'pending',
         reference: item.reference ?? item.paymentReference ?? '',
         createdAt: item.createdAt ?? item.updatedAt ?? new Date().toISOString(),
-        description: item.description ?? (item.plan ? `Abonnement ${item.plan}` : 'Paiement Oracle Plus'),
+        description: item.description ?? defaultDesc(item),
       }));
-    } catch {
-      return [];
     }
+
+    const subItems = subRaw.status === 'fulfilled'
+      ? normalizeItems(subRaw.value, (i) => i.plan ? `Abonnement ${i.plan}` : 'Abonnement Oracle Plus')
+      : [];
+
+    const creditItems = creditRaw.status === 'fulfilled'
+      ? normalizeItems(creditRaw.value, (i) => i.packId ? `Recharge crédits — ${i.packId}` : 'Achat de crédits')
+      : [];
+
+    // Merge and sort by date descending
+    return [...subItems, ...creditItems].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
   },
 
   /**

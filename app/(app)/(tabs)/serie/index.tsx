@@ -15,11 +15,23 @@ import { useTheme } from '../../../../src/theme';
 import { useAccess } from '../../../../src/hooks/useAccess';
 import { DAILY_PRAYERS_FR } from '../../../../src/data/messages.data';
 
-// Calcule le jour courant dans le programme (1-based, cycle sur 21)
+// Jour courant dans le programme (1-based, cycle sur 21)
 function getProgramDay(): number {
   const start = new Date('2024-01-01').getTime();
   const diff = Math.floor((Date.now() - start) / 86400000);
   return (diff % 21) + 1;
+}
+
+// Offset quotidien : change chaque jour calendaire → le contenu de chaque slot varie
+// Structure fixe (21 jours), contenu rotatif (12 prières × offset)
+function getDailyOffset(): number {
+  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+  return dayOfYear;
+}
+
+// Retourne l'index de prière pour un slot donné, en tenant compte de l'offset du jour
+function getPrayerIndex(slotIndex: number, totalPrayers: number): number {
+  return (slotIndex + getDailyOffset()) % totalPrayers;
 }
 
 const PROGRAM_DAYS = 21;
@@ -30,12 +42,14 @@ function DayCard({
   isToday,
   isUnlocked,
   index,
+  prayerIndex,
 }: {
   day: number;
   prayer: (typeof DAILY_PRAYERS_FR)[number];
   isToday: boolean;
   isUnlocked: boolean;
   index: number;
+  prayerIndex: number;
 }) {
   const { colors } = useTheme();
   const anim = useRef(new Animated.Value(0)).current;
@@ -58,7 +72,7 @@ function DayCard({
     }
     router.push({
       pathname: '/(app)/serie/prayer',
-      params: { day: String(day), index: String(index) },
+      params: { day: String(day), index: String(prayerIndex) },
     } as any);
   };
 
@@ -233,7 +247,8 @@ export default function SerieScreen() {
         {/* Liste des 21 jours */}
         {Array.from({ length: PROGRAM_DAYS }, (_, i) => {
           const day = i + 1;
-          const prayerIndex = i % DAILY_PRAYERS_FR.length;
+          // Contenu rotatif : change chaque jour calendaire, structure 21 jours fixe
+          const prayerIndex = getPrayerIndex(i, DAILY_PRAYERS_FR.length);
           const prayer = DAILY_PRAYERS_FR[prayerIndex];
           const isToday = day === today;
           const isUnlocked = hasSubscription || day <= FREE_DAYS;
@@ -245,6 +260,7 @@ export default function SerieScreen() {
               isToday={isToday}
               isUnlocked={isUnlocked}
               index={i}
+              prayerIndex={prayerIndex}
             />
           );
         })}

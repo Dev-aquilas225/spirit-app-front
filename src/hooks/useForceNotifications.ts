@@ -17,11 +17,12 @@ import { Env } from '../utils/env';
 const ASKED_KEY   = '@spirit/push_asked_v2';
 const BLOCKED_KEY = '@spirit/push_blocked';
 
-/** Vérifie si les notifications sont actuellement bloquées */
+/** Vérifie si les notifications ne sont pas actives (refusées ou jamais demandées) */
 async function checkBlocked(): Promise<boolean> {
   if (Platform.OS === 'web') {
     if (typeof window === 'undefined' || !('Notification' in window)) return false;
-    return Notification.permission === 'denied';
+    // Afficher la bannière si non accordées (denied ou default)
+    return Notification.permission !== 'granted';
   }
   try {
     const Notifs = await import('expo-notifications');

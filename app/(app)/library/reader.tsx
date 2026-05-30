@@ -1,118 +1,186 @@
 /**
- * Lecteur PDF — Oracle Plus
- * 1. Récupère les métadonnées du livre (fileUrl)
- * 2. Web : charge le PDF via http.getRaw → PdfViewer, fallback lien direct
- * 3. Natif : ouvre dans WebBrowser
- * 4. Accès vérifié (abonnement ou crédits)
+ * Lecteur / Téléchargeur PDF — Oracle Plus
+ *
+ * Flux :
+ *  1. Vérifie l'accès (abonnement ou crédits)
+ *  2. Appelle POST /library/{id}/download pour enregistrer le téléchargement
+ *  3. Web  : fetch avec JWT → blob → <a download> (téléchargement natif)
+ *  4. Natif: WebBrowser.openBrowserAsync avec l'URL signée retournée
+ *
+ * Le reader ne tente plus d'ouvrir l'URL brute dans le navigateur
+ * (ce qui causait le 404 car le JWT n'était pas transmis).
  */
-import { ArrowLeft, BookOpen, ExternalLink } from 'lucide-react-native';
+import { ArrowLeft, BookOpen, Download, ExternalLink } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Linking, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator, Platform, StyleSheet, Text,
+  TouchableOpacity, View,
+} from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { AppIcon } from '../../../src/components/common/AppIcon';
 import { useTheme } from '../../../src/theme';
-import { http } from '../../../src/services/http.client';
 import { LibraryService } from '../../../src/services/library.service';
 import { useAccess } from '../../../src/hooks/useAccess';
-
-let PdfViewer: React.ComponentType<{ pdfData: ArrayBuffer }> | null = null;
-if (Platform.OS === 'web') {
-  try { PdfViewer = require('../../../src/components/pdf/PdfViewer').PdfViewer; } catch {}
-}
+import { StorageService } from '../../../src/services/storage.service';
+import { STORAGE_KEYS } from '../../../src/utils/constants';
 
 export default function LibraryReader() {
   const { id, title } = useLocalSearchParams<{ id: string; title: string }>();
   const { colors } = useTheme();
-  const { hasSubscription, credits } = useAccess();
-  const [pdfData, setPdfData] = useState<ArrayBuffer | null>(null);
-  const [fileUrl, setFileUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const { hasSubscription } = useAccess();
+  const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState('');
+  const [done, setDone]         = useState(false);
 
   useEffect(() => {
     if (!id) { setError('Identifiant du livre manquant.'); setLoading(false); return; }
-    load();
+    startDownload();
   }, [id]);
 
-  async function load() {
+  async function startDownload() {
     setLoading(true); setError('');
     try {
+      // 1. Vérifier l'accès
       const { data, error: bookErr } = await LibraryService.getOne(id!);
-      if (bookErr || !data) { setError('Livre introuvable. Vérifiez votre connexion.'); setLoading(false); return; }
+      if (bookErr || !data) {
+        setError('Livre introuvable. Vérifiez votre connexion.');
+        setLoading(false); return;
+      }
       if (!hasSubscription && !data.canRead && !data.isFree) {
-        setError('Crédits insuffisants pour accéder à ce livre.'); setLoading(false); return;
+        setError('credits');
+        setLoading(false); return;
       }
-      const url = data.fileUrl ?? LibraryService.getFileUrl(id!);
-      setFileUrl(url);
+
+      // 2. Enregistrer le téléchargement + récupérer l'URL
+      const { fileUrl } = await LibraryService.download(id!);
+
       if (Platform.OS !== 'web') {
-        await WebBrowser.openBrowserAsync(url);
-        router.back(); return;
+        // ── Natif : ouvrir dans WebBrowser ──────────────────────────────────
+        await WebBrowser.openBrowserAsync(fileUrl);
+        setDone(true);
+        setLoading(false);
+        return;
       }
-      try {
-        const buf = await http.getRaw(`/library/${id}/file`);
-        setPdfData(buf);
-      } catch { /* fileUrl déjà défini — fallback lien direct */ }
-    } catch { setError('Impossible de charger ce document. Réessayez.'); }
+
+      // ── Web : fetch avec JWT → blob → <a download> ──────────────────────
+      const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch(fileUrl, { headers });
+      if (!res.ok) throw new Error(`Erreur serveur ${res.status} — le fichier est introuvable.`);
+
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `${(title ?? 'livre').replace(/[^a-z0-9]/gi, '_')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+
+      setDone(true);
+    } catch (e: any) {
+      setError(e?.message ?? 'Impossible de télécharger ce document. Réessayez.');
+    }
     setLoading(false);
   }
 
-  const openExternal = () => {
-    if (!fileUrl) return;
-    if (Platform.OS === 'web') window.open(fileUrl, '_blank');
-    else Linking.openURL(fileUrl);
-  };
-
   return (
     <View style={[s.container, { backgroundColor: colors.background }]}>
+      {/* Header */}
       <View style={[s.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => router.back()} style={s.btn}>
           <AppIcon icon={ArrowLeft} size={22} color={colors.text} strokeWidth={2.2} />
         </TouchableOpacity>
-        <Text style={[s.title, { color: colors.text }]} numberOfLines={1}>{title || 'Lecture'}</Text>
-        {fileUrl && (
-          <TouchableOpacity onPress={openExternal} style={s.btn}>
-            <AppIcon icon={ExternalLink} size={18} color={colors.primary} strokeWidth={2} />
-          </TouchableOpacity>
-        )}
+        <Text style={[s.title, { color: colors.text }]} numberOfLines={1}>
+          {title || 'Téléchargement'}
+        </Text>
       </View>
 
+      {/* Chargement */}
       {loading && (
         <View style={s.center}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={{ color: colors.textSecondary, marginTop: 12 }}>Chargement…</Text>
+          <Text style={{ color: colors.textSecondary, marginTop: 12, textAlign: 'center' }}>
+            Préparation du téléchargement…
+          </Text>
         </View>
       )}
 
-      {!loading && error !== '' && (
+      {/* Erreur crédits */}
+      {!loading && error === 'credits' && (
         <View style={s.center}>
-          <AppIcon icon={BookOpen} size={48} color={colors.textTertiary} strokeWidth={1.5} />
-          <Text style={{ color: colors.textSecondary, marginTop: 16, textAlign: 'center', lineHeight: 22 }}>{error}</Text>
-          {error.includes('Crédits') && (
-            <TouchableOpacity onPress={() => { router.back(); router.push('/subscription?tab=credits' as any); }}
-              style={[s.actionBtn, { backgroundColor: colors.primary }]}>
-              <Text style={{ color: '#fff', fontWeight: '800' }}>Acheter des crédits</Text>
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity onPress={() => router.back()}
-            style={[s.actionBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}>
+          <AppIcon icon={BookOpen} size={52} color={colors.textTertiary} strokeWidth={1.5} />
+          <Text style={[s.heading, { color: colors.text }]}>Accès requis</Text>
+          <Text style={{ color: colors.textSecondary, textAlign: 'center', lineHeight: 22 }}>
+            Vous avez besoin d'un abonnement actif ou de crédits suffisants pour télécharger ce livre.
+          </Text>
+          <TouchableOpacity
+            onPress={() => { router.back(); router.push('/subscription?tab=credits' as any); }}
+            style={[s.actionBtn, { backgroundColor: colors.primary }]}
+          >
+            <Text style={{ color: '#fff', fontWeight: '800' }}>Acheter des crédits</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => { router.back(); router.push('/subscription' as any); }}
+            style={[s.actionBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}
+          >
+            <Text style={{ color: colors.text, fontWeight: '700' }}>Voir les abonnements</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Erreur générique */}
+      {!loading && error !== '' && error !== 'credits' && (
+        <View style={s.center}>
+          <AppIcon icon={BookOpen} size={52} color={colors.textTertiary} strokeWidth={1.5} />
+          <Text style={[s.heading, { color: colors.text }]}>Téléchargement échoué</Text>
+          <Text style={{ color: colors.textSecondary, textAlign: 'center', lineHeight: 22 }}>
+            {error}
+          </Text>
+          <TouchableOpacity
+            onPress={startDownload}
+            style={[s.actionBtn, { backgroundColor: colors.primary }]}
+          >
+            <AppIcon icon={Download} size={16} color="#fff" strokeWidth={2.5} />
+            <Text style={{ color: '#fff', fontWeight: '800' }}>Réessayer</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={[s.actionBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}
+          >
             <Text style={{ color: colors.text, fontWeight: '700' }}>Retour</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      {!loading && !error && pdfData && PdfViewer && <PdfViewer pdfData={pdfData} />}
-
-      {!loading && !error && !pdfData && fileUrl && (
+      {/* Succès */}
+      {!loading && !error && done && (
         <View style={s.center}>
-          <AppIcon icon={BookOpen} size={48} color={colors.primary} strokeWidth={1.5} />
-          <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16, marginTop: 16 }}>{title}</Text>
-          <Text style={{ color: colors.textSecondary, marginTop: 8, textAlign: 'center' }}>
-            Appuyez pour ouvrir le document PDF.
+          <View style={[s.successIcon, { backgroundColor: colors.primary + '18' }]}>
+            <AppIcon icon={Download} size={40} color={colors.primary} strokeWidth={1.8} />
+          </View>
+          <Text style={[s.heading, { color: colors.text }]}>Téléchargement lancé !</Text>
+          <Text style={{ color: colors.textSecondary, textAlign: 'center', lineHeight: 22 }}>
+            {Platform.OS === 'web'
+              ? 'Le fichier PDF a été téléchargé dans votre dossier Téléchargements.'
+              : 'Le livre s\'est ouvert dans votre navigateur.'}
           </Text>
-          <TouchableOpacity onPress={openExternal} style={[s.actionBtn, { backgroundColor: colors.primary }]}>
-            <AppIcon icon={ExternalLink} size={16} color="#fff" strokeWidth={2.5} />
-            <Text style={{ color: '#fff', fontWeight: '800' }}>Ouvrir le PDF</Text>
+          <TouchableOpacity
+            onPress={startDownload}
+            style={[s.actionBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}
+          >
+            <AppIcon icon={Download} size={15} color={colors.primary} strokeWidth={2.5} />
+            <Text style={{ color: colors.primary, fontWeight: '700' }}>Télécharger à nouveau</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={[s.actionBtn, { backgroundColor: colors.primary }]}
+          >
+            <Text style={{ color: '#fff', fontWeight: '800' }}>Retour à la bibliothèque</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -121,10 +189,22 @@ export default function LibraryReader() {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1 },
-  header:    { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: Platform.OS === 'ios' ? 52 : 16, paddingBottom: 14, borderBottomWidth: 0.5, gap: 10 },
-  btn:       { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  title:     { flex: 1, fontSize: 16, fontWeight: '700' },
-  center:    { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 12 },
-  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 24, paddingVertical: 13, borderRadius: 14, marginTop: 8 },
+  container:   { flex: 1 },
+  header:      {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'ios' ? 52 : 16,
+    paddingBottom: 14,
+    borderBottomWidth: 0.5, gap: 10,
+  },
+  btn:         { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  title:       { flex: 1, fontSize: 16, fontWeight: '700' },
+  center:      { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 28, gap: 14 },
+  heading:     { fontSize: 20, fontWeight: '800', textAlign: 'center' },
+  successIcon: { width: 88, height: 88, borderRadius: 44, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  actionBtn:   {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 28, paddingVertical: 14,
+    borderRadius: 14, width: '100%', justifyContent: 'center',
+  },
 });

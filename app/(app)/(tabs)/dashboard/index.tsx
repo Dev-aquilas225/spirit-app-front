@@ -131,7 +131,9 @@ export default function DashboardScreen() {
   const [loginVisible, setLoginVisible] = useState(false);
   const firstName = user?.firstName?.trim() || user?.name?.split(' ')[0] || '';
   const today = formatDate(new Date().toISOString());
-  const { notifBlocked } = useForceNotifications(isAuthenticated);
+  const { notifBlocked: _notifBlocked } = useForceNotifications(isAuthenticated);
+  const [notifEnabled, setNotifEnabled] = useState(false);
+  const notifBlocked = _notifBlocked && !notifEnabled;
 
   useEffect(() => {
     initialize().catch(() => {});
@@ -141,7 +143,7 @@ export default function DashboardScreen() {
 
   return (
     <View style={[s.root, { backgroundColor: colors.background }]}>
-      <NotifBlockedBanner visible={notifBlocked} />
+      <NotifBlockedBanner visible={notifBlocked} onEnabled={() => setNotifEnabled(true)} />
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
