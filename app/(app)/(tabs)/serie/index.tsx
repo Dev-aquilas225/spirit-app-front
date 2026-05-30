@@ -52,6 +52,7 @@ function DayCard({
 
   const handlePress = () => {
     if (!isUnlocked) {
+      // Jours 4-21 : abonnement actif requis
       router.push('/subscription' as any);
       return;
     }
@@ -73,16 +74,21 @@ function DayCard({
     >
       <TouchableOpacity
         onPress={handlePress}
-        activeOpacity={0.8}
+        activeOpacity={isUnlocked ? 0.8 : 0.6}
         style={[
           st.dayCard,
           {
             backgroundColor: isToday
               ? colors.primary + '18'
+              : !isUnlocked
+              ? colors.border + '30'
               : colors.surface,
             borderColor: isToday
               ? colors.primary + '60'
+              : !isUnlocked
+              ? colors.border
               : colors.border,
+            opacity: isUnlocked ? 1 : 0.7,
           },
         ]}
       >
@@ -136,7 +142,12 @@ function DayCard({
             <AppIcon icon={ChevronRight} size={18} color={colors.textTertiary} strokeWidth={2} />
           )
         ) : (
-          <AppIcon icon={Lock} size={16} color={colors.textTertiary} strokeWidth={2} />
+          <View style={{ alignItems: 'center', gap: 3 }}>
+            <AppIcon icon={Lock} size={16} color={colors.textTertiary} strokeWidth={2} />
+            <Text style={{ fontSize: 8, fontWeight: '700', color: colors.textTertiary, textAlign: 'center' }}>
+              Abonné
+            </Text>
+          </View>
         )}
       </TouchableOpacity>
     </Animated.View>
@@ -149,7 +160,7 @@ export default function SerieScreen() {
   const { hasSubscription } = useAccess();
   const today = getProgramDay();
 
-  // Les 3 premiers jours sont gratuits, le reste nécessite un abonnement
+  // Jours 1-3 : gratuits. Jours 4-21 : abonnement actif obligatoire.
   const FREE_DAYS = 3;
 
   return (
@@ -204,11 +215,18 @@ export default function SerieScreen() {
             onPress={() => router.push('/subscription' as any)}
             activeOpacity={0.85}
           >
-            <AppIcon icon={Heart} size={16} color={colors.primary} strokeWidth={2} />
-            <Text style={{ flex: 1, fontSize: 12, color: colors.text, fontWeight: '600' }}>
-              Les jours 4–21 nécessitent un abonnement Premium
-            </Text>
-            <Text style={{ fontSize: 12, fontWeight: '800', color: colors.primary }}>Débloquer →</Text>
+            <AppIcon icon={Lock} size={16} color={colors.primary} strokeWidth={2} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 13, color: colors.text, fontWeight: '800' }}>
+                Jours 4–21 verrouillés
+              </Text>
+              <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 2 }}>
+                Un abonnement actif est requis pour accéder aux jours 4 à 21.
+              </Text>
+            </View>
+            <View style={{ backgroundColor: colors.primary, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10 }}>
+              <Text style={{ fontSize: 12, fontWeight: '900', color: '#fff' }}>S'abonner</Text>
+            </View>
           </TouchableOpacity>
         )}
 
