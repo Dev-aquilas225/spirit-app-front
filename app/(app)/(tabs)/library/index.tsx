@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Dimensions, FlatList, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { BookOpen, Download, Lock, Search, Star } from 'lucide-react-native';
@@ -10,6 +10,39 @@ import { useCreditsStore } from '../../../../src/store/credits.store';
 import { useGamificationStore } from '../../../../src/store/gamification.store';
 import { http } from '../../../../src/services/http.client';
 import { LibraryService } from '../../../../src/services/library.service';
+
+// Largeur de carte = (écran - padding*2 - gap) / 2
+const CARD_WIDTH  = (Dimensions.get('window').width - 24 - 12) / 2;
+// Hauteur couverture = ratio livre A4 (1:1.414)
+const COVER_HEIGHT = Math.round(CARD_WIDTH * 1.414);
+
+function BookCover({ uri, title }: { uri?: string; title: string }) {
+  const [error, setError] = React.useState(false);
+  if (uri && !error) {
+    return (
+      <Image
+        source={{ uri }}
+        style={{ width: CARD_WIDTH - 24, height: COVER_HEIGHT, borderRadius: 10 }}
+        resizeMode="cover"
+        onError={() => setError(true)}
+      />
+    );
+  }
+  // Fallback : initiales du titre sur fond dégradé
+  const initials = title.split(' ').slice(0, 2).map(w => w[0]?.toUpperCase() ?? '').join('');
+  return (
+    <View style={{
+      width: CARD_WIDTH - 24, height: COVER_HEIGHT, borderRadius: 10,
+      backgroundColor: '#1A2744', alignItems: 'center', justifyContent: 'center',
+      borderWidth: 1, borderColor: 'rgba(201,168,76,0.25)',
+    }}>
+      <AppIcon icon={BookOpen} size={28} color="#C9A84C" strokeWidth={1.5} />
+      <Text style={{ color: '#C9A84C', fontSize: 13, fontWeight: '900', marginTop: 8, letterSpacing: 1 }}>
+        {initials}
+      </Text>
+    </View>
+  );
+}
 
 interface Book { id: string; title: string; author: string; category: string; coverUrl?: string; tokenCost: number; pages: number; description?: string; }
 
@@ -72,9 +105,9 @@ export default function LibraryScreen() {
         <FlatList data={filtered} keyExtractor={b => b.id} numColumns={2} contentContainerStyle={{ padding:12, gap:12 }} columnWrapperStyle={{ gap:12 }}
           renderItem={({ item: b }) => (
             <TouchableOpacity style={[s.card, { backgroundColor: colors.surface, borderColor: colors.border }]} onPress={() => open(b)} activeOpacity={0.85}>
-              <View style={[s.cover, { backgroundColor: 'rgba(96,165,250,0.1)' }]}>
-                {b.coverUrl ? <Image source={{ uri: b.coverUrl }} style={{ width:'100%', height:'100%', borderRadius:12 }} /> : <AppIcon icon={BookOpen} size={32} color="#60A5FA" strokeWidth={1.8} />}
-                {!hasSubscription && <View style={s.lockBadge}><AppIcon icon={Lock} size={10} color="#fff" strokeWidth={2.5} /><Text style={s.lockTxt}>{b.tokenCost}</Text></View>}
+              <View style={s.cover}>
+                <BookCover uri={b.coverUrl} title={b.title} />
+                {!hasSubscription && <View style={s.lockBadge}><AppIcon icon={Lock} size={10} color="#fff" strokeWidth={2.5} /><Text style={s.lockTxt}>{b.tokenCost} cr</Text></View>}
               </View>
               <Text style={[s.bookTitle, { color: colors.text }]} numberOfLines={2}>{b.title}</Text>
               <Text style={[s.bookAuthor, { color: colors.textSecondary }]} numberOfLines={1}>{b.author}</Text>
@@ -121,7 +154,7 @@ const s = StyleSheet.create({
   catActive:{ backgroundColor:'#C9A84C' },
   catTxt:{ fontSize:13, fontWeight:'700' },
   card:{ flex:1, borderRadius:16, borderWidth:1, padding:12, gap:8 },
-  cover:{ width:'100%', aspectRatio: 1/1.414, borderRadius:12, alignItems:'center', justifyContent:'center', position:'relative' },
+  cover:{ width:'100%', height: COVER_HEIGHT, alignItems:'center', justifyContent:'center', position:'relative', marginBottom: 4 },
   lockBadge:{ position:'absolute', bottom:6, right:6, flexDirection:'row', alignItems:'center', gap:3, backgroundColor:'rgba(0,0,0,0.7)', borderRadius:8, paddingHorizontal:6, paddingVertical:3 },
   lockTxt:{ fontSize:10, fontWeight:'700', color:'#C9A84C' },
   bookTitle:{ fontSize:13, fontWeight:'800', lineHeight:18 },
