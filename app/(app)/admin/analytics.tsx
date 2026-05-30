@@ -36,6 +36,16 @@ interface AdminStats {
   totalBooksRead?: number;
   totalDownloads?: number;
   conversionRate?: number;
+  recentPayments?: RecentPayment[];
+}
+
+interface RecentPayment {
+  id: string;
+  userEmail?: string;
+  plan: string;
+  amount: number;
+  status: string;
+  createdAt: string;
 }
 
 interface ViralStats {
@@ -105,6 +115,7 @@ export default function AdminAnalyticsScreen() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [viral, setViral] = useState<ViralStats | null>(null);
   const [subs, setSubs] = useState<any[]>([]);
+  const [recentPayments, setRecentPayments] = useState<RecentPayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -112,7 +123,7 @@ export default function AdminAnalyticsScreen() {
     if (!silent) setLoading(true);
     else setRefreshing(true);
     try {
-      const [s, viralStats, subsData] = await Promise.all([
+      const [s, viralStats, subsData, recentPay] = await Promise.all([
         http.get<AdminStats>('/admin/stats').catch(() => null),
         ViralShareService.adminGetStats().then(r => r ? ({
           totalRequests:    (r.pending ?? 0) + (r.approved ?? 0) + (r.rejected ?? 0),
@@ -121,10 +132,13 @@ export default function AdminAnalyticsScreen() {
           totalCreditsAwarded: r.totalCreditsAwarded ?? 0,
         }) : null).catch(() => null),
         PaymentService.adminGetAll().catch(() => []),
+        // Paiements récents (abonnements + crédits)
+        http.get<RecentPayment[]>('/admin/payments/recent').catch(() => []),
       ]);
       if (s) setStats(s as AdminStats);
       if (viralStats) setViral(viralStats as ViralStats);
       setSubs(Array.isArray(subsData) ? subsData : []);
+      setRecentPayments(Array.isArray(recentPay) ? recentPay : []);
     } catch { /* silencieux */ }
     setLoading(false);
     setRefreshing(false);
@@ -264,6 +278,46 @@ export default function AdminAnalyticsScreen() {
         </View>
       </View>
 
+      {/* ── Section 7 : Paiements récents ── */}
+      <SectionTitle title="Paiements récents" icon={TrendingUp} color="#C9A84C" />
+      {recentPayments.length === 0 ? (
+        <View style={[st.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={{ color: colors.textTertiary, textAlign: 'center', fontSize: 13 }}>
+            Aucun paiement récent — vérifiez la route /admin/payments/recent
+          </Text>
+        </View>
+      ) : (
+        <View style={[st.card, { backgroundColor: colors.surface, borderColor: colors.border, gap: 10 }]}>
+          {recentPayments.slice(0, 20).map((p, i) => (
+            <View key={p.id ?? i} style={[st.payRow, { borderBottomColor: colors.border }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>
+                  {p.userEmail ?? 'Utilisateur'}
+                </Text>
+                <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 2 }}>
+                  {p.plan} · {new Date(p.createdAt).toLocaleString('fr-FR', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}
+                </Text>
+              </View>
+              <View style={{ alignItems: 'flex-end', gap: 3 }}>
+                <Text style={{ fontSize: 13, fontWeight: '800', color: colors.primary }}>
+                  {(p.amount ?? 0).toLocaleString('fr-FR')} FCFA
+                </Text>
+                <View style={[st.statusBadge, {
+                  backgroundColor: p.status === 'success' || p.status === 'active'
+                    ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)',
+                }]}>
+                  <Text style={{ fontSize: 10, fontWeight: '700',
+                    color: p.status === 'success' || p.status === 'active' ? '#10B981' : '#F59E0B',
+                  }}>
+                    {p.status}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+
       {/* Note de bas de page */}
       <Text style={{ fontSize: 11, color: colors.textTertiary, textAlign: 'center', fontStyle: 'italic' }}>
         Données en temps réel · Rafraîchissement automatique toutes les 30s
@@ -287,4 +341,6 @@ const st = StyleSheet.create({
   card:        { borderRadius: 16, borderWidth: 1, padding: 16 },
   barBg:       { height: 8, borderRadius: 4, overflow: 'hidden' },
   barFill:     { height: '100%', borderRadius: 4 },
+  payRow:      { flexDirection: 'row', alignItems: 'center', paddingBottom: 10, borderBottomWidth: 0.5 },
+  statusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
 });

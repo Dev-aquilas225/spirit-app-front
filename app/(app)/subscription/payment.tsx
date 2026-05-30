@@ -146,7 +146,8 @@ export default function PaymentScreen() {
   const plan = (VALID_PLANS.includes(planRaw) ? planRaw : 'monthly') as string;
   const { initiatePayment, paymentError, clearPaymentError, loadSubscription } = useSubscription();
   const refreshUser    = useAuthStore((s) => s.refreshUser);
-  const fetchBalance   = useCreditsStore((s) => s.fetchBalance);
+  const fetchBalance    = useCreditsStore((s) => s.fetchBalance);
+  const purchaseCredits = useCreditsStore((s) => s.purchase);
 
   const [step, setStep]         = useState<Step>('confirm');
   const [reference, setRef]     = useState<string | null>(null);
@@ -194,6 +195,11 @@ export default function PaymentScreen() {
       if (verified?.success) {
         stopAll();
         try { if (Platform.OS !== 'web') await WebBrowser.dismissBrowser(); } catch {}
+        // Pour les packs crédits : créditer explicitement via /credits/purchase
+        const isCreditPack = ['starter','standard','premium'].includes(plan);
+        if (isCreditPack) {
+          await purchaseCredits(plan, result.reference);
+        }
         await Promise.all([loadSubscription(), refreshUser(), fetchBalance()]);
         // Pixel : Purchase confirmé
         fbPurchase(plan, PLAN_AMOUNTS[plan] ?? 0);
@@ -207,6 +213,10 @@ export default function PaymentScreen() {
       if (status === 'active' || status === 'success') {
         stopAll();
         try { if (Platform.OS !== 'web') await WebBrowser.dismissBrowser(); } catch {}
+        const isCreditPack = ['starter','standard','premium'].includes(plan);
+        if (isCreditPack) {
+          await purchaseCredits(plan, result.reference);
+        }
         await Promise.all([loadSubscription(), refreshUser(), fetchBalance()]);
         // Pixel : Purchase confirmé (fallback)
         fbPurchase(plan, PLAN_AMOUNTS[plan] ?? 0);

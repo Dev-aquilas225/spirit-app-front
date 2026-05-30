@@ -165,11 +165,15 @@ export const useCreditsStore = create<CreditsState>((set, get) => ({
   },
 
   purchase: async (packId, reference) => {
-    // After Paystack callback, re-fetch balance from backend (source of truth)
-    // The backend credits the account via webhook; we just sync the balance.
+    // 1. Notifier le backend que le paiement est confirmé → créditer le compte
     try {
-      await get().fetchBalance();
-    } catch {}
+      await http.post('/credits/purchase', { packId, reference });
+    } catch {
+      // Fallback : essayer la route générique de vérification
+      try { await http.post(`/subscriptions/verify/${reference}`, {}); } catch {}
+    }
+    // 2. Resynchroniser le solde depuis le backend (source de vérité)
+    try { await get().fetchBalance(); } catch {}
   },
 
   canAfford: (action: CreditAction): boolean => get().credits >= CREDIT_COSTS[action],

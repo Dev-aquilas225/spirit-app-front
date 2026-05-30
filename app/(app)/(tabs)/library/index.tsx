@@ -62,7 +62,19 @@ export default function LibraryScreen() {
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
 
   useEffect(() => {
-    http.get<Book[]>('/library').then(d => { setBooks(Array.isArray(d) ? d : []); setLoading(false); }).catch(() => { setBooks(DEMO_BOOKS); setLoading(false); });
+    http.get<any[]>('/library')
+      .then(d => {
+        const normalized: Book[] = (Array.isArray(d) ? d : []).map(b => ({
+          ...b,
+          // Le backend peut retourner coverImage (chemin relatif) ou coverUrl (URL absolue)
+          coverUrl: b.coverUrl
+            ? b.coverUrl
+            : LibraryService.getCoverUrl(b.coverImage) ?? undefined,
+        }));
+        setBooks(normalized);
+        setLoading(false);
+      })
+      .catch(() => { setBooks(DEMO_BOOKS); setLoading(false); });
   }, []);
 
   // Ouvre la modal d'explication au clic sur un livre
