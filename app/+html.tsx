@@ -47,17 +47,17 @@ export default function Root({ children }: { children: React.ReactNode }) {
         <link rel="apple-touch-startup-image" href="/splash-icon.png" />
 
         {/* ── SEO / Open Graph ─────────────────────────────────────────── */}
-        <meta name="description" content="Votre compagnon spirituel — Prières, Livres et Formations" />
-        <meta property="og:title" content="Oracle Plus" />
-        <meta property="og:description" content="Votre compagnon spirituel — Prières, Livres et Formations" />
+        <meta name="description" content="Oracle Plus : votre application de voyance en ligne et de prière, de suivi et d'interprétation des rêves. Cliquez sur ce lien pour découvrir et bénéficier d'une voyance ou prophétie maintenant en 3 min." />
+        <meta property="og:title" content="Oracle Plus : voyance en ligne, prière et interprétation des rêves" />
+        <meta property="og:description" content="Oracle Plus : votre application de voyance en ligne et de prière, de suivi et d'interprétation des rêves. Cliquez sur ce lien pour découvrir et bénéficier d'une voyance ou prophétie maintenant en 3 min." />
         <meta property="og:image" content="/og-image.png" />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
         <meta property="og:type" content="website" />
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Oracle Plus" />
-        <meta name="twitter:description" content="Votre compagnon spirituel — Prières, Livres et Formations" />
+        <meta name="twitter:title" content="Oracle Plus : voyance en ligne, prière et interprétation des rêves" />
+        <meta name="twitter:description" content="Oracle Plus : votre application de voyance en ligne et de prière, de suivi et d'interprétation des rêves. Cliquez pour bénéficier d'une voyance ou prophétie maintenant en 3 min." />
         <meta name="twitter:image" content="/og-image.png" />
 
         {/* ── Icône navigateur (favicon dans public/) ──────────────────── */}

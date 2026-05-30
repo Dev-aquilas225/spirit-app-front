@@ -15,9 +15,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
 import {
-  BookOpen, CheckCircle2, Download, Lock, Search,
+  BookOpen, CheckCircle2, Lock, Search,
   Unlock, X, Zap,
 } from 'lucide-react-native';
 import { AppIcon } from '../../../../src/components/common/AppIcon';
@@ -25,8 +24,7 @@ import { useTheme } from '../../../../src/theme';
 import { useAuthStore } from '../../../../src/store/auth.store';
 import { http } from '../../../../src/services/http.client';
 import { LibraryService } from '../../../../src/services/library.service';
-import { StorageService } from '../../../../src/services/storage.service';
-import { STORAGE_KEYS } from '../../../../src/utils/constants';
+
 import { useAccess } from '../../../../src/hooks/useAccess';
 
 const CARD_WIDTH   = (Dimensions.get('window').width - 24 - 12) / 2;
@@ -72,42 +70,7 @@ interface Book {
 
 const CATS = ['Tous', 'Prière', 'Prophétie', 'Sagesse', 'Guérison', 'Formation'];
 
-// ── Téléchargement avec auth JWT ─────────────────────────────────────────────
-async function downloadBook(book: Book): Promise<string | null> {
-  try {
-    // Utiliser fileUrl du livre si disponible, sinon construire depuis l'API
-    const fileUrl = book.fileUrl ?? LibraryService.getFileUrl(book.id);
 
-    if (Platform.OS !== 'web') {
-      await WebBrowser.openBrowserAsync(fileUrl, {
-        presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
-        toolbarColor: '#1A1A3E',
-      });
-      return null;
-    }
-
-    // Web : fetch avec JWT → blob → <a download>
-    const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
-    const headers: Record<string, string> = {};
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-
-    const res = await fetch(fileUrl, { headers });
-    if (!res.ok) throw new Error(`Erreur ${res.status} — fichier introuvable ou accès refusé`);
-
-    const blob = await res.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.download = `${book.title.replace(/[^a-z0-9]/gi, '_')}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
-    return null;
-  } catch (e: any) {
-    return e?.message ?? 'Téléchargement échoué';
-  }
-}
 
 // ── Écran principal ───────────────────────────────────────────────────────────
 export default function LibraryScreen() {
@@ -120,9 +83,7 @@ export default function LibraryScreen() {
   const [search, setSearch]             = useState('');
   const [cat, setCat]                   = useState('Tous');
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
-  const [downloading, setDownloading]   = useState(false);
-  const [payError, setPayError]         = useState('');
-  const [showIOSTip, setShowIOSTip]     = useState(false);
+  const [payError, setPayError] = useState('');
 
   useEffect(() => { loadBooks(); }, []);
 
@@ -130,19 +91,26 @@ export default function LibraryScreen() {
     try {
       // Le backend retourne canRead=true si l'utilisateur a accès (abonnement actif)
       const raw = await LibraryService.getAll();
-      const normalized: Book[] = raw.map(b => ({
-        id: b.id,
-        title: b.title ?? 'Sans titre',
-        author: b.author ?? 'Prophète Georges',
-        category: b.category ?? 'Prière',
-        coverUrl: LibraryService.getCoverUrl(b.coverImage) ?? undefined,
-        price: 0,
-        pages: b.pages ?? 0,
-        description: b.description,
-        isFree: b.isFree ?? false,
-        canRead: b.canRead ?? b.isFree ?? false,
-        fileUrl: b.fileUrl ?? undefined,
-      }));
+      const normalized: Book[] = raw.map(b => {
+        // Résoudre la couverture : coverUrl > coverImage absolu > coverImage relatif préfixé
+        const rawCover = (b as any).coverUrl ?? b.coverImage ?? null;
+        const coverUrl = rawCover
+          ? (rawCover.startsWith('http') ? rawCover : `${LibraryService.getCoverUrl(rawCover) ?? ''}`)
+          : undefined;
+        return {
+          id: b.id,
+          title: b.title ?? 'Sans titre',
+          author: b.author ?? 'Prophète Georges',
+          category: b.category ?? 'Prière',
+          coverUrl: coverUrl || undefined,
+          price: 0,
+          pages: b.pages ?? 0,
+          description: b.description,
+          isFree: b.isFree ?? false,
+          canRead: b.canRead ?? b.isFree ?? false,
+          fileUrl: b.fileUrl ?? undefined,
+        };
+      });
       setBooks(normalized.length > 0 ? normalized : DEMO_BOOKS);
     } catch {
       setBooks(DEMO_BOOKS);
@@ -152,22 +120,6 @@ export default function LibraryScreen() {
 
   // Un livre est accessible si : gratuit, abonnement actif, ou canRead=true (backend)
   const isAccessible = (b: Book) => b.isFree || b.canRead || hasSubscription;
-
-  // ── Télécharger ─────────────────────────────────────────────────────────────
-  const handleDownload = async (b: Book) => {
-    setDownloading(true);
-    setShowIOSTip(false);
-    setPayError('');
-    const err = await downloadBook(b);
-    setDownloading(false);
-    if (err) {
-      setPayError(err);
-    } else if (Platform.OS === 'web') {
-      setSelectedBook(null);
-    } else if (Platform.OS === 'ios') {
-      setShowIOSTip(true);
-    }
-  };
 
   // ── Accès refusé → rediriger vers abonnement ──────────────────────────────
   const handleRequestAccess = () => {
@@ -262,31 +214,17 @@ export default function LibraryScreen() {
                       </View>
                       <TouchableOpacity
                         style={[s.actionBtn, { backgroundColor: colors.primary }]}
-                        onPress={() => handleDownload(selectedBook)}
-                        disabled={downloading}
+                        onPress={() => {
+                          setSelectedBook(null);
+                          router.push({ pathname: '/library/reader', params: { id: selectedBook.id, title: selectedBook.title } } as any);
+                        }}
                         activeOpacity={0.85}
                       >
-                        {downloading
-                          ? <ActivityIndicator color="#1A1A3E" />
-                          : <>
-                              <AppIcon icon={Download} size={18} color="#1A1A3E" strokeWidth={2.5} />
-                              <Text style={[s.actionBtnTxt, { color: '#1A1A3E' }]}>Télécharger le PDF</Text>
-                            </>
-                        }
+                        <AppIcon icon={BookOpen} size={18} color="#1A1A3E" strokeWidth={2.5} />
+                        <Text style={[s.actionBtnTxt, { color: '#1A1A3E' }]}>Lire dans l'application</Text>
                       </TouchableOpacity>
 
-                      {/* Tip iOS — visible après téléchargement */}
-                      {showIOSTip && Platform.OS === 'ios' && (
-                        <View style={[s.iosTip, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                          <Text style={{ fontSize: 18, textAlign: 'center' }}>📤</Text>
-                          <Text style={{ color: colors.text, fontSize: 12, fontWeight: '700', textAlign: 'center' }}>
-                            Pour sauvegarder sur iPhone :
-                          </Text>
-                          <Text style={{ color: colors.textSecondary, fontSize: 11, textAlign: 'center', lineHeight: 17 }}>
-                            Dans le navigateur → icône <Text style={{ fontWeight: '800' }}>Partager ↑</Text> → <Text style={{ fontWeight: '800' }}>"Enregistrer dans Fichiers"</Text>
-                          </Text>
-                        </View>
-                      )}
+
                     </View>
                   ) : (
                     /* ── ACCÈS RESTREINT : abonnement requis ── */
@@ -364,9 +302,9 @@ export default function LibraryScreen() {
                   onPress={() => { setPayError(''); setSelectedBook(b); }}
                   activeOpacity={0.8}
                 >
-                  <AppIcon icon={accessible ? Download : Lock} size={12} color={accessible ? '#1A1A3E' : '#C9A84C'} strokeWidth={2.5} />
+                  <AppIcon icon={accessible ? BookOpen : Lock} size={12} color={accessible ? '#1A1A3E' : '#C9A84C'} strokeWidth={2.5} />
                   <Text style={[s.dlTxt, { color: accessible ? '#1A1A3E' : '#C9A84C' }]}>
-                    {accessible ? 'Télécharger' : "S'abonner"}
+                    {accessible ? 'Lire' : "S'abonner"}
                   </Text>
                 </TouchableOpacity>
               </TouchableOpacity>

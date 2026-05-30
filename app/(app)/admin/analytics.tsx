@@ -14,6 +14,7 @@ import {
 } from 'lucide-react-native';
 import { AppIcon } from '../../../src/components/common/AppIcon';
 import { useTheme } from '../../../src/theme';
+import { http } from '../../../src/services/http.client';
 import { PaymentService } from '../../../src/services/payment.service';
 import { ViralShareService } from '../../../src/services/viral-share.service';
 
@@ -94,7 +95,8 @@ function ProgressBar({ label, value, max, color }: { label: string; value: numbe
 
 export default function AdminAnalyticsScreen() {
   const { colors } = useTheme();
-  const [viral, setViral] = useState<ViralStats | null>(null);
+  const [viral, setViral]             = useState<ViralStats | null>(null);
+  const [pushSubsCount, setPushSubsCount] = useState<number | null>(null);
   const [subs, setSubs] = useState<any[]>([]);
   const [recentPayments, setRecentPayments] = useState<RecentPayment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -104,23 +106,24 @@ export default function AdminAnalyticsScreen() {
     if (!silent) setLoading(true);
     else setRefreshing(true);
     try {
-      const [viralStats, subsData] = await Promise.all([
+      const [viralStats, subsData, pushStatus] = await Promise.all([
         ViralShareService.adminGetStats().then(r => r ? ({
           totalRequests:       (r.pending ?? 0) + (r.approved ?? 0) + (r.rejected ?? 0),
           approvedRequests:    r.approved ?? 0,
           pendingRequests:     r.pending ?? 0,
           totalCreditsAwarded: r.totalCreditsAwarded ?? 0,
         }) : null).catch(() => null),
-        // Seule route admin confirmée : /subscriptions/admin/all
         PaymentService.adminGetAll().catch(() => []),
+        // /push/status retourne { cronEnabled, subsCount, lastSentAt }
+        http.get<{ cronEnabled?: boolean; enabled?: boolean; subsCount?: number; lastSentAt?: string }>('/push/status').catch(() => null),
       ]);
 
       if (viralStats) setViral(viralStats as ViralStats);
+      if (pushStatus?.subsCount !== undefined) setPushSubsCount(pushStatus.subsCount);
 
       const allSubs = Array.isArray(subsData) ? subsData : [];
       setSubs(allSubs);
 
-      // Normaliser les abonnements en RecentPayment pour la liste
       const normalized: RecentPayment[] = allSubs.map((s: any) => ({
         id:        s.id,
         userEmail: s.user?.email ?? s.userEmail ?? undefined,
@@ -130,7 +133,6 @@ export default function AdminAnalyticsScreen() {
         createdAt: s.createdAt ?? new Date().toISOString(),
         reference: s.paymentReference ?? s.reference ?? undefined,
       }));
-      // Trier par date décroissante
       normalized.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setRecentPayments(normalized);
     } catch { /* silencieux */ }
@@ -144,6 +146,8 @@ export default function AdminAnalyticsScreen() {
   const now            = new Date();
   const activeSubs     = subs.filter(s => s.status === 'active').length;
   const totalSubs      = subs.length;
+  // Utilisateurs uniques inscrits = emails distincts dans les abonnements
+  const uniqueUsers    = new Set(subs.map((s: any) => s.user?.email ?? s.userEmail ?? s.userId ?? s.id)).size;
   const revenueMonth   = subs.filter(s => {
     const d = new Date(s.createdAt ?? s.startDate ?? '');
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();

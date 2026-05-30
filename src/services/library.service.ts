@@ -62,11 +62,19 @@ export const LibraryService = {
   async getAll(category?: string): Promise<LibraryBook[]> {
     const query = category ? `?category=${encodeURIComponent(category)}` : '';
     try {
-      const books = await http.get<LibraryBook[]>(`/library${query}`);
-      return books.map((book) => ({
-        ...book,
-        fileUrl: book.fileUrl ?? LibraryService.getFileUrl(book.id),
-      }));
+      const books = await http.get<any[]>(`/library${query}`);
+      return books.map((book) => {
+        // Normaliser coverImage : accepter coverUrl ou coverImage du backend
+        const rawCover = book.coverUrl ?? book.coverImage ?? null;
+        const coverImage = rawCover
+          ? (rawCover.startsWith('http') ? rawCover : `${Env.API_BASE_URL()}${rawCover}`)
+          : undefined;
+        return {
+          ...book,
+          coverImage,
+          fileUrl: book.fileUrl ?? LibraryService.getFileUrl(book.id),
+        };
+      });
     } catch {
       return [];
     }

@@ -176,8 +176,8 @@ export const PaymentService = {
           if (CREDIT_PACK_IDS.includes(i.plan ?? '') || CREDIT_PACK_IDS.includes(i.packId ?? '')) {
             const packLabel: Record<string, string> = {
               starter: 'Pack Départ (500 crédits)',
-              standard: 'Pack Standard (2 000 crédits)',
-              premium: 'Pack Premium (5 000 crédits)',
+              standard: 'Pack Standard (1 000 crédits)',
+              premium: 'Pack Premium (2 500 crédits)',
             };
             return packLabel[i.plan ?? i.packId ?? ''] ?? `Recharge crédits — ${i.plan ?? i.packId}`;
           }

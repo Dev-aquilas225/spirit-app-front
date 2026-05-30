@@ -34,7 +34,7 @@
       "bundler": "metro",
       "template": "./web/index.html",
       "meta": {
-        "description": "Votre compagnon spirituel — Prières, Livres et Formations",
+        "description": "Oracle Plus : votre application de voyance en ligne et de prière, de suivi et d'interprétation des rêves. Bénéficiez d'une voyance ou prophétie en 3 min.",
         "author": "Oracle Plus",
         "themeColor": "#C9A84C",
         "appleMobileWebAppCapable": "yes",

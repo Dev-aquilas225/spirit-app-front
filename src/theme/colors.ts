@@ -33,48 +33,48 @@ export const palette = {
   overlay:     'rgba(0,0,0,0.65)',
 };
 
-// ── Thème CLAIR — fond blanc pur, textes foncés, accents or profond ───────────
+// ── Thème CLAIR — fond crème chaud, textes très foncés, accents or vif ────────
 export const lightColors = {
-  background:        '#FFFFFF',
-  surface:           '#F7F4EE',
-  surfaceSecondary:  '#EEE8D8',
+  background:        '#FDF8F0',        // crème chaud — pas blanc pur
+  surface:           '#FFFFFF',        // cartes blanches sur fond crème
+  surfaceSecondary:  '#F0E8D4',        // surface secondaire légèrement dorée
   card:              '#FFFFFF',
-  border:            '#D4C49A',
-  borderLight:       'rgba(180,150,80,0.25)',
+  border:            '#C8A84A',        // bordure or visible
+  borderLight:       'rgba(180,140,60,0.30)',
   deepBlue:          palette.navy,
 
-  text:              '#0A0F1E',
-  textSecondary:     '#2C3E60',
-  textTertiary:      '#4A6080',
+  text:              '#0A0A0A',        // noir quasi-pur — très lisible
+  textSecondary:     '#3A3020',        // brun foncé — lisible
+  textTertiary:      '#6B5A3A',        // brun moyen
   textInverse:       '#FFFFFF',
   textOnPurple:      '#FFFFFF',
 
-  primary:           '#7A5818',
-  primaryLight:      '#C9A84C',
-  primaryDark:       '#5A3E0E',
-  primaryPale:       'rgba(122,88,24,0.10)',
+  primary:           '#8B6010',        // or foncé — boutons principaux
+  primaryLight:      '#C9A84C',        // or clair
+  primaryDark:       '#5A3E08',
+  primaryPale:       'rgba(139,96,16,0.12)',
 
-  accent:            '#0B1628',
-  accentLight:       '#1E3A5F',
+  accent:            '#1A0F00',        // brun très foncé
+  accentLight:       '#3D2800',
 
   tabBar:            '#FFFFFF',
-  tabBarBorder:      '#D4C49A',
-  tabBarActive:      '#7A5818',
-  tabBarInactive:    '#4A6080',
+  tabBarBorder:      '#C8A84A',
+  tabBarActive:      '#8B6010',
+  tabBarInactive:    '#6B5A3A',
 
-  header:            '#FFFFFF',
-  headerText:        '#0A0F1E',
+  header:            '#FDF8F0',
+  headerText:        '#0A0A0A',
 
-  premium:           '#7A5818',
-  premiumBackground: 'rgba(122,88,24,0.08)',
+  premium:           '#8B6010',
+  premiumBackground: 'rgba(139,96,16,0.10)',
   premiumBorder:     '#C9A84C',
 
-  buttonPrimary:     '#7A5818',
+  buttonPrimary:     '#8B6010',
   buttonPrimaryText: '#FFFFFF',
-  buttonSecondary:   '#0A0F1E',
+  buttonSecondary:   '#0A0A0A',
   buttonSecondaryText: '#FFFFFF',
-  buttonOutline:     '#7A5818',
-  buttonOutlineText: '#7A5818',
+  buttonOutline:     '#8B6010',
+  buttonOutlineText: '#8B6010',
 };
 
 // ── Thème SOMBRE (bleu nuit + or + blanc doré) ────────────────────────────────
