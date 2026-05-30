@@ -35,6 +35,8 @@ export default function ConsultationChatScreen() {
     messages, conversations, isLoading, isSending,
     startNewConversation, sendMessage, loadConversation, deleteConversation,
     creditGateVisible, creditAction, onCreditSuccess, closeCreditGate,
+  // chatType 'consultation' → section 'consultation' dans le prompt admin
+  // Distinct de 'prophet' (onglet Connaître le futur / tab ai)
   } = useAIChat('consultation');
 
   const flatListRef = useRef<FlatList>(null);
