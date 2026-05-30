@@ -25,6 +25,7 @@ import { useSubscription } from '../../../src/hooks/useSubscription';
 import { useAuthStore } from '../../../src/store/auth.store';
 import { useCreditsStore } from '../../../src/store/credits.store';
 import { PaymentService } from '../../../src/services/payment.service';
+import { fbInitiateCheckout, fbPurchase } from '../../../src/utils/fbpixel';
 import { AppIcon } from '../../../src/components/common/AppIcon';
 import { Button } from '../../../src/components/common/Button';
 
@@ -171,6 +172,9 @@ export default function PaymentScreen() {
     setStep('initiating');
     setRemaining(TIMEOUT_MS);
 
+    // Pixel : InitiateCheckout dès le clic sur Payer
+    fbInitiateCheckout(plan, PLAN_AMOUNTS[plan] ?? 0);
+
     const result = await initiatePayment(plan);
     if (!result) {
       setError(paymentError ?? 'Impossible d\'initier le paiement.');
@@ -191,6 +195,8 @@ export default function PaymentScreen() {
         stopAll();
         try { if (Platform.OS !== 'web') await WebBrowser.dismissBrowser(); } catch {}
         await Promise.all([loadSubscription(), refreshUser(), fetchBalance()]);
+        // Pixel : Purchase confirmé
+        fbPurchase(plan, PLAN_AMOUNTS[plan] ?? 0);
         setStep('vip');
         setTimeout(() => router.replace(`/subscription/success?reference=${result.reference}` as any), VIP_DISPLAY_MS);
         return;
@@ -202,6 +208,8 @@ export default function PaymentScreen() {
         stopAll();
         try { if (Platform.OS !== 'web') await WebBrowser.dismissBrowser(); } catch {}
         await Promise.all([loadSubscription(), refreshUser(), fetchBalance()]);
+        // Pixel : Purchase confirmé (fallback)
+        fbPurchase(plan, PLAN_AMOUNTS[plan] ?? 0);
         setStep('vip');
         setTimeout(() => router.replace(`/subscription/success?reference=${result.reference}` as any), VIP_DISPLAY_MS);
         return;
@@ -269,6 +277,12 @@ export default function PaymentScreen() {
   }, []);
 
   // ── Écran de confirmation ──────────────────────────────────────────────
+  // Montants en FCFA pour le Pixel Facebook
+  const PLAN_AMOUNTS: Record<string, number> = {
+    starter: 500, standard: 1000, premium: 2500,
+    weekly_plus: 3000, monthly: 8000, yearly: 15000,
+  };
+
   const planLabels: Record<string, { name: string; price: string; desc: string }> = {
     starter:     { name: 'Pack Départ',       price: '500 FCFA',   desc: '500 crédits' },
     standard:    { name: 'Pack Standard',     price: '1 000 FCFA', desc: '2 000 crédits · ⭐ Populaire' },

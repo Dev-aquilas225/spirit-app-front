@@ -3,12 +3,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
  * Boutique Oracle Plus — Crédits + Abonnements
  * Deux onglets : Crédits (freemium) et Abonnements (illimité 24h/24)
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Linking, Platform, ScrollView, StyleSheet,
   Text, TouchableOpacity, View, ActivityIndicator,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { fbViewContent } from '../../../src/utils/fbpixel';
 import {
   Calendar, Check, Clock, Crown, Infinity,
   ShoppingBag, Sparkles, Star, Zap,
@@ -274,6 +275,9 @@ export default function BoutiqueScreen() {
   // Lire le paramètre ?tab= pour ouvrir directement l'onglet crédits ou abonnements
   const { tab: tabParam } = useLocalSearchParams<{ tab?: string }>();
   const [tab, setTab] = useState<Tab>(tabParam === 'credits' ? 'credits' : 'subscriptions');
+
+  // Pixel : ViewContent à l'ouverture de la boutique
+  useEffect(() => { fbViewContent('boutique_oracle_plus'); }, []);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>

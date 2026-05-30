@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+    <title>Oracle Plus</title>
+    <meta name="description" content="Votre compagnon spirituel — Prières, Livres et Formations" />
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#C9A84C" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Oracle Plus" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Oracle Plus" />
+    <meta property="og:description" content="Votre compagnon spirituel — Prières, Livres et Formations" />
+    <meta property="og:image" content="/og-image.png" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- ─── Facebook Pixel 136534062330794 ─────────────────────────────────── -->
+    <script>
+      !function(f,b,e,v,n,t,s)
+      {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+      n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+      if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+      n.queue=[];t=b.createElement(e);t.async=!0;
+      t.src=v;s=b.getElementsByTagName(e)[0];
+      s.parentNode.insertBefore(t,s)}(window, document,'script',
+      'https://connect.facebook.net/en_US/fbevents.js');
+      fbq('init', '136534062330794');
+      fbq('track', 'PageView');
+    </script>
+    <noscript>
+      <img height="1" width="1" style="display:none"
+        src="https://www.facebook.com/tr?id=136534062330794&ev=PageView&noscript=1" />
+    </noscript>
+    <!-- ─── Fin Facebook Pixel ──────────────────────────────────────────────── -->
+
+    <style>
+      html {
+        height: 100%;
+        height: -webkit-fill-available;
+        height: 100dvh;
+        overflow: hidden;
+        overscroll-behavior: none;
+        background-color: #0B1628;
+        -webkit-text-size-adjust: 100%;
+      }
+      body {
+        height: 100%;
+        height: -webkit-fill-available;
+        height: 100dvh;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        overscroll-behavior: none;
+        background-color: #0B1628;
+      }
+      #root {
+        height: 100%;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="/env-config.js"></script>
+    <script>
+      window.__pwaInstallPrompt = null;
+      window.addEventListener('beforeinstallprompt', function(e) {
+        e.preventDefault();
+        window.__pwaInstallPrompt = e;
+      });
+    </script>
+  </body>
+</html>

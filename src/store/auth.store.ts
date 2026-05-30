@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { Platform } from 'react-native';
 import { User, Gender } from '../types/auth.types';
 import { AuthService } from '../services/auth.service';
+import { fbCompleteRegistration } from '../utils/fbpixel';
 import { StorageService } from '../services/storage.service';
 import { STORAGE_KEYS } from '../utils/constants';
 
@@ -113,11 +114,14 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
   loginWithTokens: async (accessToken, refreshToken) => {
     set({ isLoading: true, error: null });
+    const wasLoggedIn = !!get().user;
     const result = await AuthService.loginWithTokens(accessToken, refreshToken);
     if (result.error || !result.data) {
       set({ isLoading: false, error: result.error ?? 'Connexion échouée' });
       return false;
     }
+    // Pixel : CompleteRegistration pour les nouveaux utilisateurs (première connexion)
+    if (!wasLoggedIn && result.data.user) fbCompleteRegistration();
     const storedGender = await StorageService.get<Gender>(STORAGE_KEYS.USER_GENDER);
     // Priorité : genre local > genre backend (mapApiUser l'a déjà lu via u.gender)
     const user: User = { ...result.data.user, ...(storedGender ? { gender: storedGender } : {}) };
