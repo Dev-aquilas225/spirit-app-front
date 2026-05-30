@@ -3,9 +3,8 @@
  *
  * Flux d'accès :
  *  1. Clic sur un livre → modal détail
- *  2. Si canRead/isFree → bouton "Télécharger le PDF"
- *  3. Sinon → rediriger vers l'abonnement (accès via abonnement actif)
- *  4. Téléchargement : fileUrl retournée par le backend (avec JWT si nécessaire)
+ *  2. Si accessible (abonnement actif ou tokenCost=0) → bouton "Lire"
+ *  3. Sinon → rediriger vers l'abonnement
  */
 import React, { useEffect, useState } from 'react';
 import {
@@ -21,17 +20,14 @@ import {
 } from 'lucide-react-native';
 import { AppIcon } from '../../../../src/components/common/AppIcon';
 import { useTheme } from '../../../../src/theme';
-import { useAuthStore } from '../../../../src/store/auth.store';
-import { http } from '../../../../src/services/http.client';
 import { LibraryService } from '../../../../src/services/library.service';
-
 import { useAccess } from '../../../../src/hooks/useAccess';
 
 const CARD_WIDTH   = (Dimensions.get('window').width - 24 - 12) / 2;
 const COVER_HEIGHT = Math.round(CARD_WIDTH * 1.414);
 
 // ── Couverture livre ──────────────────────────────────────────────────────────
-function BookCover({ uri, title, size = 'card' }: { uri?: string; title: string; size?: 'card' | 'modal' }) {
+function BookCover({ uri, title, size = 'card' }: { uri?: string | null; title: string; size?: 'card' | 'modal' }) {
   const [err, setErr] = useState(false);
   // En mode carte : prend tout le coverWrap (width/height 100%)
   // En mode modal : taille fixe
@@ -62,10 +58,16 @@ function BookCover({ uri, title, size = 'card' }: { uri?: string; title: string;
 }
 
 interface Book {
-  id: string; title: string; author: string; category: string;
-  coverUrl?: string; price: number; pages: number;
-  description?: string; isFree?: boolean;
-  canRead?: boolean; fileUrl?: string;
+  id: string;
+  title: string;
+  author: string;
+  category: string;
+  coverUrl?: string | null;
+  pages: number;
+  description?: string;
+  /** tokenCost=0 → livre gratuit */
+  tokenCost: number;
+  pdfUrl?: string | null;
 }
 
 const CATS = ['Tous', 'Prière', 'Prophétie', 'Sagesse', 'Guérison', 'Formation'];
@@ -89,37 +91,28 @@ export default function LibraryScreen() {
 
   async function loadBooks() {
     try {
-      // Le backend retourne canRead=true si l'utilisateur a accès (abonnement actif)
+      // LibraryService.getAll() retourne déjà coverUrl résolu (URL absolue ou null)
       const raw = await LibraryService.getAll();
-      const normalized: Book[] = raw.map(b => {
-        // Résoudre la couverture : coverUrl > coverImage absolu > coverImage relatif préfixé
-        const rawCover = (b as any).coverUrl ?? b.coverImage ?? null;
-        const coverUrl = rawCover
-          ? (rawCover.startsWith('http') ? rawCover : `${LibraryService.getCoverUrl(rawCover) ?? ''}`)
-          : undefined;
-        return {
-          id: b.id,
-          title: b.title ?? 'Sans titre',
-          author: b.author ?? 'Prophète Georges',
-          category: b.category ?? 'Prière',
-          coverUrl: coverUrl || undefined,
-          price: 0,
-          pages: b.pages ?? 0,
-          description: b.description,
-          isFree: b.isFree ?? false,
-          canRead: b.canRead ?? b.isFree ?? false,
-          fileUrl: b.fileUrl ?? undefined,
-        };
-      });
-      setBooks(normalized.length > 0 ? normalized : DEMO_BOOKS);
+      const mapped: Book[] = raw.map(b => ({
+        id: b.id,
+        title: b.title ?? 'Sans titre',
+        author: b.author ?? 'Prophète Georges',
+        category: b.category ?? 'Prière',
+        coverUrl: b.coverUrl ?? null,
+        pages: b.pages ?? 0,
+        description: b.description,
+        tokenCost: b.tokenCost ?? 0,
+        pdfUrl: b.pdfUrl ?? null,
+      }));
+      setBooks(mapped.length > 0 ? mapped : DEMO_BOOKS);
     } catch {
       setBooks(DEMO_BOOKS);
     }
     setLoading(false);
   }
 
-  // Un livre est accessible si : gratuit, abonnement actif, ou canRead=true (backend)
-  const isAccessible = (b: Book) => b.isFree || b.canRead || hasSubscription;
+  // Accessible si abonnement actif ou livre gratuit (tokenCost=0)
+  const isAccessible = (b: Book) => hasSubscription || b.tokenCost === 0;
 
   // ── Accès refusé → rediriger vers abonnement ──────────────────────────────
   const handleRequestAccess = () => {
@@ -209,7 +202,7 @@ export default function LibraryScreen() {
                       <View style={[s.badge, { backgroundColor: '#10B98118', borderColor: '#10B98140' }]}>
                         <AppIcon icon={CheckCircle2} size={14} color="#10B981" strokeWidth={2.5} />
                         <Text style={{ color: '#10B981', fontWeight: '800', fontSize: 13 }}>
-                          {selectedBook.isFree ? 'Livre gratuit' : 'Inclus dans votre abonnement'}
+                          {selectedBook.tokenCost === 0 ? 'Livre gratuit' : 'Inclus dans votre abonnement'}
                         </Text>
                       </View>
                       <TouchableOpacity
@@ -288,7 +281,7 @@ export default function LibraryScreen() {
                   <View style={[s.lockBadge, { backgroundColor: accessible ? '#10B981DD' : 'rgba(30,10,60,0.85)' }]}>
                     <AppIcon icon={accessible ? Unlock : Lock} size={10} color="#fff" strokeWidth={2.5} />
                     <Text style={s.lockTxt}>
-                      {accessible ? (b.isFree ? 'Gratuit' : 'Inclus') : 'Abonner'}
+                      {accessible ? (b.tokenCost === 0 ? 'Gratuit' : 'Inclus') : 'Abonner'}
                     </Text>
                   </View>
                 </View>
@@ -317,10 +310,10 @@ export default function LibraryScreen() {
 }
 
 const DEMO_BOOKS: Book[] = [
-  { id: '1', title: 'Prières de Percée',        author: 'Prophète Georges', category: 'Prière',    price: 2000, pages: 120 },
-  { id: '2', title: 'Les Secrets Prophétiques',  author: 'Prophète Georges', category: 'Prophétie', price: 3000, pages: 200 },
-  { id: '3', title: 'Sagesse Africaine',         author: 'Prophète Georges', category: 'Sagesse',   price: 1500, pages: 90  },
-  { id: '4', title: 'Guérison Divine',           author: 'Prophète Georges', category: 'Guérison',  price: 2500, pages: 160 },
+  { id: '1', title: 'Prières de Percée',        author: 'Prophète Georges', category: 'Prière',    tokenCost: 100, pages: 120 },
+  { id: '2', title: 'Les Secrets Prophétiques',  author: 'Prophète Georges', category: 'Prophétie', tokenCost: 100, pages: 200 },
+  { id: '3', title: 'Sagesse Africaine',         author: 'Prophète Georges', category: 'Sagesse',   tokenCost: 0,   pages: 90  },
+  { id: '4', title: 'Guérison Divine',           author: 'Prophète Georges', category: 'Guérison',  tokenCost: 100, pages: 160 },
 ];
 
 const s = StyleSheet.create({

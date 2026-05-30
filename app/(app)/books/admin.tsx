@@ -16,8 +16,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import {
-  Archive, BookOpen, Camera, CheckCircle, Clock,
-  Edit2, Eye, FilePlus, RefreshCw, Trash2, Upload, X,
+  Archive, BookOpen, Edit2, Eye, FilePlus, RefreshCw, Trash2, X,
 } from 'lucide-react-native';
 import { AppIcon } from '../../../src/components/common/AppIcon';
 import { BackButton } from '../../../src/components/common/BackButton';
@@ -30,25 +29,16 @@ import {
   LibraryService,
 } from '../../../src/services/library.service';
 import { useTheme } from '../../../src/theme';
-import { Env } from '../../../src/utils/env';
-
-function buildCoverUrl(coverImage?: string): string | null {
-  if (!coverImage) return null;
-  if (coverImage.startsWith('http')) return coverImage;
-  // chemin relatif /api/v1/... → préfixer avec la base API
-  return Env.API_BASE_URL() + coverImage;
-}
 
 /* ─── Helpers ─────────────────────────────────────────────────────────────── */
 
 const STATUS_CFG: Record<LibraryBookStatus, { label: string; color: string; bg: string }> = {
-  draft:     { label: 'Brouillon',  color: '#F59E0B', bg: 'rgba(245,158,11,0.15)' },
-  published: { label: 'Publié',     color: '#10B981', bg: 'rgba(16,185,129,0.15)' },
-  archived:  { label: 'Archivé',    color: '#9CA3AF', bg: 'rgba(156,163,175,0.15)' },
+  active:   { label: 'Actif',    color: '#10B981', bg: 'rgba(16,185,129,0.15)' },
+  inactive: { label: 'Inactif',  color: '#9CA3AF', bg: 'rgba(156,163,175,0.15)' },
 };
 
 function StatusBadge({ status }: { status: LibraryBookStatus }) {
-  const cfg = STATUS_CFG[status] ?? STATUS_CFG.draft;
+  const cfg = STATUS_CFG[status] ?? STATUS_CFG.inactive;
   return (
     <View style={[styles.badge, { backgroundColor: cfg.bg }]}>
       <Text style={[styles.badgeText, { color: cfg.color }]}>{cfg.label}</Text>
@@ -68,92 +58,37 @@ function AddBookModal({ visible, onClose, onCreated }: AddBookModalProps) {
   const { colors, spacing } = useTheme();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const [title,        setTitle]        = useState('');
-  const [author,       setAuthor]       = useState('');
-  const [description,  setDescription]  = useState('');
-  const [category,     setCategory]     = useState('');
-  const [isFree,       setIsFree]       = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [coverFile,    setCoverFile]    = useState<File | null>(null);
-  const [coverPreview, setCoverPreview] = useState<string | null>(null);
-  const [saving,       setSaving]       = useState(false);
+  const [title,       setTitle]       = useState('');
+  const [author,      setAuthor]      = useState('');
+  const [description, setDescription] = useState('');
+  const [category,    setCategory]    = useState('');
+  const [tokenCost,   setTokenCost]   = useState('100');
+  const [coverUrl,    setCoverUrl]    = useState('');
+  const [pdfUrl,      setPdfUrl]      = useState('');
+  const [saving,      setSaving]      = useState(false);
 
   function reset() {
     setTitle(''); setAuthor(''); setDescription('');
-    setCategory(''); setIsFree(false);
-    setSelectedFile(null); setCoverFile(null); setCoverPreview(null);
+    setCategory(''); setTokenCost('100'); setCoverUrl(''); setPdfUrl('');
   }
 
-  function handleClose() {
-    reset();
-    onClose();
-  }
+  function handleClose() { reset(); onClose(); }
 
-  /* ── Sélection de la couverture ── */
-  function pickCover() {
-    if (Platform.OS === 'web') {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/jpeg,image/png,image/webp';
-      input.onchange = (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
-        if (file) {
-          setCoverFile(file);
-          setCoverPreview(URL.createObjectURL(file));
-        }
-      };
-      input.click();
-    } else {
-      Alert.alert('Non disponible', 'Le chargement d\'images n\'est disponible que depuis le navigateur web.');
-    }
-  }
-
-  /* ── Sélection du fichier PDF ── */
-  function pickFile() {
-    if (Platform.OS === 'web') {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = '.pdf,application/pdf';
-      input.onchange = (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
-        if (file) setSelectedFile(file);
-      };
-      input.click();
-    } else {
-      Alert.alert('Non disponible', 'Le chargement de fichiers PDF n\'est disponible que depuis le navigateur web.');
-    }
-  }
-
-  /* ── Enregistrer ── */
   async function handleSave() {
-    if (!title.trim()) {
-      Alert.alert('Champ requis', 'Le titre est obligatoire.');
-      return;
-    }
-    if (!selectedFile) {
-      Alert.alert('Fichier requis', 'Veuillez sélectionner un fichier PDF.');
-      return;
-    }
-
+    if (!title.trim()) { Alert.alert('Champ requis', 'Le titre est obligatoire.'); return; }
     setSaving(true);
     const payload: CreateBookPayload = {
       title:       title.trim(),
       author:      author.trim()      || undefined,
       description: description.trim() || undefined,
       category:    category.trim()    || undefined,
-      isFree,
-      file:        selectedFile,
-      coverFile:   coverFile ?? undefined,
+      tokenCost:   parseInt(tokenCost) || 0,
+      coverUrl:    coverUrl.trim()    || undefined,
+      pdfUrl:      pdfUrl.trim()      || undefined,
     };
-
     const { error } = await LibraryService.createBook(payload);
     setSaving(false);
-
-    if (error) {
-      Alert.alert('Erreur', error);
-      return;
-    }
-
+    if (error) { Alert.alert('Erreur', error); return; }
     reset();
     onCreated();
   }
@@ -166,7 +101,6 @@ function AddBookModal({ visible, onClose, onCreated }: AddBookModalProps) {
       <View style={[styles.sheet, { backgroundColor: colors.background }]}>
         <View style={[styles.handle, { backgroundColor: colors.border }]} />
 
-        {/* Header */}
         <View style={[styles.sheetHeader, { borderBottomColor: colors.border }]}>
           <Text style={[styles.sheetTitle, { color: colors.text }]}>Ajouter un livre</Text>
           <TouchableOpacity onPress={handleClose}>
@@ -179,141 +113,38 @@ function AddBookModal({ visible, onClose, onCreated }: AddBookModalProps) {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          {[
+            { label: 'Titre *',        value: title,       set: setTitle,       placeholder: 'Ex : La Vie de Foi' },
+            { label: 'Auteur',         value: author,      set: setAuthor,      placeholder: 'Ex : Prophète Georges' },
+            { label: 'Catégorie',      value: category,    set: setCategory,    placeholder: 'Ex : Spiritualité, Prière…' },
+            { label: 'URL couverture', value: coverUrl,    set: setCoverUrl,    placeholder: 'https://…/cover.jpg' },
+            { label: 'URL PDF',        value: pdfUrl,      set: setPdfUrl,      placeholder: 'https://…/livre.pdf' },
+          ].map(({ label, value, set, placeholder }) => (
+            <View key={label} style={{ gap: 4 }}>
+              <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
+              <TextInput style={fieldStyle} value={value} onChangeText={set}
+                placeholder={placeholder} placeholderTextColor={colors.textSecondary}
+                autoCapitalize="none" />
+            </View>
+          ))}
 
-          {/* Titre */}
-          <View style={{ gap: 4 }}>
-            <Text style={[styles.label, { color: colors.text }]}>Titre <Text style={{ color: '#EF4444' }}>*</Text></Text>
-            <TextInput
-              style={fieldStyle}
-              value={title}
-              onChangeText={setTitle}
-              placeholder="Ex : La Vie de Foi"
-              placeholderTextColor={colors.textSecondary}
-            />
-          </View>
-
-          {/* Auteur */}
-          <View style={{ gap: 4 }}>
-            <Text style={[styles.label, { color: colors.text }]}>Auteur</Text>
-            <TextInput
-              style={fieldStyle}
-              value={author}
-              onChangeText={setAuthor}
-              placeholder="Ex : Prophète Georges Tchingankong"
-              placeholderTextColor={colors.textSecondary}
-            />
-          </View>
-
-          {/* Catégorie */}
-          <View style={{ gap: 4 }}>
-            <Text style={[styles.label, { color: colors.text }]}>Catégorie</Text>
-            <TextInput
-              style={fieldStyle}
-              value={category}
-              onChangeText={setCategory}
-              placeholder="Ex : Spiritualité, Prière…"
-              placeholderTextColor={colors.textSecondary}
-            />
-          </View>
-
-          {/* Description */}
           <View style={{ gap: 4 }}>
             <Text style={[styles.label, { color: colors.text }]}>Description</Text>
-            <TextInput
-              style={[fieldStyle, { height: 90, textAlignVertical: 'top', paddingTop: 12 }]}
-              value={description}
-              onChangeText={setDescription}
-              placeholder="Résumé du livre…"
-              placeholderTextColor={colors.textSecondary}
-              multiline
-            />
+            <TextInput style={[fieldStyle, { height: 90, textAlignVertical: 'top', paddingTop: 12 }]}
+              value={description} onChangeText={setDescription} multiline
+              placeholder="Résumé du livre…" placeholderTextColor={colors.textSecondary} />
           </View>
 
-          {/* Image de couverture — upload fichier */}
-          <View style={{ gap: 6 }}>
-            <Text style={[styles.label, { color: colors.text }]}>Image de couverture</Text>
-
-            {/* Prévisualisation */}
-            {coverPreview ? (
-              <View style={{ position: 'relative', alignSelf: 'flex-start' }}>
-                <Image
-                  source={{ uri: coverPreview }}
-                  style={{ width: 90, height: 120, borderRadius: 10, backgroundColor: colors.surface }}
-                  resizeMode="cover"
-                />
-                <TouchableOpacity
-                  onPress={() => { setCoverFile(null); setCoverPreview(null); }}
-                  style={{
-                    position: 'absolute', top: -6, right: -6,
-                    width: 22, height: 22, borderRadius: 11,
-                    backgroundColor: '#EF4444', alignItems: 'center', justifyContent: 'center',
-                  }}
-                >
-                  <AppIcon icon={X} size={12} color="#fff" strokeWidth={3} />
-                </TouchableOpacity>
-              </View>
-            ) : null}
-
-            <TouchableOpacity
-              onPress={pickCover}
-              style={[styles.fileBtn, { borderColor: coverFile ? '#10B981' : colors.border, backgroundColor: colors.surface }]}
-            >
-              <AppIcon
-                icon={coverFile ? CheckCircle : Camera}
-                size={20}
-                color={coverFile ? '#10B981' : colors.textSecondary}
-                strokeWidth={2}
-              />
-              <Text style={{ flex: 1, color: coverFile ? '#10B981' : colors.textSecondary, fontSize: 13 }} numberOfLines={1}>
-                {coverFile ? coverFile.name : 'Choisir une image (JPEG / PNG / WebP)…'}
-              </Text>
-            </TouchableOpacity>
+          <View style={{ gap: 4 }}>
+            <Text style={[styles.label, { color: colors.text }]}>Coût (crédits) — 0 = gratuit</Text>
+            <TextInput style={fieldStyle} value={tokenCost} onChangeText={setTokenCost}
+              keyboardType="number-pad" placeholderTextColor={colors.textSecondary} />
           </View>
 
-          {/* Accès libre */}
-          <TouchableOpacity
-            onPress={() => setIsFree(!isFree)}
-            style={[styles.toggleRow, { backgroundColor: colors.surface, borderColor: colors.border }]}
-          >
-            <View style={{ flex: 1 }}>
-              <Text style={[{ fontSize: 14, fontWeight: '600', color: colors.text }]}>Accès libre (gratuit)</Text>
-              <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2 }}>
-                {isFree ? 'Tous les utilisateurs peuvent lire ce livre' : 'Réservé aux abonnés premium'}
-              </Text>
-            </View>
-            <View style={[styles.toggle, { backgroundColor: isFree ? '#10B981' : colors.border }]}>
-              <View style={[styles.toggleThumb, { transform: [{ translateX: isFree ? 18 : 2 }] }]} />
-            </View>
-          </TouchableOpacity>
-
-          {/* Fichier PDF */}
-          <View style={{ gap: 6 }}>
-            <Text style={[styles.label, { color: colors.text }]}>Fichier PDF <Text style={{ color: '#EF4444' }}>*</Text></Text>
-            <TouchableOpacity
-              onPress={pickFile}
-              style={[styles.fileBtn, { borderColor: selectedFile ? '#10B981' : colors.border, backgroundColor: colors.surface }]}
-            >
-              <AppIcon
-                icon={selectedFile ? CheckCircle : Upload}
-                size={20}
-                color={selectedFile ? '#10B981' : colors.textSecondary}
-                strokeWidth={2}
-              />
-              <Text style={{ flex: 1, color: selectedFile ? '#10B981' : colors.textSecondary, fontSize: 13 }} numberOfLines={1}>
-                {selectedFile ? selectedFile.name : 'Choisir un fichier PDF…'}
-              </Text>
-              {selectedFile && (
-                <TouchableOpacity onPress={() => setSelectedFile(null)}>
-                  <AppIcon icon={X} size={16} color={colors.textSecondary} strokeWidth={2.5} />
-                </TouchableOpacity>
-              )}
-            </TouchableOpacity>
-            {Platform.OS !== 'web' && (
-              <Text style={{ fontSize: 11, color: colors.textTertiary }}>
-                Le chargement de PDF est disponible uniquement depuis le navigateur web.
-              </Text>
-            )}
-          </View>
+          {/* Aperçu couverture */}
+          {coverUrl ? (
+            <Image source={{ uri: coverUrl }} style={{ width: 80, height: 110, borderRadius: 8 }} resizeMode="cover" />
+          ) : null}
 
           {/* Bouton enregistrer */}
           <Button
@@ -345,69 +176,23 @@ function EditBookModal({ book, onClose, onSaved }: EditBookModalProps) {
   const [author,       setAuthor]       = useState('');
   const [description,  setDescription]  = useState('');
   const [category,     setCategory]     = useState('');
-  const [isFree,       setIsFree]       = useState(false);
-  const [coverFile,    setCoverFile]    = useState<File | null>(null);
-  const [coverPreview, setCoverPreview] = useState<string | null>(null);
-  const [pdfFile,      setPdfFile]      = useState<File | null>(null);
-  const [saving,       setSaving]       = useState(false);
+  const [tokenCost,   setTokenCost]   = useState('100');
+  const [coverUrl,    setCoverUrl]    = useState('');
+  const [pdfUrl,      setPdfUrl]      = useState('');
+  const [saving,      setSaving]      = useState(false);
 
-  // Pré-remplir à chaque ouverture
   useEffect(() => {
     if (book) {
       setTitle(book.title ?? '');
       setAuthor(book.author ?? '');
       setDescription(book.description ?? '');
       setCategory(book.category ?? '');
-      setIsFree(book.isFree ?? false);
-      // Reset fichiers locaux (on repart de zéro à chaque ouverture)
-      setCoverFile(null);
-      setCoverPreview(null);
-      setPdfFile(null);
+      setTokenCost(String(book.tokenCost ?? 100));
+      setCoverUrl(book.coverUrl ?? '');
+      setPdfUrl(book.pdfUrl ?? '');
     }
   }, [book]);
 
-  /* ── Couverture ── */
-  function pickCover() {
-    if (Platform.OS === 'web') {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/jpeg,image/png,image/webp';
-      input.onchange = (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
-        if (file) {
-          setCoverFile(file);
-          setCoverPreview(URL.createObjectURL(file));
-        }
-      };
-      input.click();
-    } else {
-      Alert.alert('Non disponible', 'Le chargement d\'images n\'est disponible que depuis le navigateur web.');
-    }
-  }
-
-  function removeCover() {
-    setCoverFile(null);
-    if (coverPreview) { URL.revokeObjectURL(coverPreview); }
-    setCoverPreview(null);
-  }
-
-  /* ── PDF ── */
-  function pickPdf() {
-    if (Platform.OS === 'web') {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = '.pdf,application/pdf';
-      input.onchange = (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
-        if (file) setPdfFile(file);
-      };
-      input.click();
-    } else {
-      Alert.alert('Non disponible', 'Le chargement de PDF n\'est disponible que depuis le navigateur web.');
-    }
-  }
-
-  /* ── Enregistrer ── */
   async function handleSave() {
     if (!book) return;
     if (!title.trim()) { Alert.alert('Champ requis', 'Le titre est obligatoire.'); return; }
@@ -417,19 +202,15 @@ function EditBookModal({ book, onClose, onSaved }: EditBookModalProps) {
       author:      author.trim()      || undefined,
       description: description.trim() || undefined,
       category:    category.trim()    || undefined,
-      isFree,
-      coverFile:   coverFile  ?? undefined,
-      pdfFile:     pdfFile    ?? undefined,
+      tokenCost:   parseInt(tokenCost) || 0,
+      coverUrl:    coverUrl.trim()    || undefined,
+      pdfUrl:      pdfUrl.trim()      || undefined,
     });
     setSaving(false);
     if (error) { Alert.alert('Erreur', error); return; }
     if (data) onSaved(data);
     onClose();
   }
-
-  // Couverture actuelle (déjà enregistrée)
-  const existingCoverUrl = book ? buildCoverUrl(book.coverImage) : null;
-  const displayCover     = coverPreview ?? existingCoverUrl;
 
   const visible    = !!book;
   const fieldStyle = [styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }];
@@ -459,143 +240,37 @@ function EditBookModal({ book, onClose, onSaved }: EditBookModalProps) {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Titre */}
-          <View style={{ gap: 4 }}>
-            <Text style={[styles.label, { color: colors.text }]}>Titre <Text style={{ color: '#EF4444' }}>*</Text></Text>
-            <TextInput style={fieldStyle} value={title} onChangeText={setTitle}
-              placeholder="Titre du livre" placeholderTextColor={colors.textSecondary} />
-          </View>
+          {[
+            { label: 'Titre *',        value: title,       set: setTitle,       placeholder: 'Titre du livre' },
+            { label: 'Auteur',         value: author,      set: setAuthor,      placeholder: "Nom de l'auteur" },
+            { label: 'Catégorie',      value: category,    set: setCategory,    placeholder: 'Ex : Spiritualité, Prière…' },
+            { label: 'URL couverture', value: coverUrl,    set: setCoverUrl,    placeholder: 'https://…/cover.jpg' },
+            { label: 'URL PDF',        value: pdfUrl,      set: setPdfUrl,      placeholder: 'https://…/livre.pdf' },
+          ].map(({ label, value, set, placeholder }) => (
+            <View key={label} style={{ gap: 4 }}>
+              <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
+              <TextInput style={fieldStyle} value={value} onChangeText={set}
+                placeholder={placeholder} placeholderTextColor={colors.textSecondary}
+                autoCapitalize="none" />
+            </View>
+          ))}
 
-          {/* Auteur */}
-          <View style={{ gap: 4 }}>
-            <Text style={[styles.label, { color: colors.text }]}>Auteur</Text>
-            <TextInput style={fieldStyle} value={author} onChangeText={setAuthor}
-              placeholder="Nom de l'auteur" placeholderTextColor={colors.textSecondary} />
-          </View>
-
-          {/* Catégorie */}
-          <View style={{ gap: 4 }}>
-            <Text style={[styles.label, { color: colors.text }]}>Catégorie</Text>
-            <TextInput style={fieldStyle} value={category} onChangeText={setCategory}
-              placeholder="Ex : Spiritualité, Prière…" placeholderTextColor={colors.textSecondary} />
-          </View>
-
-          {/* Description */}
           <View style={{ gap: 4 }}>
             <Text style={[styles.label, { color: colors.text }]}>Description</Text>
-            <TextInput
-              style={[fieldStyle, { height: 90, textAlignVertical: 'top', paddingTop: 12 }]}
+            <TextInput style={[fieldStyle, { height: 90, textAlignVertical: 'top', paddingTop: 12 }]}
               value={description} onChangeText={setDescription} multiline
-              placeholder="Résumé du livre…" placeholderTextColor={colors.textSecondary}
-            />
+              placeholder="Résumé du livre…" placeholderTextColor={colors.textSecondary} />
           </View>
 
-          {/* Image de couverture */}
-          <View style={{ gap: 6 }}>
-            <Text style={[styles.label, { color: colors.text }]}>Image de couverture</Text>
-
-            {/* Prévisualisation (existante ou nouvelle) */}
-            {displayCover ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <View style={{ position: 'relative' }}>
-                  <Image
-                    source={{ uri: displayCover }}
-                    style={{ width: 72, height: 96, borderRadius: 8, backgroundColor: colors.surface }}
-                    resizeMode="cover"
-                  />
-                  {/* Supprimer la nouvelle couverture sélectionnée */}
-                  {coverFile && (
-                    <TouchableOpacity
-                      onPress={removeCover}
-                      style={{
-                        position: 'absolute', top: -6, right: -6,
-                        width: 20, height: 20, borderRadius: 10,
-                        backgroundColor: '#EF4444', alignItems: 'center', justifyContent: 'center',
-                      }}
-                    >
-                      <AppIcon icon={X} size={11} color="#fff" strokeWidth={3} />
-                    </TouchableOpacity>
-                  )}
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 12, color: coverFile ? '#10B981' : colors.textSecondary }}>
-                    {coverFile ? coverFile.name : 'Couverture actuelle'}
-                  </Text>
-                  <TouchableOpacity
-                    onPress={pickCover}
-                    style={[
-                      styles.actionBtn,
-                      { backgroundColor: 'rgba(201,168,76,0.12)', borderColor: '#C9A84C', marginTop: 8, alignSelf: 'flex-start' },
-                    ]}
-                  >
-                    <AppIcon icon={Camera} size={13} color="#C9A84C" strokeWidth={2.5} />
-                    <Text style={[styles.actionBtnText, { color: '#C9A84C' }]}>Changer</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ) : (
-              <TouchableOpacity
-                onPress={pickCover}
-                style={[styles.fileBtn, { borderColor: colors.border, backgroundColor: colors.surface }]}
-              >
-                <AppIcon icon={Camera} size={20} color={colors.textSecondary} strokeWidth={2} />
-                <Text style={{ flex: 1, color: colors.textSecondary, fontSize: 13 }}>
-                  Choisir une image (JPEG / PNG / WebP)…
-                </Text>
-              </TouchableOpacity>
-            )}
+          <View style={{ gap: 4 }}>
+            <Text style={[styles.label, { color: colors.text }]}>Coût (crédits) — 0 = gratuit</Text>
+            <TextInput style={fieldStyle} value={tokenCost} onChangeText={setTokenCost}
+              keyboardType="number-pad" placeholderTextColor={colors.textSecondary} />
           </View>
 
-          {/* Fichier PDF */}
-          <View style={{ gap: 6 }}>
-            <Text style={[styles.label, { color: colors.text }]}>Remplacer le PDF</Text>
-            <TouchableOpacity
-              onPress={pickPdf}
-              style={[
-                styles.fileBtn,
-                { borderColor: pdfFile ? '#10B981' : colors.border, backgroundColor: colors.surface },
-              ]}
-            >
-              <AppIcon
-                icon={pdfFile ? CheckCircle : Upload}
-                size={20}
-                color={pdfFile ? '#10B981' : colors.textSecondary}
-                strokeWidth={2}
-              />
-              <Text
-                style={{ flex: 1, color: pdfFile ? '#10B981' : colors.textSecondary, fontSize: 13 }}
-                numberOfLines={1}
-              >
-                {pdfFile ? pdfFile.name : book?.hasPdf ? 'PDF actuel conservé — cliquer pour remplacer' : 'Choisir un fichier PDF…'}
-              </Text>
-              {pdfFile && (
-                <TouchableOpacity onPress={() => setPdfFile(null)}>
-                  <AppIcon icon={X} size={16} color={colors.textSecondary} strokeWidth={2.5} />
-                </TouchableOpacity>
-              )}
-            </TouchableOpacity>
-            {Platform.OS !== 'web' && (
-              <Text style={{ fontSize: 11, color: colors.textTertiary }}>
-                Le chargement de PDF est disponible uniquement depuis le navigateur web.
-              </Text>
-            )}
-          </View>
-
-          {/* Accès */}
-          <TouchableOpacity
-            onPress={() => setIsFree(!isFree)}
-            style={[styles.toggleRow, { backgroundColor: colors.surface, borderColor: colors.border }]}
-          >
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text }}>Accès libre (gratuit)</Text>
-              <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2 }}>
-                {isFree ? 'Tous les utilisateurs peuvent lire ce livre' : 'Réservé aux abonnés premium'}
-              </Text>
-            </View>
-            <View style={[styles.toggle, { backgroundColor: isFree ? '#10B981' : colors.border }]}>
-              <View style={[styles.toggleThumb, { transform: [{ translateX: isFree ? 18 : 2 }] }]} />
-            </View>
-          </TouchableOpacity>
+          {coverUrl ? (
+            <Image source={{ uri: coverUrl }} style={{ width: 72, height: 96, borderRadius: 8 }} resizeMode="cover" />
+          ) : null}
 
           <Button
             label={saving ? 'Enregistrement…' : 'Enregistrer les modifications'}
@@ -627,50 +302,34 @@ function BookCard({ book, onStatusChange, onEdit, onDelete }: BookCardProps) {
     setLoading(false);
   }
 
-  const coverUrl = buildCoverUrl(book.coverImage);
-
   return (
     <Card style={{ marginBottom: 10 }} padding="none">
       <View style={{ padding: 14 }}>
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
-          {/* Couverture ou icône */}
-          {coverUrl ? (
-            <Image
-              source={{ uri: coverUrl }}
-              style={[styles.bookIcon, { borderRadius: 10 }]}
-              resizeMode="cover"
-            />
+          {book.coverUrl ? (
+            <Image source={{ uri: book.coverUrl }} style={[styles.bookIcon, { borderRadius: 10 }]} resizeMode="cover" />
           ) : (
             <View style={[styles.bookIcon, { backgroundColor: 'rgba(201,168,76,0.12)', alignItems: 'center', justifyContent: 'center' }]}>
               <AppIcon icon={BookOpen} size={22} color="#C9A84C" strokeWidth={2} />
             </View>
           )}
 
-          {/* Infos */}
           <View style={{ flex: 1, gap: 2 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Text style={{ fontSize: 14, fontWeight: '700', color: colors.text, flex: 1 }} numberOfLines={1}>
                 {book.title}
               </Text>
-              {loading ? (
-                <ActivityIndicator size="small" color="#C9A84C" />
-              ) : (
-                <StatusBadge status={book.status} />
-              )}
+              {loading ? <ActivityIndicator size="small" color="#C9A84C" /> : <StatusBadge status={book.status} />}
             </View>
-            {book.author ? (
-              <Text style={{ fontSize: 12, color: colors.textSecondary }}>{book.author}</Text>
-            ) : null}
-            {book.category ? (
-              <Text style={{ fontSize: 11, color: colors.textTertiary }}>{book.category}</Text>
-            ) : null}
+            {book.author   ? <Text style={{ fontSize: 12, color: colors.textSecondary }}>{book.author}</Text>   : null}
+            {book.category ? <Text style={{ fontSize: 11, color: colors.textTertiary }}>{book.category}</Text> : null}
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
-              <View style={[styles.pill, { backgroundColor: book.isFree ? 'rgba(16,185,129,0.12)' : 'rgba(201,168,76,0.12)' }]}>
-                <Text style={{ fontSize: 10, fontWeight: '700', color: book.isFree ? '#10B981' : '#C9A84C' }}>
-                  {book.isFree ? 'GRATUIT' : 'PREMIUM'}
+              <View style={[styles.pill, { backgroundColor: book.tokenCost === 0 ? 'rgba(16,185,129,0.12)' : 'rgba(201,168,76,0.12)' }]}>
+                <Text style={{ fontSize: 10, fontWeight: '700', color: book.tokenCost === 0 ? '#10B981' : '#C9A84C' }}>
+                  {book.tokenCost === 0 ? 'GRATUIT' : `${book.tokenCost} CR`}
                 </Text>
               </View>
-              {book.hasPdf ? (
+              {book.pdfUrl ? (
                 <View style={[styles.pill, { backgroundColor: 'rgba(99,102,241,0.12)' }]}>
                   <Text style={{ fontSize: 10, fontWeight: '700', color: '#6366F1' }}>PDF</Text>
                 </View>
@@ -679,50 +338,31 @@ function BookCard({ book, onStatusChange, onEdit, onDelete }: BookCardProps) {
           </View>
         </View>
 
-        {/* ── Boutons d'action ── */}
         {!loading && (
           <View style={styles.actionRow}>
-            {/* Modifier */}
-            <TouchableOpacity
-              onPress={() => onEdit(book)}
-              style={[styles.actionBtn, { backgroundColor: 'rgba(99,102,241,0.12)', borderColor: '#6366F1' }]}
-            >
+            <TouchableOpacity onPress={() => onEdit(book)}
+              style={[styles.actionBtn, { backgroundColor: 'rgba(99,102,241,0.12)', borderColor: '#6366F1' }]}>
               <AppIcon icon={Edit2} size={13} color="#6366F1" strokeWidth={2.5} />
               <Text style={[styles.actionBtnText, { color: '#6366F1' }]}>Modifier</Text>
             </TouchableOpacity>
 
-            {book.status !== 'published' && (
-              <TouchableOpacity
-                onPress={() => handleToggle('published')}
-                style={[styles.actionBtn, { backgroundColor: 'rgba(16,185,129,0.12)', borderColor: '#10B981' }]}
-              >
+            {book.status !== 'active' && (
+              <TouchableOpacity onPress={() => handleToggle('active')}
+                style={[styles.actionBtn, { backgroundColor: 'rgba(16,185,129,0.12)', borderColor: '#10B981' }]}>
                 <AppIcon icon={Eye} size={13} color="#10B981" strokeWidth={2.5} />
-                <Text style={[styles.actionBtnText, { color: '#10B981' }]}>Publier</Text>
+                <Text style={[styles.actionBtnText, { color: '#10B981' }]}>Activer</Text>
               </TouchableOpacity>
             )}
-            {book.status !== 'draft' && (
-              <TouchableOpacity
-                onPress={() => handleToggle('draft')}
-                style={[styles.actionBtn, { backgroundColor: 'rgba(245,158,11,0.12)', borderColor: '#F59E0B' }]}
-              >
-                <AppIcon icon={Clock} size={13} color="#F59E0B" strokeWidth={2.5} />
-                <Text style={[styles.actionBtnText, { color: '#F59E0B' }]}>Brouillon</Text>
-              </TouchableOpacity>
-            )}
-            {book.status !== 'archived' && (
-              <TouchableOpacity
-                onPress={() => handleToggle('archived')}
-                style={[styles.actionBtn, { backgroundColor: 'rgba(156,163,175,0.12)', borderColor: '#9CA3AF' }]}
-              >
+            {book.status !== 'inactive' && (
+              <TouchableOpacity onPress={() => handleToggle('inactive')}
+                style={[styles.actionBtn, { backgroundColor: 'rgba(156,163,175,0.12)', borderColor: '#9CA3AF' }]}>
                 <AppIcon icon={Archive} size={13} color="#9CA3AF" strokeWidth={2.5} />
-                <Text style={[styles.actionBtnText, { color: '#9CA3AF' }]}>Archiver</Text>
+                <Text style={[styles.actionBtnText, { color: '#9CA3AF' }]}>Désactiver</Text>
               </TouchableOpacity>
             )}
-            {/* Supprimer définitivement */}
-            <TouchableOpacity
-              onPress={() => onDelete(book)}
-              style={[styles.actionBtn, { backgroundColor: 'rgba(239,68,68,0.10)', borderColor: '#EF4444' }]}
-            >
+
+            <TouchableOpacity onPress={() => onDelete(book)}
+              style={[styles.actionBtn, { backgroundColor: 'rgba(239,68,68,0.10)', borderColor: '#EF4444' }]}>
               <AppIcon icon={Trash2} size={13} color="#EF4444" strokeWidth={2.5} />
               <Text style={[styles.actionBtnText, { color: '#EF4444' }]}>Supprimer</Text>
             </TouchableOpacity>
@@ -821,37 +461,25 @@ export default function AdminBooksScreen() {
           </View>
         ) : (
           <>
-            {/* Publiés */}
-            {byStatus('published').length > 0 && (
+            {/* Actifs */}
+            {byStatus('active').length > 0 && (
               <View style={{ marginBottom: 20 }}>
                 <Text style={[styles.sectionTitle, { color: '#10B981' }]}>
-                  Publiés ({byStatus('published').length})
+                  Actifs ({byStatus('active').length})
                 </Text>
-                {byStatus('published').map((b) => (
+                {byStatus('active').map((b) => (
                   <BookCard key={b.id} book={b} onStatusChange={handleStatusChange} onEdit={setEditBook} onDelete={handleDeleteBook} />
                 ))}
               </View>
             )}
 
-            {/* Brouillons */}
-            {byStatus('draft').length > 0 && (
-              <View style={{ marginBottom: 20 }}>
-                <Text style={[styles.sectionTitle, { color: '#F59E0B' }]}>
-                  Brouillons ({byStatus('draft').length})
-                </Text>
-                {byStatus('draft').map((b) => (
-                  <BookCard key={b.id} book={b} onStatusChange={handleStatusChange} onEdit={setEditBook} onDelete={handleDeleteBook} />
-                ))}
-              </View>
-            )}
-
-            {/* Archivés */}
-            {byStatus('archived').length > 0 && (
+            {/* Inactifs */}
+            {byStatus('inactive').length > 0 && (
               <View style={{ marginBottom: 20 }}>
                 <Text style={[styles.sectionTitle, { color: colors.textTertiary }]}>
-                  Archivés ({byStatus('archived').length})
+                  Inactifs ({byStatus('inactive').length})
                 </Text>
-                {byStatus('archived').map((b) => (
+                {byStatus('inactive').map((b) => (
                   <BookCard key={b.id} book={b} onStatusChange={handleStatusChange} onEdit={setEditBook} onDelete={handleDeleteBook} />
                 ))}
               </View>

@@ -1,190 +1,107 @@
 import { http, ApiError } from './http.client';
-import { StorageService } from './storage.service';
-import { STORAGE_KEYS } from '../utils/constants';
 import { Env } from '../utils/env';
 
-const apiBaseUrl = () => Env.API_BASE_URL() + '/api/v1';
+/**
+ * Statuts réels en base : 'active' | 'inactive'
+ * (le backend filtre getAll() sur status='active')
+ */
+export type LibraryBookStatus = 'active' | 'inactive';
 
-export type LibraryBookStatus = 'draft' | 'published' | 'archived';
-
+/**
+ * Correspond exactement à l'entité `library_books` du backend.
+ */
 export interface LibraryBook {
   id: string;
   title: string;
   author?: string;
   description?: string;
-  coverImage?: string;
+  /** URL absolue de la couverture (champ DB : coverUrl) */
+  coverUrl?: string | null;
   category?: string;
   pages?: number;
-  fileUrl?: string | null;
-  fileName?: string | null;
-  mimeType?: string;
+  /** URL du fichier PDF (champ DB : pdfUrl) */
+  pdfUrl?: string | null;
+  tokenCost: number;
   status: LibraryBookStatus;
-  isFree: boolean;
-  isPremium: boolean;
-  isLocked: boolean;
-  canRead: boolean;
-  hasPdf: boolean;
   createdAt?: string;
-  updatedAt?: string;
 }
 
 export interface CreateBookPayload {
   title: string;
   author?: string;
   description?: string;
-  coverImage?: string;
-  /** Image de couverture uploadée (fichier) */
-  coverFile?: File;
+  coverUrl?: string;
   category?: string;
   pages?: number;
-  order?: number;
-  isFree?: boolean;
-  /** Fichier PDF sélectionné (web : File, mobile : { uri, name, type }) */
-  file?: File | { uri: string; name: string; type: string };
+  tokenCost?: number;
+  pdfUrl?: string;
+  status?: LibraryBookStatus;
 }
 
 export const LibraryService = {
-  getFileUrl(bookId: string): string {
-    return `${apiBaseUrl()}/library/${bookId}/file`;
+  /**
+   * Résout une URL de couverture :
+   * - URL absolue → retournée telle quelle
+   * - Chemin relatif → préfixé avec l'API base URL
+   * - Absent → null
+   */
+  resolveCoverUrl(raw?: string | null): string | null {
+    if (!raw) return null;
+    if (raw.startsWith('http')) return raw;
+    return `${Env.API_BASE_URL()}${raw}`;
   },
 
-  /** Construit l'URL complète d'une couverture.
-   *  - Si coverImage est déjà une URL absolue (http…) → retourne telle quelle
-   *  - Si c'est un chemin relatif (/api/v1/…) → préfixe avec l'API base URL
-   *  - Si absent → null
-   */
-  getCoverUrl(coverImage?: string | null): string | null {
-    if (!coverImage) return null;
-    if (coverImage.startsWith('http')) return coverImage;
-    return `${Env.API_BASE_URL()}${coverImage}`;
+  /** URL de lecture du PDF */
+  getPdfUrl(book: LibraryBook): string | null {
+    if (!book.pdfUrl) return null;
+    if (book.pdfUrl.startsWith('http')) return book.pdfUrl;
+    return `${Env.API_BASE_URL()}${book.pdfUrl}`;
   },
 
   async getAll(category?: string): Promise<LibraryBook[]> {
     const query = category ? `?category=${encodeURIComponent(category)}` : '';
     try {
       const books = await http.get<any[]>(`/library${query}`);
-      return books.map((book) => {
-        // Normaliser coverImage : accepter coverUrl ou coverImage du backend
-        const rawCover = book.coverUrl ?? book.coverImage ?? null;
-        const coverImage = rawCover
-          ? (rawCover.startsWith('http') ? rawCover : `${Env.API_BASE_URL()}${rawCover}`)
-          : undefined;
-        return {
-          ...book,
-          coverImage,
-          fileUrl: book.fileUrl ?? LibraryService.getFileUrl(book.id),
-        };
-      });
+      return books.map((b) => ({
+        ...b,
+        coverUrl: LibraryService.resolveCoverUrl(b.coverUrl),
+        pdfUrl: b.pdfUrl ?? null,
+      }));
     } catch {
       return [];
     }
   },
 
-  /* ── Admin ───────────────────────────────────────────────────────────────── */
+  /* ── Admin ─────────────────────────────────────────────────────────────── */
 
-  /** [Admin] Liste complète des livres (tous statuts) */
   async getAllAdmin(category?: string): Promise<LibraryBook[]> {
     const query = category ? `?category=${encodeURIComponent(category)}` : '';
     try {
-      return await http.get<LibraryBook[]>(`/library/admin/books${query}`);
+      const books = await http.get<any[]>(`/library/admin/books${query}`);
+      return books.map((b) => ({
+        ...b,
+        coverUrl: LibraryService.resolveCoverUrl(b.coverUrl),
+        pdfUrl: b.pdfUrl ?? null,
+      }));
     } catch {
       return [];
     }
   },
 
-  /** [Admin] Créer un livre avec upload PDF */
   async createBook(payload: CreateBookPayload): Promise<{ data?: LibraryBook; error?: string }> {
     try {
-      const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
-      const baseUrl = Env.API_BASE_URL() + '/api/v1';
-
-      const form = new FormData();
-      form.append('title', payload.title);
-      if (payload.author)      form.append('author',      payload.author);
-      if (payload.description) form.append('description', payload.description);
-      if (payload.coverImage)  form.append('coverImage',  payload.coverImage);
-      if (payload.category)    form.append('category',    payload.category);
-      if (payload.pages != null) form.append('pages',  String(payload.pages));
-      if (payload.order != null) form.append('order',  String(payload.order));
-      form.append('isFree', String(payload.isFree ?? false));
-
-      // PDF
-      if (payload.file) {
-        if (payload.file instanceof File) {
-          form.append('file', payload.file, payload.file.name);
-        } else {
-          form.append('file', payload.file as unknown as Blob);
-        }
-      }
-
-      // Image de couverture (optionnelle)
-      if (payload.coverFile instanceof File) {
-        form.append('cover', payload.coverFile, payload.coverFile.name);
-      }
-
-      const res = await fetch(`${baseUrl}/library/upload`, {
-        method: 'POST',
-        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: form,
-      });
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        return { error: body?.message ?? `Erreur ${res.status}` };
-      }
-
-      const data = await res.json();
+      const data = await http.post<LibraryBook>('/library', payload);
       return { data };
     } catch (e) {
       return { error: (e as ApiError)?.message ?? 'Erreur réseau' };
     }
   },
 
-  /** [Admin] Modifier un livre (métadonnées + optionnellement PDF et/ou couverture) */
   async updateBook(
     id: string,
-    payload: {
-      title?: string; author?: string; description?: string;
-      category?: string; pages?: number; isFree?: boolean;
-      /** Nouvelle image de couverture */
-      coverFile?: File;
-      /** Nouveau fichier PDF */
-      pdfFile?: File;
-    },
+    payload: Partial<CreateBookPayload>,
   ): Promise<{ data?: LibraryBook; error?: string }> {
     try {
-      const hasCoverFile = payload.coverFile instanceof File;
-      const hasPdfFile   = payload.pdfFile instanceof File;
-
-      if (hasCoverFile || hasPdfFile) {
-        // Envoi multipart/form-data pour inclure les fichiers
-        const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
-        const baseUrl = Env.API_BASE_URL() + '/api/v1';
-        const form = new FormData();
-        if (payload.title       !== undefined) form.append('title',       payload.title);
-        if (payload.author      !== undefined) form.append('author',      payload.author);
-        if (payload.description !== undefined) form.append('description', payload.description);
-        if (payload.category    !== undefined) form.append('category',    payload.category);
-        if (payload.pages       !== undefined) form.append('pages',       String(payload.pages));
-        if (payload.isFree      !== undefined) form.append('isFree',      String(payload.isFree));
-        if (hasCoverFile) form.append('cover', payload.coverFile!, payload.coverFile!.name);
-        if (hasPdfFile)   form.append('file',  payload.pdfFile!,  payload.pdfFile!.name);
-
-        const res = await fetch(`${baseUrl}/library/${id}/upload`, {
-          method: 'POST',
-          headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-          body: form,
-        });
-
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          return { error: body?.message ?? `Erreur ${res.status}` };
-        }
-        const data = await res.json();
-        return { data };
-      }
-
-      // Pas de fichiers → simple JSON PATCH
       const data = await http.patch<LibraryBook>(`/library/${id}`, payload);
       return { data };
     } catch (e) {
@@ -192,7 +109,6 @@ export const LibraryService = {
     }
   },
 
-  /** [Admin] Supprimer définitivement un livre (fichiers + BDD) */
   async deleteBook(id: string): Promise<{ error?: string }> {
     try {
       await http.delete(`/library/${id}`);
@@ -202,8 +118,7 @@ export const LibraryService = {
     }
   },
 
-  /** [Admin] Changer le statut d'un livre */
-  async updateStatus(id: string, status: 'draft' | 'published' | 'archived'): Promise<{ data?: LibraryBook; error?: string }> {
+  async updateStatus(id: string, status: LibraryBookStatus): Promise<{ data?: LibraryBook; error?: string }> {
     try {
       const data = await http.patch<LibraryBook>(`/library/admin/books/${id}/status`, { status });
       return { data };
@@ -212,73 +127,19 @@ export const LibraryService = {
     }
   },
 
-  /* ── Public ───────────────────────────────────────────────────────────────── */
+  /* ── Public ─────────────────────────────────────────────────────────────── */
 
   async getOne(id: string): Promise<{ data?: LibraryBook; error?: string }> {
     try {
-      const data = await http.get<LibraryBook>(`/library/${id}`);
-      return {
-        data: {
-          ...data,
-          fileUrl: data.fileUrl ?? LibraryService.getFileUrl(data.id),
-        },
+      const raw = await http.get<any>(`/library/${id}`);
+      const data: LibraryBook = {
+        ...raw,
+        coverUrl: LibraryService.resolveCoverUrl(raw.coverUrl),
+        pdfUrl: raw.pdfUrl ?? null,
       };
+      return { data };
     } catch (e) {
       return { error: (e as ApiError).message };
     }
-  },
-
-  /**
-   * Enregistre un téléchargement côté backend et retourne l'URL de téléchargement.
-   * Le backend peut retourner { fileUrl, downloadUrl, url } ou rien.
-   * Dans tous les cas on retourne l'URL à utiliser (signée ou construite).
-   */
-  async download(id: string): Promise<{ fileUrl: string; error?: string }> {
-    try {
-      const res = await http.post<any>(`/library/${id}/download`, {});
-      // Le backend peut retourner l'URL sous différentes clés
-      const url: string | undefined =
-        res?.fileUrl ?? res?.downloadUrl ?? res?.url ?? res?.signedUrl;
-      if (url) return { fileUrl: url };
-    } catch {
-      // Non bloquant — on utilise l'URL construite
-    }
-    return { fileUrl: LibraryService.getFileUrl(id) };
-  },
-
-  /**
-   * Télécharge le fichier PDF avec authentification JWT et déclenche
-   * le téléchargement natif du navigateur (blob + <a download>).
-   * Sur natif (iOS/Android), utilise WebBrowser.
-   */
-  async downloadAndSave(id: string, title: string): Promise<{ error?: string }> {
-    const { fileUrl } = await LibraryService.download(id);
-    try {
-      if (typeof window !== 'undefined') {
-        // Web : fetch avec JWT → blob → <a download>
-        const { StorageService } = await import('./storage.service');
-        const { STORAGE_KEYS } = await import('../utils/constants');
-        const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
-        const headers: Record<string, string> = {};
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-
-        const res = await fetch(fileUrl, { headers });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-        const blob = await res.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = `${title.replace(/[^a-z0-9]/gi, '_')}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
-        return {};
-      }
-    } catch (e: any) {
-      return { error: e?.message ?? 'Téléchargement échoué' };
-    }
-    return {};
   },
 };
