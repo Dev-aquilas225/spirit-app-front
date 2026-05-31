@@ -12,10 +12,11 @@ export function usePremiumAccess() {
   const user = useAuthStore((s) => s.user);
   const isActive = useSubscriptionStore((s) => s.isActive);
 
-  // Admin et subscriber = premium.
-  // Le rôle est assigné par mapApiUser qui vérifie subscriptionStatus côté backend.
-  // On ne dépend plus de isActive (chargé en async) pour éviter les faux négatifs.
-  const isPremium = user?.role === 'admin' || user?.role === 'subscriber';
+  // Admin = toujours premium.
+  // Subscriber = premium seulement si l'abonnement est encore actif (date non expirée).
+  // isActive est calculé par le store à partir de status === 'active' ET expiryDate > now.
+  // Cela évite qu'un ancien subscriber garde l'accès après expiration.
+  const isPremium = user?.role === 'admin' || (user?.role === 'subscriber' && isActive);
   const isFree = !isPremium;
 
   /**
