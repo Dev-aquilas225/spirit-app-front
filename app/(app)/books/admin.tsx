@@ -257,9 +257,9 @@ function BookForm({
 
       {/* ── Coût ── */}
       <View style={{ gap: 4 }}>
-        <Text style={[styles.label, { color: colors.text }]}>Coût (XOF) — 0 = gratuit</Text>
+        <Text style={[styles.label, { color: colors.text }]}>Coût en crédits — 0 = gratuit</Text>
         <TextInput style={fieldStyle} value={tokenCost} onChangeText={setTokenCost}
-          keyboardType="number-pad" placeholderTextColor={colors.textSecondary} />
+          keyboardType="number-pad" placeholder="Ex : 500" placeholderTextColor={colors.textSecondary} />
       </View>
     </>
   );
@@ -725,15 +725,21 @@ const styles = StyleSheet.create({
   /* Couverture A4 */
   coverZone: {
     width: '100%',
-    aspectRatio: 0.707, // ratio A4 portrait (1/√2)
+    aspectRatio: 0.707, // ratio A4 portrait (1/√2 ≈ 210/297)
     borderRadius: 14,
     borderWidth: 2,
     borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+    // position relative pour que absoluteFill fonctionne sur l'image
+    position: 'relative',
   },
-  coverPreview: { width: '100%', height: '100%' },
+  // L'image remplit tout le parent via absoluteFill (fonctionne avec aspectRatio)
+  coverPreview: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+  },
   coverEditBadge: {
     position: 'absolute', bottom: 10, right: 10,
     flexDirection: 'row', alignItems: 'center', gap: 4,

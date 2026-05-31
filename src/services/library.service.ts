@@ -97,19 +97,34 @@ export const LibraryService = {
       await FS.makeDirectoryAsync(dir, { intermediates: true });
       const localPath = `${dir}${book.id}.pdf`;
 
-      // Déjà téléchargé ?
+      // Vérifier si déjà téléchargé ET non vide (évite les fichiers corrompus)
       const info = await FS.getInfoAsync(localPath);
-      if (info.exists) return { localUri: localPath };
+      if (info.exists && (info as any).size > 1024) return { localUri: localPath };
+
+      // Supprimer un éventuel fichier corrompu avant de re-télécharger
+      if (info.exists) {
+        await FS.deleteAsync(localPath, { idempotent: true });
+      }
 
       const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
       const result = await FS.downloadAsync(downloadUrl, localPath, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
+
       if (result.status === 200) {
+        // Vérifier que le fichier téléchargé n'est pas vide
+        const downloaded = await FS.getInfoAsync(localPath);
+        if (!downloaded.exists || (downloaded as any).size < 1024) {
+          await FS.deleteAsync(localPath, { idempotent: true });
+          return { error: 'Fichier PDF invalide ou vide' };
+        }
         await LibraryService.savePurchasedBook(book.id, localPath);
         return { localUri: localPath };
       }
-      return { error: 'Téléchargement échoué' };
+      if (result.status === 401 || result.status === 403) {
+        return { error: 'Accès refusé — veuillez débloquer ce livre d\'abord' };
+      }
+      return { error: `Téléchargement échoué (HTTP ${result.status})` };
     } catch (e: any) { return { error: e?.message ?? 'Erreur téléchargement' }; }
   },
 
