@@ -34,6 +34,20 @@ export default function LoginScreen() {
   const [googleLoading, setGoogleLoading] = useState(false);
 
   // ── Core callback (partagé web + native) ─────────────────────────────────
+  /** Finalise la connexion avec les tokens Oracle Plus retournés par le backend */
+  async function handleOraclePlusTokens(accessToken: string, refreshToken?: string) {
+    const ok = await loginWithTokens(accessToken, refreshToken ?? '');
+    setGoogleLoading(false);
+    if (!ok) { setEmailError("Erreur lors de la connexion"); return; }
+    const adminEmails = ['tchingankonggeorges@gmail.com', 'christoinaquilas@gmail.com'];
+    const { user } = useAuthStore.getState();
+    if (user?.role === 'admin' || adminEmails.includes(user?.email ?? '')) {
+      router.replace('/(app)/admin' as any);
+    } else {
+      router.replace('/(app)/(tabs)');
+    }
+  }
+
   async function handleGoogleToken(idToken: string) {
     setGoogleLoading(true);
     const result = await AuthService.googleSignIn(idToken);
@@ -158,50 +172,68 @@ export default function LoginScreen() {
     return () => ro.disconnect();
   }, [gsiReady]);
 
+  /**
+   * Flux PKCE natif (Android/iOS) :
+   * 1. Ouvre Google avec response_type=code + code_challenge
+   * 2. Récupère le code d'autorisation
+   * 3. Envoie le code au backend /auth/google/code qui l'échange contre un id_token
+   */
   async function handleNativeGooglePress() {
     setGoogleLoading(true);
     setEmailError(undefined);
     try {
       const clientId = Env.GOOGLE_CLIENT_ID_WEB();
-      if (!clientId) {
-        setEmailError("Google OAuth non configuré");
-        setGoogleLoading(false);
-        return;
-      }
-      // Utiliser expo-auth-session pour le flux OAuth natif
-      const { makeRedirectUri, useAuthRequest } = await import('expo-auth-session');
-      const { maybeCompleteAuthSession } = await import('expo-web-browser');
+      if (!clientId) { setEmailError("Google OAuth non configuré"); return; }
+
+      const { makeRedirectUri } = await import('expo-auth-session');
+      const { maybeCompleteAuthSession, openAuthSessionAsync } = await import('expo-web-browser');
       maybeCompleteAuthSession();
 
-      const redirectUri = makeRedirectUri({ scheme: 'oracle-plus', path: 'callback' });
-      const discovery = {
-        authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
-        tokenEndpoint: 'https://oauth2.googleapis.com/token',
-      };
+      // PKCE : générer code_verifier + code_challenge
+      const codeVerifier = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+        .map(b => b.toString(16).padStart(2, '0')).join('');
+      const encoder = new TextEncoder();
+      const data = encoder.encode(codeVerifier);
+      const digest = await crypto.subtle.digest('SHA-256', data);
+      const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
+        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 
-      const WebBrowserModule = await import('expo-web-browser');
-      const WebBrowser = WebBrowserModule.default ?? WebBrowserModule;
-      const result = await WebBrowser.openAuthSessionAsync(
+      const redirectUri = makeRedirectUri({ scheme: 'oracle-plus', path: 'auth/callback' });
+
+      const authUrl =
         `https://accounts.google.com/o/oauth2/v2/auth?` +
         `client_id=${encodeURIComponent(clientId)}` +
         `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-        `&response_type=token id_token` +
-        `&scope=openid email profile` +
-        `&nonce=${Math.random().toString(36).slice(2)}`,
-        redirectUri
-      );
+        `&response_type=code` +
+        `&scope=${encodeURIComponent('openid email profile')}` +
+        `&code_challenge=${codeChallenge}` +
+        `&code_challenge_method=S256` +
+        `&access_type=offline`;
+
+      const result = await openAuthSessionAsync(authUrl, redirectUri);
 
       if (result.type === 'success' && result.url) {
-        const params = new URLSearchParams(result.url.split('#')[1] || result.url.split('?')[1] || '');
-        const idToken = params.get('id_token');
-        if (idToken) {
-          await handleGoogleToken(idToken);
+        const params = new URLSearchParams(result.url.split('?')[1] ?? '');
+        const code = params.get('code');
+        if (!code) { setEmailError("Connexion Google annulée"); return; }
+
+        // Envoyer le code au backend — retourne directement les tokens Oracle Plus
+        const { http } = await import('../../src/services/http.client');
+        const data = await http.post<{ accessToken: string; refreshToken?: string }>('/auth/google/code', {
+          code,
+          redirectUri,
+          codeVerifier,
+        });
+        if (data?.accessToken) {
+          await handleOraclePlusTokens(data.accessToken, data.refreshToken ?? '');
           return;
         }
+        setEmailError("Connexion Google échouée");
+      } else {
+        setEmailError("Connexion Google annulée");
       }
-      setEmailError("Connexion Google annulée");
-    } catch (e) {
-      setEmailError("Erreur lors de la connexion Google");
+    } catch (e: any) {
+      setEmailError(e?.message ?? "Erreur lors de la connexion Google");
     } finally {
       setGoogleLoading(false);
     }
@@ -297,9 +329,19 @@ export default function LoginScreen() {
                 </View>
               )
             ) : (
-              // Native : Google Sign-In non disponible sans Android OAuth client
-              // → utiliser le magic link ci-dessous
-              null
+              <Button
+                label={googleLoading ? "Connexion en cours…" : "Continuer avec Google"}
+                variant="outline"
+                fullWidth
+                size="lg"
+                loading={googleLoading}
+                disabled={googleLoading}
+                onPress={handleNativeGooglePress}
+                icon={!googleLoading ? <GoogleLogoNative /> : undefined}
+                iconPosition="left"
+                style={{ borderColor: colors.border, backgroundColor: colors.surface }}
+                textStyle={{ color: colors.text }}
+              />
             )}
           </View>
         )}
@@ -312,16 +354,6 @@ export default function LoginScreen() {
           </Text>
           <View style={[styles.separatorLine, { backgroundColor: colors.border }]} />
         </View>
-
-        {/* Sur natif, afficher un message d'info à la place du bouton Google */}
-        {Platform.OS !== 'web' && clientConfigured && (
-          <View style={{ marginTop: spacing["2xl"], marginBottom: spacing.sm, alignItems: 'center' }}>
-            <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '700', marginBottom: 4 }}>
-              Appuyez ici pour vous connecter
-            </Text>
-            <Text style={{ color: colors.primary, fontSize: 18 }}>↓</Text>
-          </View>
-        )}
 
         {/* ── Champ email (magic link) ───────────────────────────────────── */}
         <Text style={[styles.label, { color: colors.textSecondary, marginBottom: spacing.xs }]}>
