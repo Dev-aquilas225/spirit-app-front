@@ -34,7 +34,16 @@ const POLL_INTERVAL_MS  = 4_000;
 const TIMEOUT_MS        = 10 * 60 * 1000; 
 const VIP_DISPLAY_MS    = 2_800;   
 
-type Step = 'confirm' | 'initiating' | 'waiting' | 'vip' | 'timeout' | 'error';
+/**
+ * Étapes du flux de paiement :
+ *  confirm   → l'utilisateur voit le récapitulatif + bandeau partenaire
+ *  initiating → appel backend en cours
+ *  waiting   → Paystack ouvert, polling actif
+ *  partner   → paiement détecté, OBLIGATOIRE : l'utilisateur confirme avoir vu le nom marchand
+ *  vip       → animation de succès
+ *  timeout / error → cas d'erreur
+ */
+type Step = 'confirm' | 'initiating' | 'waiting' | 'partner' | 'vip' | 'timeout' | 'error';
 
 /* ─── Helpers ────────────────────────────────────────────────────────────── */
 async function openPaystackUrl(url: string): Promise<void> {
@@ -153,6 +162,8 @@ export default function PaymentScreen() {
   const [authUrl, setAuthUrl]   = useState<string | null>(null);
   const [remaining, setRemaining] = useState(TIMEOUT_MS);
   const [error, setError]       = useState<string | null>(null);
+  // Référence gardée pour la confirmation partenaire
+  const pendingRef = useRef<string | null>(null);
 
   const pollRef    = useRef<ReturnType<typeof setInterval> | null>(null);
   const timerRef   = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -196,14 +207,16 @@ export default function PaymentScreen() {
       stopAll();
       cleanupListeners();
       try { if (Platform.OS !== 'web') await WebBrowser.dismissBrowser(); } catch {}
+      // Rafraîchir les données en arrière-plan
       if (isCreditPack) {
         await Promise.all([fetchBalance(), refreshUser()]);
       } else {
         await Promise.all([loadSubscription(), refreshUser(), fetchBalance()]);
       }
       fbPurchase(plan, PLAN_AMOUNTS[plan] ?? 0);
-      setStep('vip');
-      setTimeout(() => router.replace(`/subscription/success?reference=${ref}&plan=${plan}` as any), VIP_DISPLAY_MS);
+      // Étape obligatoire : afficher la page partenaire avant de valider
+      pendingRef.current = ref;
+      setStep('partner');
     }
 
     // Nettoyage des listeners web — stocké pour pouvoir les supprimer
@@ -297,6 +310,14 @@ export default function PaymentScreen() {
     await openPaystackUrl(result.authorization_url);
   }, [initiatePayment, loadSubscription, stopAll, clearPaymentError]);
 
+  // Confirmation partenaire → déclenche l'animation VIP puis redirige
+  function confirmPartner() {
+    const ref = pendingRef.current;
+    if (!ref) return;
+    setStep('vip');
+    setTimeout(() => router.replace(`/subscription/success?reference=${ref}&plan=${plan}` as any), VIP_DISPLAY_MS);
+  }
+
   // Ne lance PAS automatiquement — l'utilisateur confirme d'abord
   useEffect(() => {
     return () => stopAll();
@@ -348,6 +369,62 @@ export default function PaymentScreen() {
           <Button label="Payer maintenant" variant="gold" fullWidth onPress={launch} />
           <Button label="Annuler" variant="ghost" fullWidth onPress={() => router.back()} />
         </View>
+      </View>
+    );
+  }
+
+  // ── Étape partenaire financier (obligatoire avant validation) ─────────────
+  if (step === 'partner') {
+    const isCreditPack = ['starter', 'standard', 'premium'].includes(plan);
+    return (
+      <View style={[s.centered, { backgroundColor: colors.background, gap: 0, paddingHorizontal: 28 }]}>
+        {/* Icône sécurité */}
+        <View style={s.partnerIconCircle}>
+          <Text style={{ fontSize: 40 }}>🔒</Text>
+        </View>
+
+        <Text style={[s.title, { color: colors.text, marginTop: 20, marginBottom: 8 }]}>
+          Paiement reçu !
+        </Text>
+        <Text style={[s.msg, { color: colors.textSecondary, marginBottom: 28 }]}>
+          Votre paiement a bien été traité. Avant de continuer, veuillez noter l'information suivante :
+        </Text>
+
+        {/* Encadré nom marchand */}
+        <View style={s.merchantBox}>
+          <Text style={s.merchantLabel}>Nom marchand sur votre relevé</Text>
+          <Text style={s.merchantName}>universdeslivres.squares</Text>
+          <View style={s.merchantDivider} />
+          <Text style={s.merchantDesc}>
+            Ce nom correspond à notre partenaire financier agréé qui traite les paiements pour Oracle Plus.
+            Si vous voyez ce nom sur votre relevé bancaire ou carte, c'est tout à fait normal — il s'agit bien de votre achat Oracle Plus.
+          </Text>
+        </View>
+
+        {/* Détail de la transaction */}
+        <View style={[s.txRow, { borderColor: colors.border }]}>
+          <Text style={{ color: colors.textSecondary, fontSize: 13 }}>Plan</Text>
+          <Text style={{ color: colors.text, fontWeight: '700', fontSize: 13 }}>{planInfo.name}</Text>
+        </View>
+        <View style={[s.txRow, { borderColor: colors.border }]}>
+          <Text style={{ color: colors.textSecondary, fontSize: 13 }}>Montant</Text>
+          <Text style={{ color: '#C9A84C', fontWeight: '800', fontSize: 13 }}>{planInfo.price}</Text>
+        </View>
+        <View style={[s.txRow, { borderColor: colors.border, borderBottomWidth: 0 }]}>
+          <Text style={{ color: colors.textSecondary, fontSize: 13 }}>Type</Text>
+          <Text style={{ color: colors.text, fontWeight: '700', fontSize: 13 }}>
+            {isCreditPack ? 'Pack de crédits' : 'Abonnement'}
+          </Text>
+        </View>
+
+        {/* Bouton de confirmation */}
+        <TouchableOpacity style={s.confirmBtn} onPress={confirmPartner} activeOpacity={0.85}>
+          <Text style={s.confirmBtnTxt}>J'ai compris — Accéder à mon compte</Text>
+        </TouchableOpacity>
+
+        <Text style={[s.hint, { color: colors.textTertiary, marginTop: 12 }]}>
+          En cas de doute, contactez notre support.
+        </Text>
       </View>
     );
   }
@@ -489,10 +566,20 @@ const s = StyleSheet.create({
   star:          { position: 'absolute', fontSize: 18, color: '#C9A84C' },
   vipTitle:      { fontSize: 22, fontWeight: '900', color: '#C9A84C', textAlign: 'center' },
   vipSub:        { fontSize: 13, textAlign: 'center', lineHeight: 20 },
-  // Bandeau partenaire financier
-  partnerBanner: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, backgroundColor: 'rgba(16,185,129,0.08)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.25)', borderRadius: 12, padding: 12, width: '100%' },
-  partnerIcon:   { fontSize: 16, marginTop: 1 },
-  partnerTitle:  { fontSize: 12, fontWeight: '700', color: '#10B981', marginBottom: 2 },
-  partnerText:   { fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 18 },
-  partnerName:   { fontWeight: '700', color: '#10B981' },
+  // Bandeau partenaire financier (écrans confirm + waiting)
+  partnerBanner:     { flexDirection: 'row', alignItems: 'flex-start', gap: 10, backgroundColor: 'rgba(16,185,129,0.08)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.25)', borderRadius: 12, padding: 12, width: '100%' },
+  partnerIcon:       { fontSize: 16, marginTop: 1 },
+  partnerTitle:      { fontSize: 12, fontWeight: '700', color: '#10B981', marginBottom: 2 },
+  partnerText:       { fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 18 },
+  partnerName:       { fontWeight: '700', color: '#10B981' },
+  // Écran partenaire obligatoire (step === 'partner')
+  partnerIconCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(16,185,129,0.12)', borderWidth: 1.5, borderColor: 'rgba(16,185,129,0.3)', alignItems: 'center', justifyContent: 'center' },
+  merchantBox:       { width: '100%', backgroundColor: 'rgba(201,168,76,0.08)', borderWidth: 1.5, borderColor: 'rgba(201,168,76,0.3)', borderRadius: 16, padding: 18, marginBottom: 12 },
+  merchantLabel:     { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.45)', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 6 },
+  merchantName:      { fontSize: 20, fontWeight: '900', color: '#C9A84C', letterSpacing: 0.5, marginBottom: 12 },
+  merchantDivider:   { height: 1, backgroundColor: 'rgba(201,168,76,0.2)', marginBottom: 12 },
+  merchantDesc:      { fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 20 },
+  txRow:             { width: '100%', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1 },
+  confirmBtn:        { width: '100%', backgroundColor: '#C9A84C', borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginTop: 20 },
+  confirmBtnTxt:     { color: '#fff', fontSize: 16, fontWeight: '800' },
 });
