@@ -5,7 +5,7 @@
  */
 import React, { useState } from 'react';
 import {
-  ActivityIndicator, Linking, Modal, Platform,
+  ActivityIndicator, Alert, Linking, Modal, Platform,
   StyleSheet, Text, TouchableOpacity, View,
 } from 'react-native';
 import { Crown, Play, Share2, X, Zap } from 'lucide-react-native';
@@ -44,10 +44,14 @@ export function CreditGate({ visible, action, onClose, onSuccess }: Props) {
       );
       const url = res?.paymentUrl ?? res?.authorization_url;
       if (url) {
-        if (Platform.OS === 'web') window.location.href = url;
-        else await Linking.openURL(url);
+        // Sur web : nouvel onglet pour ne pas perdre le polling
+        if (Platform.OS === 'web') window.open(url, '_blank');
+        else {
+          const { default: WebBrowser } = await import('expo-web-browser');
+          await WebBrowser.openAuthSessionAsync(url, 'oracle-plus://');
+        }
 
-        // Polling toutes les 4s pendant 3 min pour détecter le paiement confirmé
+        // Polling toutes les 4s pendant 3 min
         let attempts = 0;
         const maxAttempts = 45;
         const poll = setInterval(async () => {
@@ -62,10 +66,17 @@ export function CreditGate({ visible, action, onClose, onSuccess }: Props) {
               if (useCreditsStore.getState().credits >= cost) onSuccess();
               return;
             }
+            if (statusRes?.status === 'failed' || statusRes?.status === 'cancelled') {
+              clearInterval(poll);
+              setLoading(false);
+              Alert.alert('Paiement annulé', 'Le paiement n\'a pas abouti. Vous pouvez réessayer.');
+              return;
+            }
           } catch {}
           if (attempts >= maxAttempts) {
             clearInterval(poll);
             setLoading(false);
+            Alert.alert('Vérification expirée', 'Si vous avez été débité, vos crédits seront ajoutés automatiquement.');
           }
         }, 4000);
         return;

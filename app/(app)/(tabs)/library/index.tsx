@@ -65,30 +65,73 @@ export default function LibraryScreen() {
     if (!result.authorization_url || !result.reference) { Alert.alert('Erreur', 'Réponse invalide'); return; }
 
     // Ouvrir Paystack
-    if (Platform.OS === 'web') {
-      window.location.href = result.authorization_url;
-    } else {
-      await WebBrowser.openAuthSessionAsync(result.authorization_url, 'oracle-plus://');
-    }
-
-    // Polling vérification
     const ref = result.reference;
+
+    // Démarrer le polling AVANT d'ouvrir le navigateur
     let attempts = 0;
     pollRef.current = setInterval(async () => {
       attempts++;
       const verify = await LibraryService.verifyPurchase(ref);
+
       if (verify.success && verify.status === 'paid') {
         clearInterval(pollRef.current!);
-        // Mettre à jour le livre dans la liste
+        pollRef.current = null;
         setBooks(prev => prev.map(b => b.id === book.id ? { ...b, purchased: true } : b));
         if (selected?.id === book.id) setSelected({ ...book, purchased: true });
         Alert.alert('✅ Paiement confirmé', 'Votre livre est maintenant disponible.', [
           { text: 'Télécharger', onPress: () => handleDownload({ ...book, purchased: true }) },
           { text: 'Plus tard' },
         ]);
+        return;
       }
-      if (attempts >= 20) clearInterval(pollRef.current!);
+
+      // Paystack a rejeté ou l'utilisateur a annulé
+      if (verify.status === 'abandoned' || verify.status === 'failed') {
+        clearInterval(pollRef.current!);
+        pollRef.current = null;
+        Alert.alert(
+          'Paiement annulé',
+          'Vous avez annulé le paiement ou il a échoué. Vous pouvez réessayer à tout moment.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      // Timeout après 20 tentatives (~60s)
+      if (attempts >= 20) {
+        clearInterval(pollRef.current!);
+        pollRef.current = null;
+        Alert.alert(
+          'Vérification expirée',
+          'Nous n\'avons pas pu confirmer votre paiement. Si vous avez été débité, contactez le support.',
+          [{ text: 'OK' }]
+        );
+      }
     }, 3000);
+
+    if (Platform.OS === 'web') {
+      // Sur web : ouvrir dans un nouvel onglet pour ne pas perdre le polling
+      window.open(result.authorization_url, '_blank');
+    } else {
+      await WebBrowser.openAuthSessionAsync(result.authorization_url, 'oracle-plus://');
+      // Après fermeture du navigateur natif : vérification immédiate
+      const verify = await LibraryService.verifyPurchase(ref);
+      if (verify.success && verify.status === 'paid') {
+        clearInterval(pollRef.current!);
+        pollRef.current = null;
+        setBooks(prev => prev.map(b => b.id === book.id ? { ...b, purchased: true } : b));
+        if (selected?.id === book.id) setSelected({ ...book, purchased: true });
+        Alert.alert('✅ Paiement confirmé', 'Votre livre est maintenant disponible.', [
+          { text: 'Télécharger', onPress: () => handleDownload({ ...book, purchased: true }) },
+          { text: 'Plus tard' },
+        ]);
+      } else if (verify.status === 'abandoned' || verify.status === 'failed') {
+        clearInterval(pollRef.current!);
+        pollRef.current = null;
+        Alert.alert('Paiement annulé', 'Vous avez annulé le paiement. Vous pouvez réessayer à tout moment.');
+      }
+      // Sinon le polling continue
+    }
   }
 
   async function handleDownload(book: LibraryBook) {
