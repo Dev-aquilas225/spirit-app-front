@@ -1,347 +1,286 @@
 /**
  * Bibliothèque Spirituelle — Oracle Plus
  *
- * Flux d'accès :
- *  1. Clic sur un livre → modal détail
- *  2. Si accessible (abonnement actif ou tokenCost=0) → bouton "Lire"
- *  3. Sinon → rediriger vers l'abonnement
+ * Chaque livre est verrouillé par un cadenas.
+ * Clic → modal avec prix → paiement Paystack → téléchargement PDF.
+ * Les livres à tokenCost=0 sont gratuits (téléchargement direct).
+ * Aucune dépendance à l'abonnement.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Dimensions, FlatList, Image, Modal,
+  ActivityIndicator, Alert, FlatList, Image, Modal,
   Platform, ScrollView, StyleSheet, Text, TextInput,
   TouchableOpacity, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import {
-  BookOpen, CheckCircle2, Lock, Search,
-  Unlock, X, Zap,
-} from 'lucide-react-native';
-import { AppIcon } from '../../../../src/components/common/AppIcon';
+import * as WebBrowser from 'expo-web-browser';
+import { BookOpen, Download, Lock, Search, Unlock, X } from 'lucide-react-native';
 import { useTheme } from '../../../../src/theme';
-import { LibraryService } from '../../../../src/services/library.service';
-import { useAccess } from '../../../../src/hooks/useAccess';
+import { LibraryBook, LibraryService } from '../../../../src/services/library.service';
+import { AppIcon } from '../../../../src/components/common/AppIcon';
 
-const CARD_WIDTH   = (Dimensions.get('window').width - 24 - 12) / 2;
-const COVER_HEIGHT = Math.round(CARD_WIDTH * 1.414);
+const CATEGORIES = ['Tous', 'Spiritualité', 'Prophétie', 'Prières', 'Rêves', 'Formation', 'Autre'];
 
-// ── Couverture livre ──────────────────────────────────────────────────────────
-function BookCover({ uri, title, size = 'card' }: { uri?: string | null; title: string; size?: 'card' | 'modal' }) {
-  const [err, setErr] = useState(false);
-  // En mode carte : prend tout le coverWrap (width/height 100%)
-  // En mode modal : taille fixe
-  const modalStyle = { width: 120, height: 170, borderRadius: 10 } as const;
-  const cardStyle  = { width: '100%' as const, height: '100%' as const, borderRadius: 10 };
-
-  if (uri && !err) {
-    return (
-      <Image
-        source={{ uri }}
-        style={size === 'modal' ? modalStyle : cardStyle}
-        resizeMode="cover"
-        onError={() => setErr(true)}
-      />
-    );
-  }
-  // Fallback : fond sombre avec initiales
-  const initials = title.split(' ').slice(0, 2).map(w => w[0]?.toUpperCase() ?? '').join('');
-  return (
-    <View style={[
-      size === 'modal' ? modalStyle : cardStyle,
-      { backgroundColor: '#1A2744', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(201,168,76,0.25)' }
-    ]}>
-      <AppIcon icon={BookOpen} size={size === 'modal' ? 36 : 28} color="#C9A84C" strokeWidth={1.5} />
-      <Text style={{ color: '#C9A84C', fontSize: 13, fontWeight: '900', marginTop: 8 }}>{initials}</Text>
-    </View>
-  );
-}
-
-interface Book {
-  id: string;
-  title: string;
-  author: string;
-  category: string;
-  coverUrl?: string | null;
-  pages: number;
-  description?: string;
-  /** tokenCost=0 → livre gratuit */
-  tokenCost: number;
-  pdfUrl?: string | null;
-}
-
-const CATS = ['Tous', 'Prière', 'Prophétie', 'Sagesse', 'Guérison', 'Formation'];
-
-
-
-// ── Écran principal ───────────────────────────────────────────────────────────
 export default function LibraryScreen() {
-  const { colors } = useTheme();
+  const { colors, spacing, typography } = useTheme();
   const insets = useSafeAreaInsets();
-  const { hasSubscription } = useAccess();
+  const [books, setBooks]           = useState<LibraryBook[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [search, setSearch]         = useState('');
+  const [category, setCategory]     = useState('Tous');
+  const [selected, setSelected]     = useState<LibraryBook | null>(null);
+  const [paying, setPaying]         = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const [books, setBooks]               = useState<Book[]>([]);
-  const [loading, setLoading]           = useState(true);
-  const [search, setSearch]             = useState('');
-  const [cat, setCat]                   = useState('Tous');
-  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
-  const [payError, setPayError] = useState('');
-
-  useEffect(() => { loadBooks(); }, []);
-
-  async function loadBooks() {
-    try {
-      // LibraryService.getAll() retourne déjà coverUrl résolu (URL absolue ou null)
-      const raw = await LibraryService.getAll();
-      const mapped: Book[] = raw.map(b => ({
-        id: b.id,
-        title: b.title ?? 'Sans titre',
-        author: b.author ?? 'Prophète Georges',
-        category: b.category ?? 'Prière',
-        coverUrl: b.coverUrl ?? null,
-        pages: b.pages ?? 0,
-        description: b.description,
-        tokenCost: b.tokenCost ?? 0,
-        pdfUrl: b.pdfUrl ?? null,
-      }));
-      setBooks(mapped.length > 0 ? mapped : DEMO_BOOKS);
-    } catch {
-      setBooks(DEMO_BOOKS);
-    }
+  const load = useCallback(async () => {
+    setLoading(true);
+    const data = await LibraryService.getAll(category === 'Tous' ? undefined : category);
+    setBooks(data);
     setLoading(false);
-  }
+  }, [category]);
 
-  // Accessible si abonnement actif ou livre gratuit (tokenCost=0)
-  const isAccessible = (b: Book) => hasSubscription || b.tokenCost === 0;
-
-  // ── Accès refusé → rediriger vers abonnement ──────────────────────────────
-  const handleRequestAccess = () => {
-    setSelectedBook(null);
-    router.push('/subscription' as any);
-  };
+  useEffect(() => { load(); }, [load]);
 
   const filtered = books.filter(b =>
-    (cat === 'Tous' || b.category === cat) &&
-    (b.title.toLowerCase().includes(search.toLowerCase()) ||
-     (b.author ?? '').toLowerCase().includes(search.toLowerCase()))
+    !search || b.title.toLowerCase().includes(search.toLowerCase()) ||
+    (b.author ?? '').toLowerCase().includes(search.toLowerCase())
   );
 
+  // ── Payer et télécharger ────────────────────────────────────────────────────
+  async function handleBuy(book: LibraryBook) {
+    if (book.tokenCost === 0 || book.purchased) {
+      await handleDownload(book);
+      return;
+    }
+    setPaying(true);
+    const result = await LibraryService.initiatePurchase(book.id);
+    setPaying(false);
+
+    if (result.purchased) {
+      await handleDownload(book);
+      return;
+    }
+    if (result.error) { Alert.alert('Erreur', result.error); return; }
+    if (!result.authorization_url || !result.reference) { Alert.alert('Erreur', 'Réponse invalide'); return; }
+
+    // Ouvrir Paystack
+    if (Platform.OS === 'web') {
+      window.location.href = result.authorization_url;
+    } else {
+      await WebBrowser.openAuthSessionAsync(result.authorization_url, 'oracle-plus://');
+    }
+
+    // Polling vérification
+    const ref = result.reference;
+    let attempts = 0;
+    pollRef.current = setInterval(async () => {
+      attempts++;
+      const verify = await LibraryService.verifyPurchase(ref);
+      if (verify.success && verify.status === 'paid') {
+        clearInterval(pollRef.current!);
+        // Mettre à jour le livre dans la liste
+        setBooks(prev => prev.map(b => b.id === book.id ? { ...b, purchased: true } : b));
+        if (selected?.id === book.id) setSelected({ ...book, purchased: true });
+        Alert.alert('✅ Paiement confirmé', 'Votre livre est maintenant disponible.', [
+          { text: 'Télécharger', onPress: () => handleDownload({ ...book, purchased: true }) },
+          { text: 'Plus tard' },
+        ]);
+      }
+      if (attempts >= 20) clearInterval(pollRef.current!);
+    }, 3000);
+  }
+
+  async function handleDownload(book: LibraryBook) {
+    setDownloading(true);
+    const result = await LibraryService.downloadBook(book);
+    setDownloading(false);
+    if (result.error) { Alert.alert('Erreur', result.error); return; }
+    if (Platform.OS !== 'web' && result.localUri) {
+      Alert.alert('✅ Téléchargé', 'Le livre a été téléchargé dans votre bibliothèque.');
+    }
+  }
+
+  useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
+
+  // ── Rendu carte livre ───────────────────────────────────────────────────────
+  function BookCard({ book }: { book: LibraryBook }) {
+    const isFree = book.tokenCost === 0;
+    const isPurchased = book.purchased;
+    return (
+      <TouchableOpacity style={s.card} onPress={() => setSelected(book)} activeOpacity={0.85}>
+        {/* Couverture */}
+        <View style={s.coverWrap}>
+          {book.coverUrl
+            ? <Image source={{ uri: book.coverUrl }} style={s.cover} resizeMode="cover" />
+            : <View style={[s.cover, s.coverFallback]}>
+                <AppIcon icon={BookOpen} size={32} color="#C9A84C" strokeWidth={1.5} />
+              </View>
+          }
+          {/* Badge cadenas */}
+          <View style={[s.lockBadge, isPurchased || isFree ? s.lockOpen : s.lockClosed]}>
+            <AppIcon icon={isPurchased || isFree ? Unlock : Lock} size={12} color="#fff" strokeWidth={2.5} />
+          </View>
+        </View>
+        <Text style={[s.bookTitle, { color: colors.text }]} numberOfLines={2}>{book.title}</Text>
+        <Text style={[s.bookAuthor, { color: colors.textSecondary }]} numberOfLines={1}>{book.author}</Text>
+        {isFree
+          ? <Text style={s.freeTag}>Gratuit</Text>
+          : <Text style={[s.priceTag, isPurchased && s.paidTag]}>
+              {isPurchased ? '✓ Acheté' : `${book.tokenCost} XOF`}
+            </Text>
+        }
+      </TouchableOpacity>
+    );
+  }
+
+  // ── Modal détail ────────────────────────────────────────────────────────────
+  function BookModal() {
+    if (!selected) return null;
+    const isFree = selected.tokenCost === 0;
+    const isPurchased = selected.purchased;
+    const canDownload = isFree || isPurchased;
+
+    return (
+      <Modal visible animationType="slide" transparent onRequestClose={() => setSelected(null)}>
+        <View style={s.modalOverlay}>
+          <View style={[s.modalBox, { backgroundColor: colors.surface }]}>
+            <TouchableOpacity style={s.modalClose} onPress={() => setSelected(null)}>
+              <AppIcon icon={X} size={22} color={colors.textSecondary} strokeWidth={2.5} />
+            </TouchableOpacity>
+
+            {selected.coverUrl
+              ? <Image source={{ uri: selected.coverUrl }} style={s.modalCover} resizeMode="cover" />
+              : <View style={[s.modalCover, s.coverFallback]}>
+                  <AppIcon icon={BookOpen} size={48} color="#C9A84C" strokeWidth={1.5} />
+                </View>
+            }
+
+            <Text style={[s.modalTitle, { color: colors.text }]}>{selected.title}</Text>
+            <Text style={[s.modalAuthor, { color: colors.textSecondary }]}>{selected.author}</Text>
+            {selected.description
+              ? <Text style={[s.modalDesc, { color: colors.textSecondary }]}>{selected.description}</Text>
+              : null
+            }
+
+            {/* Prix / statut */}
+            <View style={s.priceRow}>
+              <AppIcon icon={canDownload ? Unlock : Lock} size={18} color={canDownload ? '#10B981' : '#F59E0B'} strokeWidth={2.5} />
+              <Text style={[s.priceLabel, { color: canDownload ? '#10B981' : '#F59E0B' }]}>
+                {isFree ? 'Gratuit' : isPurchased ? 'Déjà acheté' : `${selected.tokenCost} XOF pour télécharger`}
+              </Text>
+            </View>
+
+            {/* Bouton action */}
+            <TouchableOpacity
+              style={[s.actionBtn, canDownload ? s.downloadBtn : s.buyBtn]}
+              onPress={() => handleBuy(selected)}
+              disabled={paying || downloading}
+            >
+              {paying || downloading
+                ? <ActivityIndicator color="#fff" size="small" />
+                : <>
+                    <AppIcon icon={canDownload ? Download : Lock} size={18} color="#fff" strokeWidth={2.5} />
+                    <Text style={s.actionBtnTxt}>
+                      {canDownload
+                        ? 'Télécharger le PDF'
+                        : `Payer ${selected.tokenCost} XOF et télécharger`}
+                    </Text>
+                  </>
+              }
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    );
+  }
+
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <View style={[s.root, { paddingTop: insets.top, backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={[s.header, { backgroundColor: '#0D0D2B', paddingTop: insets.top + 16 }]}>
-        <Text style={s.headerTitle}>Bibliothèque Spirituelle</Text>
-        <Text style={s.headerSub}>{books.length} livres disponibles</Text>
+      <View style={[s.header, { paddingHorizontal: spacing.lg }]}>
+        <Text style={[s.title, { color: colors.text }]}>Bibliothèque</Text>
       </View>
 
       {/* Recherche */}
-      <View style={[s.searchWrap, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <AppIcon icon={Search} size={16} color={colors.textTertiary} strokeWidth={2} />
+      <View style={[s.searchRow, { marginHorizontal: spacing.lg }]}>
+        <AppIcon icon={Search} size={16} color={colors.textSecondary} strokeWidth={2} />
         <TextInput
-          value={search} onChangeText={setSearch}
-          placeholder="Rechercher un livre..." placeholderTextColor={colors.textTertiary}
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Rechercher un livre…"
+          placeholderTextColor={colors.textSecondary}
           style={[s.searchInput, { color: colors.text }]}
         />
       </View>
 
       {/* Catégories */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, gap: 8, paddingVertical: 8 }}>
-        {CATS.map(c => (
-          <TouchableOpacity key={c} style={[s.catBtn, cat === c && s.catActive]} onPress={() => setCat(c)}>
-            <Text style={[s.catTxt, { color: cat === c ? '#fff' : colors.textSecondary }]}>{c}</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.catScroll} contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: 8 }}>
+        {CATEGORIES.map(c => (
+          <TouchableOpacity key={c} onPress={() => setCategory(c)}
+            style={[s.catChip, category === c && s.catChipActive]}>
+            <Text style={[s.catTxt, category === c && s.catTxtActive]}>{c}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
 
-      {/* Modal détail livre */}
-      <Modal visible={!!selectedBook} transparent animationType="slide" onRequestClose={() => { setSelectedBook(null); setPayError(''); }}>
-        <View style={s.overlay}>
-          <View style={[s.modalBox, { backgroundColor: colors.surface }]}>
-            {selectedBook && (() => {
-              const accessible = isAccessible(selectedBook);
-              return (
-                <>
-                  <TouchableOpacity style={s.modalClose} onPress={() => { setSelectedBook(null); setPayError(''); }}>
-                    <AppIcon icon={X} size={20} color={colors.textSecondary} strokeWidth={2.5} />
-                  </TouchableOpacity>
+      {/* Grille */}
+      {loading
+        ? <ActivityIndicator color="#C9A84C" style={{ marginTop: 40 }} />
+        : <FlatList
+            data={filtered}
+            keyExtractor={b => b.id}
+            numColumns={2}
+            contentContainerStyle={{ padding: spacing.lg, gap: 16 }}
+            columnWrapperStyle={{ gap: 16 }}
+            renderItem={({ item }) => <BookCard book={item} />}
+            ListEmptyComponent={
+              <Text style={[s.empty, { color: colors.textSecondary }]}>Aucun livre disponible</Text>
+            }
+          />
+      }
 
-                  {/* Couverture + titre */}
-                  <View style={{ alignItems: 'center', marginBottom: 16 }}>
-                    <View style={{ position: 'relative' }}>
-                      <BookCover uri={selectedBook.coverUrl} title={selectedBook.title} size="modal" />
-                      <View style={[s.lockOverlay, { backgroundColor: accessible ? '#10B981' : '#EF4444' }]}>
-                        <AppIcon icon={accessible ? Unlock : Lock} size={14} color="#fff" strokeWidth={2.5} />
-                      </View>
-                    </View>
-                    <Text style={{ fontSize: 17, fontWeight: '900', color: colors.text, marginTop: 12, textAlign: 'center' }}>
-                      {selectedBook.title}
-                    </Text>
-                    <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 4 }}>
-                      {selectedBook.author}{selectedBook.pages ? ` · ${selectedBook.pages} pages` : ''}
-                    </Text>
-                  </View>
-
-                  {/* Description */}
-                  {selectedBook.description ? (
-                    <Text style={{ fontSize: 13, color: colors.textSecondary, lineHeight: 20, marginBottom: 14, textAlign: 'center' }}>
-                      {selectedBook.description}
-                    </Text>
-                  ) : null}
-
-                  {/* Erreur */}
-                  {payError ? (
-                    <View style={[s.errorBox, { backgroundColor: '#EF444418', borderColor: '#EF444440' }]}>
-                      <Text style={{ color: '#EF4444', fontSize: 12, textAlign: 'center' }}>{payError}</Text>
-                    </View>
-                  ) : null}
-
-                  {/* ── ACCESSIBLE : bouton télécharger ── */}
-                  {accessible ? (
-                    <View style={{ gap: 10 }}>
-                      <View style={[s.badge, { backgroundColor: '#10B98118', borderColor: '#10B98140' }]}>
-                        <AppIcon icon={CheckCircle2} size={14} color="#10B981" strokeWidth={2.5} />
-                        <Text style={{ color: '#10B981', fontWeight: '800', fontSize: 13 }}>
-                          {selectedBook.tokenCost === 0 ? 'Livre gratuit' : 'Inclus dans votre abonnement'}
-                        </Text>
-                      </View>
-                      <TouchableOpacity
-                        style={[s.actionBtn, { backgroundColor: colors.primary }]}
-                        onPress={() => {
-                          setSelectedBook(null);
-                          router.push({ pathname: '/library/reader', params: { id: selectedBook.id, title: selectedBook.title } } as any);
-                        }}
-                        activeOpacity={0.85}
-                      >
-                        <AppIcon icon={BookOpen} size={18} color="#1A1A3E" strokeWidth={2.5} />
-                        <Text style={[s.actionBtnTxt, { color: '#1A1A3E' }]}>Lire dans l'application</Text>
-                      </TouchableOpacity>
-
-
-                    </View>
-                  ) : (
-                    /* ── ACCÈS RESTREINT : abonnement requis ── */
-                    <View style={{ gap: 10 }}>
-                      <View style={[s.priceBox, { backgroundColor: '#EF444412', borderColor: '#EF444435' }]}>
-                        <AppIcon icon={Lock} size={16} color="#EF4444" strokeWidth={2.5} />
-                        <Text style={{ fontSize: 14, fontWeight: '700', color: '#EF4444', flex: 1 }}>
-                          Abonnement requis pour accéder à ce livre
-                        </Text>
-                      </View>
-
-                      <TouchableOpacity
-                        style={[s.actionBtn, { backgroundColor: colors.primary }]}
-                        onPress={handleRequestAccess}
-                        activeOpacity={0.85}
-                      >
-                        <AppIcon icon={Zap} size={18} color="#1A1A3E" strokeWidth={2.5} />
-                        <Text style={[s.actionBtnTxt, { color: '#1A1A3E' }]}>
-                          Voir les offres d'abonnement
-                        </Text>
-                      </TouchableOpacity>
-
-                      <Text style={{ fontSize: 11, color: colors.textTertiary, textAlign: 'center', lineHeight: 16 }}>
-                        Accès à toute la bibliothèque inclus dans l'abonnement
-                      </Text>
-                    </View>
-                  )}
-                </>
-              );
-            })()}
-          </View>
-        </View>
-      </Modal>
-
-      {/* Liste des livres */}
-      {loading ? (
-        <ActivityIndicator color="#C9A84C" style={{ marginTop: 40 }} />
-      ) : (
-        <FlatList
-          data={filtered}
-          keyExtractor={b => b.id}
-          numColumns={2}
-          contentContainerStyle={{ padding: 12, gap: 12 }}
-          columnWrapperStyle={{ gap: 12 }}
-          renderItem={({ item: b }) => {
-            const accessible = isAccessible(b);
-            return (
-              <TouchableOpacity
-                style={[s.card, { backgroundColor: colors.surface, borderColor: accessible ? colors.primary + '50' : colors.border }]}
-                onPress={() => { setPayError(''); setSelectedBook(b); }}
-                activeOpacity={0.85}
-              >
-                <View style={s.coverWrap}>
-                  <BookCover uri={b.coverUrl} title={b.title} />
-                  {/* Overlay cadenas — toujours visible par-dessus la couverture */}
-                  {!accessible && (
-                    <View style={s.lockOverlayCard}>
-                      <AppIcon icon={Lock} size={22} color="#fff" strokeWidth={2.2} />
-                    </View>
-                  )}
-                  <View style={[s.lockBadge, { backgroundColor: accessible ? '#10B981DD' : 'rgba(30,10,60,0.85)' }]}>
-                    <AppIcon icon={accessible ? Unlock : Lock} size={10} color="#fff" strokeWidth={2.5} />
-                    <Text style={s.lockTxt}>
-                      {accessible ? (b.tokenCost === 0 ? 'Gratuit' : 'Inclus') : 'Abonner'}
-                    </Text>
-                  </View>
-                </View>
-                <Text style={[s.bookTitle, { color: colors.text }]} numberOfLines={2}>{b.title}</Text>
-                <Text style={[s.bookAuthor, { color: colors.textSecondary }]} numberOfLines={1}>{b.author}</Text>
-                <TouchableOpacity
-                  style={[s.dlBtn, {
-                    backgroundColor: accessible ? colors.primary : colors.primary + '18',
-                    borderColor: accessible ? colors.primary : colors.primary + '35',
-                  }]}
-                  onPress={() => { setPayError(''); setSelectedBook(b); }}
-                  activeOpacity={0.8}
-                >
-                  <AppIcon icon={accessible ? BookOpen : Lock} size={12} color={accessible ? '#1A1A3E' : '#C9A84C'} strokeWidth={2.5} />
-                  <Text style={[s.dlTxt, { color: accessible ? '#1A1A3E' : '#C9A84C' }]}>
-                    {accessible ? 'Lire' : "S'abonner"}
-                  </Text>
-                </TouchableOpacity>
-              </TouchableOpacity>
-            );
-          }}
-        />
-      )}
+      <BookModal />
     </View>
   );
 }
 
-const DEMO_BOOKS: Book[] = [
-  { id: '1', title: 'Prières de Percée',        author: 'Prophète Georges', category: 'Prière',    tokenCost: 100, pages: 120 },
-  { id: '2', title: 'Les Secrets Prophétiques',  author: 'Prophète Georges', category: 'Prophétie', tokenCost: 100, pages: 200 },
-  { id: '3', title: 'Sagesse Africaine',         author: 'Prophète Georges', category: 'Sagesse',   tokenCost: 0,   pages: 90  },
-  { id: '4', title: 'Guérison Divine',           author: 'Prophète Georges', category: 'Guérison',  tokenCost: 100, pages: 160 },
-];
-
 const s = StyleSheet.create({
-  header:      { padding: 20, paddingBottom: 20 },
-  headerTitle: { fontSize: 22, fontWeight: '900', color: '#fff' },
-  headerSub:   { fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 4 },
-  searchWrap:  { flexDirection: 'row', alignItems: 'center', gap: 10, margin: 16, borderRadius: 14, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 10 },
-  searchInput: { flex: 1, fontSize: 14 },
-  catBtn:      { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: 'rgba(156,163,175,0.1)' },
-  catActive:   { backgroundColor: '#C9A84C' },
-  catTxt:      { fontSize: 13, fontWeight: '700' },
-  card:        { flex: 1, borderRadius: 16, borderWidth: 1, padding: 12, gap: 8 },
-  coverWrap:       { width: '100%', height: COVER_HEIGHT, alignItems: 'center', justifyContent: 'center', position: 'relative', marginBottom: 4, borderRadius: 10, overflow: 'hidden' },
-  lockOverlayCard: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(10,5,30,0.45)', alignItems: 'center', justifyContent: 'center' },
-  lockBadge:       { position: 'absolute', bottom: 6, right: 6, flexDirection: 'row', alignItems: 'center', gap: 3, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 3 },
-  lockTxt:     { fontSize: 10, fontWeight: '700', color: '#fff' },
-  bookTitle:   { fontSize: 13, fontWeight: '800', lineHeight: 18 },
-  bookAuthor:  { fontSize: 11 },
-  dlBtn:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: 8, borderWidth: 1, paddingVertical: 7, marginTop: 2 },
-  dlTxt:       { fontSize: 10, fontWeight: '700' },
-  overlay:     { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'flex-end' },
-  modalBox:    { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, maxHeight: '90%' },
-  modalClose:  { alignSelf: 'flex-end', padding: 4, marginBottom: 8 },
-  lockOverlay: { position: 'absolute', bottom: 8, right: 8, width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  priceBox:    { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 12, borderWidth: 1, padding: 14 },
-  badge:       { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 12, borderWidth: 1, padding: 12, justifyContent: 'center' },
-  actionBtn:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, borderRadius: 14, paddingVertical: 15 },
-  actionBtnTxt:{ fontSize: 15, fontWeight: '800' },
-  errorBox:    { borderRadius: 10, borderWidth: 1, padding: 10, marginBottom: 4 },
-  iosTip:      { borderRadius: 12, borderWidth: 1, padding: 12, gap: 6, marginTop: 4 },
+  root:         { flex: 1 },
+  header:       { paddingVertical: 16 },
+  title:        { fontSize: 24, fontWeight: '700' },
+  searchRow:    { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 12 },
+  searchInput:  { flex: 1, fontSize: 14 },
+  catScroll:    { maxHeight: 44, marginBottom: 8 },
+  catChip:      { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  catChipActive:{ backgroundColor: '#C9A84C', borderColor: '#C9A84C' },
+  catTxt:       { fontSize: 13, color: 'rgba(255,255,255,0.6)', fontWeight: '600' },
+  catTxtActive: { color: '#fff' },
+  card:         { flex: 1, borderRadius: 14, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
+  coverWrap:    { position: 'relative' },
+  cover:        { width: '100%', aspectRatio: 2/3 },
+  coverFallback:{ alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(201,168,76,0.08)' },
+  lockBadge:    { position: 'absolute', top: 8, right: 8, width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  lockClosed:   { backgroundColor: '#F59E0B' },
+  lockOpen:     { backgroundColor: '#10B981' },
+  bookTitle:    { fontSize: 13, fontWeight: '700', padding: 8, paddingBottom: 2 },
+  bookAuthor:   { fontSize: 11, paddingHorizontal: 8, paddingBottom: 4 },
+  freeTag:      { fontSize: 11, fontWeight: '700', color: '#10B981', paddingHorizontal: 8, paddingBottom: 8 },
+  priceTag:     { fontSize: 11, fontWeight: '700', color: '#F59E0B', paddingHorizontal: 8, paddingBottom: 8 },
+  paidTag:      { color: '#10B981' },
+  empty:        { textAlign: 'center', marginTop: 40, fontSize: 15 },
+  // Modal
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
+  modalBox:     { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, maxHeight: '90%' },
+  modalClose:   { alignSelf: 'flex-end', marginBottom: 12 },
+  modalCover:   { width: 120, height: 180, borderRadius: 12, alignSelf: 'center', marginBottom: 16 },
+  modalTitle:   { fontSize: 20, fontWeight: '700', textAlign: 'center', marginBottom: 4 },
+  modalAuthor:  { fontSize: 14, textAlign: 'center', marginBottom: 12 },
+  modalDesc:    { fontSize: 13, lineHeight: 20, marginBottom: 16, textAlign: 'center' },
+  priceRow:     { flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center', marginBottom: 20 },
+  priceLabel:   { fontSize: 16, fontWeight: '700' },
+  actionBtn:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, borderRadius: 14, paddingVertical: 16, paddingHorizontal: 24 },
+  buyBtn:       { backgroundColor: '#F59E0B' },
+  downloadBtn:  { backgroundColor: '#10B981' },
+  actionBtnTxt: { color: '#fff', fontSize: 16, fontWeight: '700' },
 });

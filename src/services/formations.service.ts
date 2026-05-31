@@ -115,7 +115,7 @@ export const FormationsService = {
 
   async updateProgress(formationId: string, lessonId: string): Promise<{ error?: string }> {
     try {
-      await http.post(`/formations/${formationId}/progress`, { lessonId });
+      await http.patch(`/formations/${formationId}/progress`, { lessonId });
       return {};
     } catch (e) {
       return { error: (e as ApiError).message };

@@ -36,13 +36,13 @@ export default function LibraryReader() {
   async function prepare() {
     setLoading(true); setError('');
     try {
-      const { data, error: bookErr } = await LibraryService.getOne(id!);
-      if (bookErr || !data) { setError('Livre introuvable.'); setLoading(false); return; }
-      // Accès : abonnement actif ou livre gratuit (tokenCost=0)
-      if (!hasSubscription && (data.tokenCost ?? 0) > 0) {
+      const data = await LibraryService.getOne(id!);
+      if (!data) { setError('Livre introuvable.'); setLoading(false); return; }
+      // Accès : livre gratuit ou déjà acheté
+      if ((data.tokenCost ?? 0) > 0 && !data.purchased) {
         setError('access'); setLoading(false); return;
       }
-      const url = LibraryService.getPdfUrl(data);
+      const url = data.pdfUrl ?? null;
       if (!url) { setError('Aucun fichier PDF disponible pour ce livre.'); setLoading(false); return; }
       const tok = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN) ?? '';
       setToken(tok);

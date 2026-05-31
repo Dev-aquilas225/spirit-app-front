@@ -1,145 +1,135 @@
-import { http, ApiError } from './http.client';
-import { Env } from '../utils/env';
+import { http } from './http.client';
+import { Platform } from 'react-native';
+import { StorageService } from './storage.service';
 
-/**
- * Statuts réels en base : 'active' | 'inactive'
- * (le backend filtre getAll() sur status='active')
- */
-export type LibraryBookStatus = 'active' | 'inactive';
-
-/**
- * Correspond exactement à l'entité `library_books` du backend.
- */
 export interface LibraryBook {
   id: string;
   title: string;
-  author?: string;
+  author: string;
   description?: string;
-  /** URL absolue de la couverture (champ DB : coverUrl) */
   coverUrl?: string | null;
   category?: string;
   pages?: number;
-  /** URL du fichier PDF (champ DB : pdfUrl) */
   pdfUrl?: string | null;
-  tokenCost: number;
-  status: LibraryBookStatus;
-  createdAt?: string;
+  tokenCost: number;   // prix en XOF (0 = gratuit)
+  status: 'active' | 'inactive';
+  order?: number;
+  purchased?: boolean;
 }
 
-export interface CreateBookPayload {
-  title: string;
-  author?: string;
-  description?: string;
-  coverUrl?: string;
-  category?: string;
-  pages?: number;
-  tokenCost?: number;
-  pdfUrl?: string;
-  status?: LibraryBookStatus;
+export interface BookPurchase {
+  id: string;
+  bookId: string;
+  reference: string;
+  amount: number;
+  status: 'pending' | 'paid';
+  book?: LibraryBook;
 }
+
+const PURCHASED_BOOKS_KEY = '@oracle/purchased_books';
 
 export const LibraryService = {
-  /**
-   * Résout une URL de couverture :
-   * - URL absolue → retournée telle quelle
-   * - Chemin relatif → préfixé avec l'API base URL
-   * - Absent → null
-   */
-  resolveCoverUrl(raw?: string | null): string | null {
-    if (!raw) return null;
-    if (raw.startsWith('http')) return raw;
-    return `${Env.API_BASE_URL()}${raw}`;
-  },
-
-  /** URL de lecture du PDF */
-  getPdfUrl(book: LibraryBook): string | null {
-    if (!book.pdfUrl) return null;
-    if (book.pdfUrl.startsWith('http')) return book.pdfUrl;
-    return `${Env.API_BASE_URL()}${book.pdfUrl}`;
-  },
-
   async getAll(category?: string): Promise<LibraryBook[]> {
-    const query = category ? `?category=${encodeURIComponent(category)}` : '';
     try {
-      const books = await http.get<any[]>(`/library${query}`);
-      return books.map((b) => ({
-        ...b,
-        coverUrl: LibraryService.resolveCoverUrl(b.coverUrl),
-        pdfUrl: b.pdfUrl ?? null,
-      }));
-    } catch {
-      return [];
-    }
+      const url = category ? `/library?category=${encodeURIComponent(category)}` : '/library';
+      const data = await http.get<LibraryBook[]>(url);
+      return Array.isArray(data) ? data : [];
+    } catch { return []; }
   },
 
-  /* ── Admin ─────────────────────────────────────────────────────────────── */
-
-  async getAllAdmin(category?: string): Promise<LibraryBook[]> {
-    const query = category ? `?category=${encodeURIComponent(category)}` : '';
-    try {
-      const books = await http.get<any[]>(`/library/admin/books${query}`);
-      return books.map((b) => ({
-        ...b,
-        coverUrl: LibraryService.resolveCoverUrl(b.coverUrl),
-        pdfUrl: b.pdfUrl ?? null,
-      }));
-    } catch {
-      return [];
-    }
+  async getOne(id: string): Promise<LibraryBook | null> {
+    try { return await http.get<LibraryBook>(`/library/${id}`); }
+    catch { return null; }
   },
 
-  async createBook(payload: CreateBookPayload): Promise<{ data?: LibraryBook; error?: string }> {
-    try {
-      const data = await http.post<LibraryBook>('/library', payload);
-      return { data };
-    } catch (e) {
-      return { error: (e as ApiError)?.message ?? 'Erreur réseau' };
-    }
+  async initiatePurchase(bookId: string): Promise<{ authorization_url?: string; reference?: string; error?: string; purchased?: boolean }> {
+    try { return await http.post<any>(`/library/${bookId}/purchase/initiate`, {}); }
+    catch (e: any) { return { error: e?.message ?? 'Erreur paiement' }; }
   },
 
-  async updateBook(
-    id: string,
-    payload: Partial<CreateBookPayload>,
-  ): Promise<{ data?: LibraryBook; error?: string }> {
-    try {
-      const data = await http.patch<LibraryBook>(`/library/${id}`, payload);
-      return { data };
-    } catch (e) {
-      return { error: (e as ApiError)?.message ?? 'Erreur réseau' };
-    }
+  async verifyPurchase(reference: string): Promise<{ success: boolean; status: string; bookId?: string }> {
+    try { return await http.get<any>(`/library/purchase/verify/${reference}`); }
+    catch { return { success: false, status: 'error' }; }
   },
 
-  async deleteBook(id: string): Promise<{ error?: string }> {
+  async getMyPurchases(): Promise<BookPurchase[]> {
     try {
-      await http.delete(`/library/${id}`);
-      return {};
-    } catch (e) {
-      return { error: (e as ApiError).message };
-    }
+      const data = await http.get<BookPurchase[]>('/library/purchases/me');
+      return Array.isArray(data) ? data : [];
+    } catch { return []; }
   },
 
-  async updateStatus(id: string, status: LibraryBookStatus): Promise<{ data?: LibraryBook; error?: string }> {
+  async downloadBook(book: LibraryBook): Promise<{ localUri?: string; error?: string }> {
     try {
-      const data = await http.patch<LibraryBook>(`/library/admin/books/${id}/status`, { status });
-      return { data };
-    } catch (e) {
-      return { error: (e as ApiError).message };
-    }
+      if (!book.pdfUrl) return { error: 'Aucun PDF disponible' };
+      const apiBase = (process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://api.oracle-plus.online').replace(/\/$/, '');
+      const downloadUrl = `${apiBase}/api/v1/library/${book.id}/download`;
+
+      if (Platform.OS === 'web') {
+        window.open(downloadUrl, '_blank');
+        return { localUri: downloadUrl };
+      }
+
+      // Natif : télécharger dans le stockage local
+      const FS = await import('expo-file-system/legacy');
+      const dir = `${FS.documentDirectory}oracle_books/`;
+      await FS.makeDirectoryAsync(dir, { intermediates: true });
+      const localPath = `${dir}${book.id}.pdf`;
+
+      // Déjà téléchargé ?
+      const info = await FS.getInfoAsync(localPath);
+      if (info.exists) return { localUri: localPath };
+
+      const token = await StorageService.get<string>('@oracle/access_token');
+      const result = await FS.downloadAsync(downloadUrl, localPath, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (result.status === 200) {
+        await LibraryService.savePurchasedBook(book.id, localPath);
+        return { localUri: localPath };
+      }
+      return { error: 'Téléchargement échoué' };
+    } catch (e: any) { return { error: e?.message ?? 'Erreur téléchargement' }; }
   },
 
-  /* ── Public ─────────────────────────────────────────────────────────────── */
+  async savePurchasedBook(bookId: string, localUri: string): Promise<void> {
+    const existing = await StorageService.get<Record<string, string>>(PURCHASED_BOOKS_KEY) ?? {};
+    await StorageService.set(PURCHASED_BOOKS_KEY, { ...existing, [bookId]: localUri });
+  },
 
-  async getOne(id: string): Promise<{ data?: LibraryBook; error?: string }> {
-    try {
-      const raw = await http.get<any>(`/library/${id}`);
-      const data: LibraryBook = {
-        ...raw,
-        coverUrl: LibraryService.resolveCoverUrl(raw.coverUrl),
-        pdfUrl: raw.pdfUrl ?? null,
-      };
-      return { data };
-    } catch (e) {
-      return { error: (e as ApiError).message };
-    }
+  async getLocalUri(bookId: string): Promise<string | null> {
+    const map = await StorageService.get<Record<string, string>>(PURCHASED_BOOKS_KEY) ?? {};
+    return map[bookId] ?? null;
+  },
+
+  async isPurchasedLocally(bookId: string): Promise<boolean> {
+    return !!(await LibraryService.getLocalUri(bookId));
   },
 };
+
+// ── Types legacy (compatibilité) ─────────────────────────────────────────────
+export type CreateBookPayload = Omit<LibraryBook, 'id' | 'purchased'> & { author?: string };
+export type LibraryBookStatus = 'active' | 'inactive';
+
+// ── Méthodes admin ────────────────────────────────────────────────────────────
+Object.assign(LibraryService, {
+  async getAllAdmin(): Promise<LibraryBook[]> {
+    try { return await http.get<LibraryBook[]>('/library/admin/books'); }
+    catch { return []; }
+  },
+  async createBook(data: CreateBookPayload): Promise<LibraryBook> {
+    return http.post<LibraryBook>('/library', data);
+  },
+  async updateBook(id: string, data: Partial<LibraryBook>): Promise<LibraryBook> {
+    return http.patch<LibraryBook>(`/library/${id}`, data);
+  },
+  async updateStatus(id: string, status: LibraryBookStatus): Promise<void> {
+    await http.patch(`/library/${id}`, { status });
+  },
+  async deleteBook(id: string): Promise<void> {
+    await http.delete(`/library/${id}`);
+  },
+  getPdfUrl(book: LibraryBook): string | null {
+    return book.pdfUrl ?? null;
+  },
+});

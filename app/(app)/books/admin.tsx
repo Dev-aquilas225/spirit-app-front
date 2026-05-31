@@ -77,20 +77,25 @@ function AddBookModal({ visible, onClose, onCreated }: AddBookModalProps) {
   async function handleSave() {
     if (!title.trim()) { Alert.alert('Champ requis', 'Le titre est obligatoire.'); return; }
     setSaving(true);
-    const payload: CreateBookPayload = {
+    const payload = {
       title:       title.trim(),
-      author:      author.trim()      || undefined,
+      author:      author.trim()      || '',
       description: description.trim() || undefined,
       category:    category.trim()    || undefined,
       tokenCost:   parseInt(tokenCost) || 0,
       coverUrl:    coverUrl.trim()    || undefined,
       pdfUrl:      pdfUrl.trim()      || undefined,
+      status:      'active' as const,
     };
-    const { error } = await LibraryService.createBook(payload);
-    setSaving(false);
-    if (error) { Alert.alert('Erreur', error); return; }
-    reset();
-    onCreated();
+    try {
+      await (LibraryService as any).createBook(payload);
+      setSaving(false);
+      reset();
+      onCreated();
+    } catch (e: any) {
+      setSaving(false);
+      Alert.alert('Erreur', e?.message ?? 'Erreur création');
+    }
   }
 
   const fieldStyle = [styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }];
@@ -197,18 +202,23 @@ function EditBookModal({ book, onClose, onSaved }: EditBookModalProps) {
     if (!book) return;
     if (!title.trim()) { Alert.alert('Champ requis', 'Le titre est obligatoire.'); return; }
     setSaving(true);
-    const { data, error } = await LibraryService.updateBook(book.id, {
-      title:       title.trim(),
-      author:      author.trim()      || undefined,
-      description: description.trim() || undefined,
-      category:    category.trim()    || undefined,
-      tokenCost:   parseInt(tokenCost) || 0,
-      coverUrl:    coverUrl.trim()    || undefined,
-      pdfUrl:      pdfUrl.trim()      || undefined,
-    });
-    setSaving(false);
-    if (error) { Alert.alert('Erreur', error); return; }
-    if (data) onSaved(data);
+    try {
+      const updated = await (LibraryService as any).updateBook(book.id, {
+        title:       title.trim(),
+        author:      author.trim()      || undefined,
+        description: description.trim() || undefined,
+        category:    category.trim()    || undefined,
+        tokenCost:   parseInt(tokenCost) || 0,
+        coverUrl:    coverUrl.trim()    || undefined,
+        pdfUrl:      pdfUrl.trim()      || undefined,
+      });
+      setSaving(false);
+      if (updated) onSaved(updated);
+    } catch (e: any) {
+      setSaving(false);
+      Alert.alert('Erreur', e?.message ?? 'Mise à jour échouée');
+      return;
+    }
     onClose();
   }
 
@@ -385,17 +395,18 @@ export default function AdminBooksScreen() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const data = await LibraryService.getAllAdmin();
-    setBooks(data);
+    const data = await (LibraryService as any).getAllAdmin();
+    setBooks(Array.isArray(data) ? data : []);
     setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
   async function handleStatusChange(id: string, status: LibraryBookStatus) {
-    const { data, error } = await LibraryService.updateStatus(id, status);
-    if (error) { Alert.alert('Erreur', error); return; }
-    if (data) setBooks((prev) => prev.map((b) => (b.id === id ? { ...b, ...data } : b)));
+    try {
+      await (LibraryService as any).updateStatus(id, status);
+      setBooks(prev => prev.map(b => b.id === id ? { ...b, status } : b));
+    } catch (e: any) { Alert.alert('Erreur', e?.message ?? 'Erreur statut'); }
   }
 
   function handleBookSaved(updated: LibraryBook) {
@@ -404,9 +415,10 @@ export default function AdminBooksScreen() {
 
   function handleDeleteBook(book: LibraryBook) {
     const doDelete = async () => {
-      const { error } = await LibraryService.deleteBook(book.id);
-      if (error) { Alert.alert('Erreur', error); return; }
-      setBooks((prev) => prev.filter((b) => b.id !== book.id));
+      try {
+        await (LibraryService as any).deleteBook(book.id);
+        setBooks(prev => prev.filter(b => b.id !== book.id));
+      } catch (e: any) { Alert.alert('Erreur', e?.message ?? 'Erreur suppression'); }
     };
 
     if (Platform.OS === 'web') {
