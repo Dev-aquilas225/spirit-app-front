@@ -98,7 +98,9 @@ export const useAIStore = create<AIStore>((set, get) => ({
     const currentConversation = get().currentConversations[chatType];
     const user = useAuthStore.getState().user;
     if (!user) return;
-    const isPremium = user.role === 'subscriber' || user.role === 'admin';
+    // Vérifier l'abonnement actif (date non expirée) — pas seulement le rôle
+    const { isActive } = await import('./subscription.store').then(m => m.useSubscriptionStore.getState());
+    const isPremium = user.role === 'admin' || (user.role === 'subscriber' && isActive);
     set({ isSending: true });
 
     try {
@@ -191,7 +193,8 @@ export const useAIStore = create<AIStore>((set, get) => ({
 
   refreshUsage: async () => {
     const user = useAuthStore.getState().user;
-    const isPremium = user?.role === 'subscriber' || user?.role === 'admin';
+    const { isActive: subActive } = await import('./subscription.store').then(m => m.useSubscriptionStore.getState());
+    const isPremium = user?.role === 'admin' || (user?.role === 'subscriber' && subActive);
     const usage = await AIService.getDailyUsage();
     const remaining = await AIService.getRemainingQuestions(isPremium);
     set({
