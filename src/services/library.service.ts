@@ -69,7 +69,24 @@ export const LibraryService = {
       const downloadUrl = `${apiBase}/api/v1/library/${book.id}/download`;
 
       if (Platform.OS === 'web') {
-        window.open(downloadUrl, '_blank');
+        // Sur web : fetch avec token puis déclencher le téléchargement via blob
+        const token = await StorageService.get<string>('@oracle/access_token');
+        const resp = await fetch(downloadUrl, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          return { error: (err as any).message ?? 'Téléchargement refusé' };
+        }
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${book.title.replace(/[^a-z0-9]/gi, '_')}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
         return { localUri: downloadUrl };
       }
 
@@ -134,5 +151,44 @@ Object.assign(LibraryService, {
   },
   getPdfUrl(book: LibraryBook): string | null {
     return book.pdfUrl ?? null;
+  },
+
+  /** Upload une image de couverture → retourne l'URL publique */
+  async uploadCover(fileUri: string, mimeType = 'image/jpeg'): Promise<string> {
+    const { StorageService } = await import('./storage.service');
+    const token = await StorageService.get<string>('@oracle/access_token');
+    const apiBase = (process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://api.oracle-plus.online').replace(/\/$/, '');
+
+    const form = new FormData();
+    // React Native FormData accepte { uri, name, type }
+    form.append('file', { uri: fileUri, name: 'cover.jpg', type: mimeType } as any);
+
+    const res = await fetch(`${apiBase}/api/v1/library/upload/cover`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token ?? ''}` },
+      body: form,
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    return data.url as string;
+  },
+
+  /** Upload un PDF → retourne l'URL publique */
+  async uploadPdf(fileUri: string, mimeType = 'application/pdf'): Promise<string> {
+    const { StorageService } = await import('./storage.service');
+    const token = await StorageService.get<string>('@oracle/access_token');
+    const apiBase = (process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://api.oracle-plus.online').replace(/\/$/, '');
+
+    const form = new FormData();
+    form.append('file', { uri: fileUri, name: 'book.pdf', type: mimeType } as any);
+
+    const res = await fetch(`${apiBase}/api/v1/library/upload/pdf`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token ?? ''}` },
+      body: form,
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    return data.url as string;
   },
 });

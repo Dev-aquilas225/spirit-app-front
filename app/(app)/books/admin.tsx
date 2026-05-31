@@ -15,8 +15,11 @@ import {
   View,
 } from 'react-native';
 import { router } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import {
-  Archive, BookOpen, Edit2, Eye, FilePlus, RefreshCw, Trash2, X,
+  Archive, BookOpen, Edit2, Eye, FilePlus, FileText, Image as ImageIcon,
+  RefreshCw, Trash2, Upload, X,
 } from 'lucide-react-native';
 import { AppIcon } from '../../../src/components/common/AppIcon';
 import { BackButton } from '../../../src/components/common/BackButton';
@@ -54,22 +57,231 @@ interface AddBookModalProps {
   onCreated: () => void;
 }
 
+// ── Composant réutilisable : upload couverture + PDF ──────────────────────────
+interface BookFormProps {
+  title: string; setTitle: (v: string) => void;
+  author: string; setAuthor: (v: string) => void;
+  description: string; setDescription: (v: string) => void;
+  category: string; setCategory: (v: string) => void;
+  tokenCost: string; setTokenCost: (v: string) => void;
+  coverUrl: string; setCoverUrl: (v: string) => void;
+  pdfUrl: string; setPdfUrl: (v: string) => void;
+  uploadingCover: boolean; setUploadingCover: (v: boolean) => void;
+  uploadingPdf: boolean; setUploadingPdf: (v: boolean) => void;
+}
+
+const CATEGORIES = ['Spiritualité', 'Prophétie', 'Prières', 'Rêves', 'Délivrance', 'Autre'];
+
+function BookForm({
+  title, setTitle, author, setAuthor, description, setDescription,
+  category, setCategory, tokenCost, setTokenCost,
+  coverUrl, setCoverUrl, pdfUrl, setPdfUrl,
+  uploadingCover, setUploadingCover, uploadingPdf, setUploadingPdf,
+}: BookFormProps) {
+  const { colors } = useTheme();
+  const fieldStyle = [styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }];
+
+  async function pickCover() {
+    if (Platform.OS === 'web') {
+      // Sur web : input file HTML
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = async (e: any) => {
+        const file: File = e.target.files[0];
+        if (!file) return;
+        setUploadingCover(true);
+        try {
+          const form = new FormData();
+          form.append('file', file);
+          const apiBase = (process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://api.oracle-plus.online').replace(/\/$/, '');
+          const { StorageService } = await import('../../../src/services/storage.service');
+          const token = await StorageService.get<string>('@oracle/access_token');
+          const res = await fetch(`${apiBase}/api/v1/library/upload/cover`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token ?? ''}` },
+            body: form,
+          });
+          const data = await res.json();
+          if (data.url) setCoverUrl(data.url);
+          else Alert.alert('Erreur', data.error ?? 'Upload échoué');
+        } catch (e: any) { Alert.alert('Erreur', e.message); }
+        setUploadingCover(false);
+      };
+      input.click();
+      return;
+    }
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) { Alert.alert('Permission requise', 'Autorisez l\'accès à la galerie.'); return; }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.85,
+      allowsEditing: false,
+    });
+    if (result.canceled || !result.assets?.[0]) return;
+    setUploadingCover(true);
+    try {
+      const asset = result.assets[0];
+      const url = await (LibraryService as any).uploadCover(asset.uri, asset.mimeType ?? 'image/jpeg');
+      setCoverUrl(url);
+    } catch (e: any) { Alert.alert('Erreur upload', e.message); }
+    setUploadingCover(false);
+  }
+
+  async function pickPdf() {
+    if (Platform.OS === 'web') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'application/pdf';
+      input.onchange = async (e: any) => {
+        const file: File = e.target.files[0];
+        if (!file) return;
+        setUploadingPdf(true);
+        try {
+          const form = new FormData();
+          form.append('file', file);
+          const apiBase = (process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://api.oracle-plus.online').replace(/\/$/, '');
+          const { StorageService } = await import('../../../src/services/storage.service');
+          const token = await StorageService.get<string>('@oracle/access_token');
+          const res = await fetch(`${apiBase}/api/v1/library/upload/pdf`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token ?? ''}` },
+            body: form,
+          });
+          const data = await res.json();
+          if (data.url) setPdfUrl(data.url);
+          else Alert.alert('Erreur', data.error ?? 'Upload échoué');
+        } catch (e: any) { Alert.alert('Erreur', e.message); }
+        setUploadingPdf(false);
+      };
+      input.click();
+      return;
+    }
+    const result = await DocumentPicker.getDocumentAsync({ type: 'application/pdf', copyToCacheDirectory: true });
+    if (result.canceled || !result.assets?.[0]) return;
+    setUploadingPdf(true);
+    try {
+      const asset = result.assets[0];
+      const url = await (LibraryService as any).uploadPdf(asset.uri, 'application/pdf');
+      setPdfUrl(url);
+    } catch (e: any) { Alert.alert('Erreur upload', e.message); }
+    setUploadingPdf(false);
+  }
+
+  return (
+    <>
+      {/* ── Zone couverture A4 ── */}
+      <View style={{ gap: 6 }}>
+        <Text style={[styles.label, { color: colors.text }]}>Couverture</Text>
+        <TouchableOpacity onPress={pickCover} activeOpacity={0.8}
+          style={[styles.coverZone, { borderColor: coverUrl ? '#C9A84C' : colors.border, backgroundColor: colors.surface }]}>
+          {uploadingCover ? (
+            <ActivityIndicator color="#C9A84C" size="large" />
+          ) : coverUrl ? (
+            <Image source={{ uri: coverUrl }} style={styles.coverPreview} resizeMode="cover" />
+          ) : (
+            <View style={{ alignItems: 'center', gap: 10 }}>
+              <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(201,168,76,0.12)', alignItems: 'center', justifyContent: 'center' }}>
+                <AppIcon icon={Upload} size={26} color="#C9A84C" strokeWidth={2} />
+              </View>
+              <Text style={{ color: colors.textSecondary, fontSize: 13, fontWeight: '600' }}>Appuyer pour choisir une couverture</Text>
+              <Text style={{ color: colors.textTertiary, fontSize: 11 }}>JPG, PNG · Format A4 recommandé</Text>
+            </View>
+          )}
+          {coverUrl && (
+            <View style={styles.coverEditBadge}>
+              <AppIcon icon={ImageIcon} size={12} color="#fff" strokeWidth={2.5} />
+              <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>Changer</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* ── Titre ── */}
+      <View style={{ gap: 4 }}>
+        <Text style={[styles.label, { color: colors.text }]}>Titre *</Text>
+        <TextInput style={fieldStyle} value={title} onChangeText={setTitle}
+          placeholder="Ex : La Vie de Foi" placeholderTextColor={colors.textSecondary} />
+      </View>
+
+      {/* ── Auteur ── */}
+      <View style={{ gap: 4 }}>
+        <Text style={[styles.label, { color: colors.text }]}>Auteur</Text>
+        <TextInput style={fieldStyle} value={author} onChangeText={setAuthor}
+          placeholder="Ex : Prophète Georges" placeholderTextColor={colors.textSecondary} />
+      </View>
+
+      {/* ── Description ── */}
+      <View style={{ gap: 4 }}>
+        <Text style={[styles.label, { color: colors.text }]}>Description</Text>
+        <TextInput style={[fieldStyle, { height: 80, textAlignVertical: 'top', paddingTop: 10 }]}
+          value={description} onChangeText={setDescription} multiline
+          placeholder="Résumé du livre…" placeholderTextColor={colors.textSecondary} />
+      </View>
+
+      {/* ── PDF ── */}
+      <View style={{ gap: 6 }}>
+        <Text style={[styles.label, { color: colors.text }]}>Fichier PDF</Text>
+        <TouchableOpacity onPress={pickPdf} activeOpacity={0.8}
+          style={[styles.pdfBtn, { borderColor: pdfUrl ? '#6366F1' : colors.border, backgroundColor: colors.surface }]}>
+          {uploadingPdf ? (
+            <ActivityIndicator color="#6366F1" size="small" />
+          ) : (
+            <AppIcon icon={FileText} size={20} color={pdfUrl ? '#6366F1' : colors.textSecondary} strokeWidth={2} />
+          )}
+          <Text style={{ color: pdfUrl ? '#6366F1' : colors.textSecondary, fontSize: 14, fontWeight: '600', flex: 1 }} numberOfLines={1}>
+            {pdfUrl ? '✅ PDF chargé — Appuyer pour changer' : 'Choisir un PDF'}
+          </Text>
+          {pdfUrl && <AppIcon icon={Upload} size={14} color="#6366F1" strokeWidth={2.5} />}
+        </TouchableOpacity>
+      </View>
+
+      {/* ── Catégorie ── */}
+      <View style={{ gap: 6 }}>
+        <Text style={[styles.label, { color: colors.text }]}>Catégorie</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {CATEGORIES.map(cat => (
+            <TouchableOpacity key={cat} onPress={() => setCategory(cat)}
+              style={[styles.catChip, {
+                backgroundColor: category === cat ? '#C9A84C' : colors.surface,
+                borderColor: category === cat ? '#C9A84C' : colors.border,
+              }]}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: category === cat ? '#1A1A3E' : colors.text }}>
+                {cat}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* ── Coût ── */}
+      <View style={{ gap: 4 }}>
+        <Text style={[styles.label, { color: colors.text }]}>Coût (XOF) — 0 = gratuit</Text>
+        <TextInput style={fieldStyle} value={tokenCost} onChangeText={setTokenCost}
+          keyboardType="number-pad" placeholderTextColor={colors.textSecondary} />
+      </View>
+    </>
+  );
+}
+
 function AddBookModal({ visible, onClose, onCreated }: AddBookModalProps) {
   const { colors, spacing } = useTheme();
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const [title,       setTitle]       = useState('');
-  const [author,      setAuthor]      = useState('');
-  const [description, setDescription] = useState('');
-  const [category,    setCategory]    = useState('');
-  const [tokenCost,   setTokenCost]   = useState('100');
-  const [coverUrl,    setCoverUrl]    = useState('');
-  const [pdfUrl,      setPdfUrl]      = useState('');
-  const [saving,      setSaving]      = useState(false);
+  const [title,          setTitle]          = useState('');
+  const [author,         setAuthor]         = useState('');
+  const [description,    setDescription]    = useState('');
+  const [category,       setCategory]       = useState('Spiritualité');
+  const [tokenCost,      setTokenCost]      = useState('0');
+  const [coverUrl,       setCoverUrl]       = useState('');
+  const [pdfUrl,         setPdfUrl]         = useState('');
+  const [saving,         setSaving]         = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [uploadingPdf,   setUploadingPdf]   = useState(false);
 
   function reset() {
     setTitle(''); setAuthor(''); setDescription('');
-    setCategory(''); setTokenCost('100'); setCoverUrl(''); setPdfUrl('');
+    setCategory('Spiritualité'); setTokenCost('0');
+    setCoverUrl(''); setPdfUrl('');
   }
 
   function handleClose() { reset(); onClose(); }
@@ -79,12 +291,12 @@ function AddBookModal({ visible, onClose, onCreated }: AddBookModalProps) {
     setSaving(true);
     const payload = {
       title:       title.trim(),
-      author:      author.trim()      || '',
+      author:      author.trim() || '',
       description: description.trim() || undefined,
-      category:    category.trim()    || undefined,
+      category:    category || undefined,
       tokenCost:   parseInt(tokenCost) || 0,
-      coverUrl:    coverUrl.trim()    || undefined,
-      pdfUrl:      pdfUrl.trim()      || undefined,
+      coverUrl:    coverUrl || undefined,
+      pdfUrl:      pdfUrl || undefined,
       status:      'active' as const,
     };
     try {
@@ -98,69 +310,33 @@ function AddBookModal({ visible, onClose, onCreated }: AddBookModalProps) {
     }
   }
 
-  const fieldStyle = [styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }];
-
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
       <Pressable style={styles.backdrop} onPress={handleClose} />
       <View style={[styles.sheet, { backgroundColor: colors.background }]}>
         <View style={[styles.handle, { backgroundColor: colors.border }]} />
-
         <View style={[styles.sheetHeader, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.sheetTitle, { color: colors.text }]}>Ajouter un livre</Text>
+          <Text style={[styles.sheetTitle, { color: colors.text }]}>Nouveau livre</Text>
           <TouchableOpacity onPress={handleClose}>
             <AppIcon icon={X} size={22} color={colors.text} strokeWidth={2.4} />
           </TouchableOpacity>
         </View>
-
-        <ScrollView
-          contentContainerStyle={{ padding: spacing.base, gap: 14 }}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          {[
-            { label: 'Titre *',        value: title,       set: setTitle,       placeholder: 'Ex : La Vie de Foi' },
-            { label: 'Auteur',         value: author,      set: setAuthor,      placeholder: 'Ex : Prophète Georges' },
-            { label: 'Catégorie',      value: category,    set: setCategory,    placeholder: 'Ex : Spiritualité, Prière…' },
-            { label: 'URL couverture', value: coverUrl,    set: setCoverUrl,    placeholder: 'https://…/cover.jpg' },
-            { label: 'URL PDF',        value: pdfUrl,      set: setPdfUrl,      placeholder: 'https://…/livre.pdf' },
-          ].map(({ label, value, set, placeholder }) => (
-            <View key={label} style={{ gap: 4 }}>
-              <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
-              <TextInput style={fieldStyle} value={value} onChangeText={set}
-                placeholder={placeholder} placeholderTextColor={colors.textSecondary}
-                autoCapitalize="none" />
-            </View>
-          ))}
-
-          <View style={{ gap: 4 }}>
-            <Text style={[styles.label, { color: colors.text }]}>Description</Text>
-            <TextInput style={[fieldStyle, { height: 90, textAlignVertical: 'top', paddingTop: 12 }]}
-              value={description} onChangeText={setDescription} multiline
-              placeholder="Résumé du livre…" placeholderTextColor={colors.textSecondary} />
-          </View>
-
-          <View style={{ gap: 4 }}>
-            <Text style={[styles.label, { color: colors.text }]}>Coût (crédits) — 0 = gratuit</Text>
-            <TextInput style={fieldStyle} value={tokenCost} onChangeText={setTokenCost}
-              keyboardType="number-pad" placeholderTextColor={colors.textSecondary} />
-          </View>
-
-          {/* Aperçu couverture */}
-          {coverUrl ? (
-            <Image source={{ uri: coverUrl }} style={{ width: 80, height: 110, borderRadius: 8 }} resizeMode="cover" />
-          ) : null}
-
-          {/* Bouton enregistrer */}
-          <Button
-            label={saving ? 'Enregistrement…' : 'Enregistrer le livre'}
-            variant="gold"
-            fullWidth
-            onPress={handleSave}
-            style={{ marginTop: 8 }}
+        <ScrollView contentContainerStyle={{ padding: spacing.base, gap: 16 }}
+          keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <BookForm
+            title={title} setTitle={setTitle}
+            author={author} setAuthor={setAuthor}
+            description={description} setDescription={setDescription}
+            category={category} setCategory={setCategory}
+            tokenCost={tokenCost} setTokenCost={setTokenCost}
+            coverUrl={coverUrl} setCoverUrl={setCoverUrl}
+            pdfUrl={pdfUrl} setPdfUrl={setPdfUrl}
+            uploadingCover={uploadingCover} setUploadingCover={setUploadingCover}
+            uploadingPdf={uploadingPdf} setUploadingPdf={setUploadingPdf}
           />
-
-          <View style={{ height: 32 }} />
+          <Button label={saving ? 'Enregistrement…' : 'Enregistrer le livre'}
+            variant="gold" fullWidth onPress={handleSave} style={{ marginTop: 4 }} />
+          <View style={{ height: 40 }} />
         </ScrollView>
       </View>
     </Modal>
@@ -177,22 +353,24 @@ interface EditBookModalProps {
 
 function EditBookModal({ book, onClose, onSaved }: EditBookModalProps) {
   const { colors, spacing } = useTheme();
-  const [title,        setTitle]        = useState('');
-  const [author,       setAuthor]       = useState('');
-  const [description,  setDescription]  = useState('');
-  const [category,     setCategory]     = useState('');
-  const [tokenCost,   setTokenCost]   = useState('100');
-  const [coverUrl,    setCoverUrl]    = useState('');
-  const [pdfUrl,      setPdfUrl]      = useState('');
-  const [saving,      setSaving]      = useState(false);
+  const [title,          setTitle]          = useState('');
+  const [author,         setAuthor]         = useState('');
+  const [description,    setDescription]    = useState('');
+  const [category,       setCategory]       = useState('');
+  const [tokenCost,      setTokenCost]      = useState('0');
+  const [coverUrl,       setCoverUrl]       = useState('');
+  const [pdfUrl,         setPdfUrl]         = useState('');
+  const [saving,         setSaving]         = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [uploadingPdf,   setUploadingPdf]   = useState(false);
 
   useEffect(() => {
     if (book) {
       setTitle(book.title ?? '');
       setAuthor(book.author ?? '');
       setDescription(book.description ?? '');
-      setCategory(book.category ?? '');
-      setTokenCost(String(book.tokenCost ?? 100));
+      setCategory(book.category ?? 'Spiritualité');
+      setTokenCost(String(book.tokenCost ?? 0));
       setCoverUrl(book.coverUrl ?? '');
       setPdfUrl(book.pdfUrl ?? '');
     }
@@ -205,88 +383,52 @@ function EditBookModal({ book, onClose, onSaved }: EditBookModalProps) {
     try {
       const updated = await (LibraryService as any).updateBook(book.id, {
         title:       title.trim(),
-        author:      author.trim()      || undefined,
+        author:      author.trim() || undefined,
         description: description.trim() || undefined,
-        category:    category.trim()    || undefined,
+        category:    category || undefined,
         tokenCost:   parseInt(tokenCost) || 0,
-        coverUrl:    coverUrl.trim()    || undefined,
-        pdfUrl:      pdfUrl.trim()      || undefined,
+        coverUrl:    coverUrl || undefined,
+        pdfUrl:      pdfUrl || undefined,
       });
       setSaving(false);
       if (updated) onSaved(updated);
+      onClose();
     } catch (e: any) {
       setSaving(false);
       Alert.alert('Erreur', e?.message ?? 'Mise à jour échouée');
-      return;
     }
-    onClose();
   }
 
-  const visible    = !!book;
-  const fieldStyle = [styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }];
-
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={!!book} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose} />
       <View style={[styles.sheet, { backgroundColor: colors.background }]}>
         <View style={[styles.handle, { backgroundColor: colors.border }]} />
-
         <View style={[styles.sheetHeader, { borderBottomColor: colors.border }]}>
           <View style={{ flex: 1 }}>
             <Text style={[styles.sheetTitle, { color: colors.text }]}>Modifier le livre</Text>
-            {book && (
-              <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2 }} numberOfLines={1}>
-                {book.title}
-              </Text>
-            )}
+            {book && <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2 }} numberOfLines={1}>{book.title}</Text>}
           </View>
           <TouchableOpacity onPress={onClose}>
             <AppIcon icon={X} size={22} color={colors.text} strokeWidth={2.4} />
           </TouchableOpacity>
         </View>
-
-        <ScrollView
-          contentContainerStyle={{ padding: spacing.base, gap: 14 }}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          {[
-            { label: 'Titre *',        value: title,       set: setTitle,       placeholder: 'Titre du livre' },
-            { label: 'Auteur',         value: author,      set: setAuthor,      placeholder: "Nom de l'auteur" },
-            { label: 'Catégorie',      value: category,    set: setCategory,    placeholder: 'Ex : Spiritualité, Prière…' },
-            { label: 'URL couverture', value: coverUrl,    set: setCoverUrl,    placeholder: 'https://…/cover.jpg' },
-            { label: 'URL PDF',        value: pdfUrl,      set: setPdfUrl,      placeholder: 'https://…/livre.pdf' },
-          ].map(({ label, value, set, placeholder }) => (
-            <View key={label} style={{ gap: 4 }}>
-              <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
-              <TextInput style={fieldStyle} value={value} onChangeText={set}
-                placeholder={placeholder} placeholderTextColor={colors.textSecondary}
-                autoCapitalize="none" />
-            </View>
-          ))}
-
-          <View style={{ gap: 4 }}>
-            <Text style={[styles.label, { color: colors.text }]}>Description</Text>
-            <TextInput style={[fieldStyle, { height: 90, textAlignVertical: 'top', paddingTop: 12 }]}
-              value={description} onChangeText={setDescription} multiline
-              placeholder="Résumé du livre…" placeholderTextColor={colors.textSecondary} />
-          </View>
-
-          <View style={{ gap: 4 }}>
-            <Text style={[styles.label, { color: colors.text }]}>Coût (crédits) — 0 = gratuit</Text>
-            <TextInput style={fieldStyle} value={tokenCost} onChangeText={setTokenCost}
-              keyboardType="number-pad" placeholderTextColor={colors.textSecondary} />
-          </View>
-
-          {coverUrl ? (
-            <Image source={{ uri: coverUrl }} style={{ width: 72, height: 96, borderRadius: 8 }} resizeMode="cover" />
-          ) : null}
-
-          <Button
-            label={saving ? 'Enregistrement…' : 'Enregistrer les modifications'}
-            variant="gold" fullWidth onPress={handleSave} style={{ marginTop: 8 }}
+        <ScrollView contentContainerStyle={{ padding: spacing.base, gap: 16 }}
+          keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <BookForm
+            title={title} setTitle={setTitle}
+            author={author} setAuthor={setAuthor}
+            description={description} setDescription={setDescription}
+            category={category} setCategory={setCategory}
+            tokenCost={tokenCost} setTokenCost={setTokenCost}
+            coverUrl={coverUrl} setCoverUrl={setCoverUrl}
+            pdfUrl={pdfUrl} setPdfUrl={setPdfUrl}
+            uploadingCover={uploadingCover} setUploadingCover={setUploadingCover}
+            uploadingPdf={uploadingPdf} setUploadingPdf={setUploadingPdf}
           />
-          <View style={{ height: 32 }} />
+          <Button label={saving ? 'Enregistrement…' : 'Enregistrer les modifications'}
+            variant="gold" fullWidth onPress={handleSave} style={{ marginTop: 4 }} />
+          <View style={{ height: 40 }} />
         </ScrollView>
       </View>
     </Modal>
@@ -578,4 +720,36 @@ const styles = StyleSheet.create({
   toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 12, borderWidth: 1 },
   toggle: { width: 40, height: 24, borderRadius: 12, justifyContent: 'center' },
   toggleThumb: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff', elevation: 2 },
+
+  /* Couverture A4 */
+  coverZone: {
+    width: '100%',
+    aspectRatio: 0.707, // ratio A4 portrait (1/√2)
+    borderRadius: 14,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  coverPreview: { width: '100%', height: '100%' },
+  coverEditBadge: {
+    position: 'absolute', bottom: 10, right: 10,
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 10, paddingVertical: 5,
+    borderRadius: 20,
+  },
+
+  /* PDF */
+  pdfBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    borderWidth: 1.5, borderRadius: 12, borderStyle: 'dashed',
+    paddingHorizontal: 16, paddingVertical: 16,
+  },
+
+  /* Catégorie chips */
+  catChip: {
+    paddingHorizontal: 14, paddingVertical: 8,
+    borderRadius: 20, borderWidth: 1.5,
+  },
 });
