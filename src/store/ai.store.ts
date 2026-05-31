@@ -125,8 +125,16 @@ export const useAIStore = create<AIStore>((set, get) => ({
       }));
       AIService.addMessageToConversation(conv.id, userMessage).catch(() => {});
 
-      const { message: aiMessage, conversationId: resolvedId, error } =
+      const { message: aiMessage, conversationId: resolvedId, error, creditsRemaining } =
         await AIService.sendMessage(conv.id, content, isPremium, chatType);
+
+      // Synchroniser le solde depuis la réponse backend (source de vérité)
+      if (typeof creditsRemaining === 'number') {
+        useCreditsStore.getState().setCredits(creditsRemaining);
+      } else if (!isPremium) {
+        // Fallback : rafraîchir depuis l'API
+        useCreditsStore.getState().fetchBalance().catch(() => {});
+      }
 
       const finalConv: AIConversation = {
         ...updatedConv,
@@ -143,13 +151,9 @@ export const useAIStore = create<AIStore>((set, get) => ({
           ...state.conversations.filter((c) => c.id !== conv!.id && c.id !== finalConv.id),
         ],
         isSending: false,
-        limitReached: error === 'limit_reached',
+        limitReached: error === 'limit_reached' || error === 'insufficient_credits',
       }));
 
-      if (!isPremium && aiMessage.content) {
-        const wordCount = aiMessage.content.trim().split(/\s+/).filter(Boolean).length;
-        if (wordCount > 0) useCreditsStore.getState().spendWords(wordCount).catch(() => {});
-      }
       get().refreshUsage().catch(() => {});
 
     } catch {

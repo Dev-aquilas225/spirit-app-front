@@ -28,9 +28,9 @@ export function useAccess() {
    */
   const canPerform = (action: CreditAction): boolean => {
     if (hasSubscription) return true;
-    // Chat actions: just need at least 1 credit (per-word billing happens after response)
+    // Chat actions: minimum 20 crédits requis (backend bloque en dessous)
     const chatActions: CreditAction[] = ['ai_chat', 'prophetic_consultation', 'prayer_generation'];
-    if (chatActions.includes(action)) return credits >= 1;
+    if (chatActions.includes(action)) return credits >= 20;
     return canAfford(action);
   };
 

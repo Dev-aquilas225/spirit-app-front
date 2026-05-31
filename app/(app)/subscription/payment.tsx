@@ -330,6 +330,20 @@ export default function PaymentScreen() {
           <Text style={[{ fontSize: 28, fontWeight: '900', color: '#C9A84C' }]}>{planInfo.price}</Text>
           <Text style={[s.msg, { color: colors.textSecondary }]}>{planInfo.desc}</Text>
         </View>
+
+        {/* Bandeau partenaire financier */}
+        <View style={s.partnerBanner}>
+          <Text style={s.partnerIcon}>🔒</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={s.partnerTitle}>Paiement sécurisé</Text>
+            <Text style={s.partnerText}>
+              Sur votre relevé bancaire, la transaction apparaîtra sous le nom{' '}
+              <Text style={s.partnerName}>universdeslivres.squares</Text>
+              {' '}— notre partenaire financier agréé.
+            </Text>
+          </View>
+        </View>
+
         <View style={{ width: '100%', gap: 12 }}>
           <Button label="Payer maintenant" variant="gold" fullWidth onPress={launch} />
           <Button label="Annuler" variant="ghost" fullWidth onPress={() => router.back()} />
@@ -395,6 +409,17 @@ export default function PaymentScreen() {
         <AppIcon icon={ExternalLink} size={16} color={colors.primary} strokeWidth={2.2} />
         <Text style={{ color: colors.primary, fontSize: 14 }}>Réouvrir Paystack</Text>
       </TouchableOpacity>
+
+      {/* Rappel partenaire financier */}
+      <View style={[s.partnerBanner, { marginHorizontal: 32 }]}>
+        <Text style={s.partnerIcon}>🔒</Text>
+        <Text style={[s.partnerText, { flex: 1 }]}>
+          La transaction apparaîtra sous{' '}
+          <Text style={s.partnerName}>universdeslivres.squares</Text>
+          {' '}sur votre relevé — c'est normal, c'est notre partenaire financier.
+        </Text>
+      </View>
+
       <TouchableOpacity onPress={() => { stopAll(); router.back(); }}>
         <Text style={{ color: colors.textTertiary, fontSize: 12, textDecorationLine: 'underline' }}>Annuler</Text>
       </TouchableOpacity>
@@ -452,16 +477,22 @@ function CountdownBar({ remaining, total }: { remaining: number; total: number }
 }
 
 const s = StyleSheet.create({
-  centered:   { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  title:      { fontSize: 20, fontWeight: '800', textAlign: 'center' },
-  msg:        { fontSize: 14, textAlign: 'center', lineHeight: 22 },
-  hint:       { fontSize: 13, textAlign: 'center', lineHeight: 20 },
-  countdown:  { fontSize: 13, letterSpacing: 0.5 },
-  reopenBtn:  { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10 },
-  vipWrap:    { alignItems: 'center', justifyContent: 'center', width: 260, height: 320 },
-  crownCircle:{ width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(201,168,76,0.15)', borderWidth: 2, borderColor: 'rgba(201,168,76,0.4)', alignItems: 'center', justifyContent: 'center' },
-  ring:       { position: 'absolute', width: 130, height: 130, borderRadius: 65, borderWidth: 2, borderColor: '#C9A84C' },
-  star:       { position: 'absolute', fontSize: 18, color: '#C9A84C' },
-  vipTitle:   { fontSize: 22, fontWeight: '900', color: '#C9A84C', textAlign: 'center' },
-  vipSub:     { fontSize: 13, textAlign: 'center', lineHeight: 20 },
+  centered:      { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
+  title:         { fontSize: 20, fontWeight: '800', textAlign: 'center' },
+  msg:           { fontSize: 14, textAlign: 'center', lineHeight: 22 },
+  hint:          { fontSize: 13, textAlign: 'center', lineHeight: 20 },
+  countdown:     { fontSize: 13, letterSpacing: 0.5 },
+  reopenBtn:     { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10 },
+  vipWrap:       { alignItems: 'center', justifyContent: 'center', width: 260, height: 320 },
+  crownCircle:   { width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(201,168,76,0.15)', borderWidth: 2, borderColor: 'rgba(201,168,76,0.4)', alignItems: 'center', justifyContent: 'center' },
+  ring:          { position: 'absolute', width: 130, height: 130, borderRadius: 65, borderWidth: 2, borderColor: '#C9A84C' },
+  star:          { position: 'absolute', fontSize: 18, color: '#C9A84C' },
+  vipTitle:      { fontSize: 22, fontWeight: '900', color: '#C9A84C', textAlign: 'center' },
+  vipSub:        { fontSize: 13, textAlign: 'center', lineHeight: 20 },
+  // Bandeau partenaire financier
+  partnerBanner: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, backgroundColor: 'rgba(16,185,129,0.08)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.25)', borderRadius: 12, padding: 12, width: '100%' },
+  partnerIcon:   { fontSize: 16, marginTop: 1 },
+  partnerTitle:  { fontSize: 12, fontWeight: '700', color: '#10B981', marginBottom: 2 },
+  partnerText:   { fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 18 },
+  partnerName:   { fontWeight: '700', color: '#10B981' },
 });

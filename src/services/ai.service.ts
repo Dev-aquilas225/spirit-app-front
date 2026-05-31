@@ -156,16 +156,31 @@ export const AIService = {
       });
 
       const payload = isRecord(data) ? data : {};
+
+      // Crédits insuffisants retournés par le backend
+      if (payload.error === 'Crédits insuffisants') {
+        return {
+          message: {
+            id: generateId(),
+            role: 'assistant',
+            content: 'Crédits insuffisants. Rechargez votre solde pour continuer.',
+            timestamp: new Date().toISOString(),
+          },
+          creditsRemaining: typeof payload.creditsRemaining === 'number' ? payload.creditsRemaining : undefined,
+          error: 'insufficient_credits',
+        };
+      }
+
       const rawMessage = payload.message ?? payload.response ?? data;
 
       return {
         message: normalizeMessage(rawMessage, 'assistant'),
         conversationId:
           typeof payload.conversationId === 'string' ? payload.conversationId : conversationId,
+        creditsRemaining: typeof payload.creditsRemaining === 'number' ? payload.creditsRemaining : undefined,
       };
     } catch (e) {
       const msg = (e as ApiError).message;
-      const isLimit = (e as ApiError).statusCode === 429;
       return {
         message: {
           id: generateId(),
