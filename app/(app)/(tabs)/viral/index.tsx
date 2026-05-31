@@ -20,7 +20,6 @@ import { useAuth } from '../../../../src/hooks/useAuth';
 import { useCreditsStore } from '../../../../src/store/credits.store';
 import { ViralShareService, ViralShareRequest } from '../../../../src/services/viral-share.service';
 import { ReferralsService } from '../../../../src/services/referrals.service';
-import { http } from '../../../../src/services/http.client';
 
 const APP_URL = process.env.EXPO_PUBLIC_APP_URL ?? 'https://oracle-plus.online';
 
