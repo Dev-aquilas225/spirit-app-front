@@ -297,20 +297,9 @@ export default function LoginScreen() {
                 </View>
               )
             ) : (
-              // Native : expo-auth-session
-              <Button
-                label={googleLoading ? "Connexion en cours…" : "Continuer avec Google"}
-                variant="outline"
-                fullWidth
-                size="lg"
-                loading={googleLoading}
-                disabled={googleLoading}
-                onPress={handleNativeGooglePress}
-                icon={!googleLoading ? <GoogleLogoNative /> : undefined}
-                iconPosition="left"
-                style={{ borderColor: colors.border, backgroundColor: colors.surface }}
-                textStyle={{ color: colors.text }}
-              />
+              // Native : Google Sign-In non disponible sans Android OAuth client
+              // → utiliser le magic link ci-dessous
+              null
             )}
           </View>
         )}
@@ -323,6 +312,16 @@ export default function LoginScreen() {
           </Text>
           <View style={[styles.separatorLine, { backgroundColor: colors.border }]} />
         </View>
+
+        {/* Sur natif, afficher un message d'info à la place du bouton Google */}
+        {Platform.OS !== 'web' && clientConfigured && (
+          <View style={{ marginTop: spacing["2xl"], marginBottom: spacing.sm, alignItems: 'center' }}>
+            <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '700', marginBottom: 4 }}>
+              Appuyez ici pour vous connecter
+            </Text>
+            <Text style={{ color: colors.primary, fontSize: 18 }}>↓</Text>
+          </View>
+        )}
 
         {/* ── Champ email (magic link) ───────────────────────────────────── */}
         <Text style={[styles.label, { color: colors.textSecondary, marginBottom: spacing.xs }]}>
