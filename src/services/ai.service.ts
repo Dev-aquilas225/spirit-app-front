@@ -138,11 +138,9 @@ export const AIService = {
     chatType: 'prophet' | 'consultation' | 'accompagnement' | 'dream' | 'prayer' = 'prophet',
   ): Promise<{ message: AIMessage; conversationId?: string; error?: string }> {
 
-    // Map chatType → section backend (identifiant exact du prompt admin)
-    // La rubrique "Consultation" de l'app utilise le prompt "Accompagnement spirituel"
     const CHAT_TYPE_TO_SECTION: Record<string, string> = {
       prophet:        'prophetic_consultation',
-      consultation:   'accompagnement',      // Consultation → prompt Accompagnement spirituel
+      consultation:   'consultation',
       accompagnement: 'accompagnement',
       dream:          'dream_interpretation',
       prayer:         'prayer_generation',
