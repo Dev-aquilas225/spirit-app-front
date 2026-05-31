@@ -54,7 +54,10 @@ export const LibraryService = {
 
   async getMyPurchases(): Promise<BookPurchase[]> {
     try {
-      const data = await http.get<BookPurchase[]>('/library/purchases/me');
+      // /library/purchases/me quand déployé, fallback sur /library/purchases
+      const data = await http.get<BookPurchase[]>('/library/purchases/me').catch(
+        () => http.get<BookPurchase[]>('/library/purchases')
+      );
       return Array.isArray(data) ? data : [];
     } catch { return []; }
   },

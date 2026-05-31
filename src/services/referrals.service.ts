@@ -23,15 +23,12 @@ export const ReferralsService = {
     }
   },
 
-  async getShareMessage(): Promise<{ code: string; message: string } | null> {
-    try {
-      return await http.get<{ code: string; message: string }>('/referrals/share');
-    } catch {
-      return null;
-    }
-  },
-
+  // POST /referrals/share — utiliser le code d'un parrain
   async useCode(code: string): Promise<{ success: boolean; creditsAdded?: number; message: string }> {
-    return http.post('/referrals/use', { code: code.toUpperCase() });
+    try {
+      return await http.post('/referrals/share', { referralCode: code.toUpperCase() });
+    } catch (e: any) {
+      return { success: false, message: e?.message ?? 'Erreur parrainage' };
+    }
   },
 };

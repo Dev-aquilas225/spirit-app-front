@@ -33,8 +33,13 @@ export default function AdminPushScreen() {
   const loadStats = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await http.get<PushStats>('/push/admin/stats');
-      setStats(data);
+      // /admin/notifications/cron/status retourne { cronEnabled, subsCount, lastSentAt }
+      const data = await http.get<{ cronEnabled?: boolean; subsCount?: number; lastSentAt?: string }>('/admin/notifications/cron/status');
+      setStats({
+        total:     data?.subsCount ?? 0,
+        withUser:  data?.subsCount ?? 0,
+        anonymous: 0,
+      });
     } catch {
       setStats(null);
     }
@@ -46,11 +51,9 @@ export default function AdminPushScreen() {
   async function triggerPush(type: 'morning' | 'evening' | 'test') {
     setSending(type);
     try {
-      const endpoint =
-        type === 'morning' ? '/push/admin/trigger-morning'
-        : type === 'evening' ? '/push/admin/trigger-evening'
-        : '/push/test';
-      await http.post(endpoint, {});
+      // Toutes les actions passent par /admin/notifications/cron/trigger
+      const endpoint = '/admin/notifications/cron/trigger';
+      await http.post(endpoint, { type });
       const label = type === 'morning' ? 'Matin' : type === 'evening' ? 'Soir' : 'Test';
       if (Platform.OS === 'web') {
         window.alert(`✅ Push "${label}" envoyé à ${stats?.total ?? 0} abonné(s)`);
