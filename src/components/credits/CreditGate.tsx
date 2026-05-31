@@ -5,14 +5,13 @@
  */
 import React, { useState } from 'react';
 import {
-  ActivityIndicator, Alert, Linking, Modal, Platform,
+  ActivityIndicator, Modal,
   StyleSheet, Text, TouchableOpacity, View,
 } from 'react-native';
 import { Crown, Play, Share2, X, Zap } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useCreditsStore, CreditAction, CREDIT_COSTS, CREDIT_PACKS } from '../../store/credits.store';
 import { useTheme } from '../../theme';
-import { http } from '../../services/http.client';
 
 interface Props {
   visible: boolean;
@@ -23,8 +22,7 @@ interface Props {
 
 export function CreditGate({ visible, action, onClose, onSuccess }: Props) {
   const { colors } = useTheme();
-  const { credits, adsAvailable, adReward, purchase, fetchBalance } = useCreditsStore();
-  const [loading, setLoading] = useState(false);
+  const { credits, adsAvailable, adReward } = useCreditsStore();
   const [adLoading, setAdLoading] = useState(false);
   const cost = CREDIT_COSTS[action];
 
@@ -35,54 +33,11 @@ export function CreditGate({ visible, action, onClose, onSuccess }: Props) {
     if (useCreditsStore.getState().credits >= cost) onSuccess();
   };
 
-  const handlePurchase = async (packId: string, price: number) => {
-    setLoading(true);
-    try {
-      const res = await http.post<{ paymentUrl?: string; authorization_url?: string; reference: string }>(
-        '/subscriptions/initiate',
-        { plan: packId, autoRenew: false }
-      );
-      const url = res?.paymentUrl ?? res?.authorization_url;
-      if (url) {
-        // Sur web : nouvel onglet pour ne pas perdre le polling
-        if (Platform.OS === 'web') window.open(url, '_blank');
-        else {
-          const { default: WebBrowser } = await import('expo-web-browser');
-          await WebBrowser.openAuthSessionAsync(url, 'oracle-plus://');
-        }
-
-        // Polling toutes les 4s pendant 3 min
-        let attempts = 0;
-        const maxAttempts = 45;
-        const poll = setInterval(async () => {
-          attempts++;
-          try {
-            const statusRes = await http.get<{ status: string }>(`/subscriptions/status/${res?.reference}`);
-            if (statusRes?.status === 'success' || statusRes?.status === 'active') {
-              clearInterval(poll);
-              await purchase(packId, res.reference);
-              await fetchBalance();
-              setLoading(false);
-              if (useCreditsStore.getState().credits >= cost) onSuccess();
-              return;
-            }
-            if (statusRes?.status === 'failed' || statusRes?.status === 'cancelled') {
-              clearInterval(poll);
-              setLoading(false);
-              Alert.alert('Paiement annulé', 'Le paiement n\'a pas abouti. Vous pouvez réessayer.');
-              return;
-            }
-          } catch {}
-          if (attempts >= maxAttempts) {
-            clearInterval(poll);
-            setLoading(false);
-            Alert.alert('Vérification expirée', 'Si vous avez été débité, vos crédits seront ajoutés automatiquement.');
-          }
-        }, 4000);
-        return;
-      }
-    } catch {}
-    setLoading(false);
+  const handlePurchase = (packId: string) => {
+    // Fermer le modal et naviguer vers payment.tsx qui gère
+    // le flux complet : Paystack + page partenaire obligatoire + animation VIP
+    onClose();
+    router.push(`/subscription/payment?plan=${packId}` as any);
   };
 
   return (
@@ -167,8 +122,8 @@ export function CreditGate({ visible, action, onClose, onSuccess }: Props) {
             <TouchableOpacity
               key={pack.id}
               style={[s.pack, { backgroundColor: colors.background, borderColor: pack.id === 'standard' ? '#C9A84C' : colors.border }]}
-              onPress={() => handlePurchase(pack.id, pack.price)}
-              disabled={loading}
+              onPress={() => handlePurchase(pack.id)}
+              disabled={adLoading}
             >
               <View style={{ flex: 1 }}>
                 <View style={s.packHeader}>

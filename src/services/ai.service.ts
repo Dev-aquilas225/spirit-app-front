@@ -136,7 +136,7 @@ export const AIService = {
     question: string,
     isPremium: boolean,
     chatType: 'prophet' | 'consultation' | 'accompagnement' | 'dream' | 'prayer' = 'prophet',
-  ): Promise<{ message: AIMessage; conversationId?: string; error?: string }> {
+  ): Promise<{ message: AIMessage; conversationId?: string; error?: string; creditsRemaining?: number }> {
 
     const CHAT_TYPE_TO_SECTION: Record<string, string> = {
       prophet:        'prophetic_consultation',
