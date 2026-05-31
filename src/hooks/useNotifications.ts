@@ -34,6 +34,15 @@ export function useNotifications() {
     if (granted) {
       await NotificationService.scheduleDailyNotifications();
       await StorageService.set(STORAGE_KEYS.NOTIFICATIONS_ENABLED, true);
+
+      // Enregistrer le token Expo Push sur le backend (natif uniquement)
+      if (Platform.OS !== 'web') {
+        try {
+          const tokenData = await Notifications.getExpoPushTokenAsync();
+          const { http } = await import('../services/http.client');
+          await http.post('/push/subscribe', { endpoint: tokenData.data, type: 'expo' }).catch(() => {});
+        } catch { /* non bloquant */ }
+      }
     }
     return granted;
   }
