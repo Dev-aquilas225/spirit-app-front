@@ -1,9 +1,26 @@
 import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { router } from 'expo-router';
 import { NotificationService } from '../services/notification.service';
 import { StorageService } from '../services/storage.service';
 import { STORAGE_KEYS } from '../utils/constants';
+
+/** Résout l'URL cible depuis les données d'une notification cliquée */
+function resolveNotifUrl(data?: Record<string, any>): string {
+  if (!data) return '/dashboard';
+  if (data.url) return data.url as string;
+  // Mapping type → route
+  const typeMap: Record<string, string> = {
+    prayer:       '/prayers',
+    consultation: '/consultation',
+    subscription: '/subscription',
+    formation:    '/formations',
+    credits:      '/subscription',
+    system:       '/dashboard',
+  };
+  return typeMap[data.type as string] ?? '/dashboard';
+}
 
 export function useNotifications() {
   const notificationListener = useRef<Notifications.EventSubscription | null>(null);
@@ -12,15 +29,14 @@ export function useNotifications() {
   useEffect(() => {
     if (Platform.OS === 'web') return;
 
-    // Écouter les notifications reçues en premier plan
-    notificationListener.current = Notifications.addNotificationReceivedListener((notification) => {
-      console.log('Notification reçue:', notification.request.content.title);
+    notificationListener.current = Notifications.addNotificationReceivedListener((_notification) => {
+      // Notification reçue en premier plan — pas d'action nécessaire
     });
 
-    // Écouter les interactions avec les notifications
     responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
-      console.log('Notification cliquée:', response.notification.request.content.title);
-      // TODO: naviguer vers l'écran approprié selon le type de notification
+      const data = response.notification.request.content.data as Record<string, any> | undefined;
+      const target = resolveNotifUrl(data);
+      try { router.push(target as any); } catch { /* navigation non disponible */ }
     });
 
     return () => {

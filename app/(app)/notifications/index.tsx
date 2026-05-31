@@ -3,15 +3,16 @@ import { View, Text, Switch, StyleSheet, TouchableOpacity, Platform, ActivityInd
 import { Bell, Moon, Sun, Sunrise, CheckCircle, AlertCircle } from 'lucide-react-native';
 import { useTheme } from '../../../src/theme';
 import { useNotifications } from '../../../src/hooks/useNotifications';
+import { NotificationService } from '../../../src/services/notification.service';
 import { ScreenWrapper } from '../../../src/components/common/ScreenWrapper';
 import { Card } from '../../../src/components/common/Card';
 import { BackButton } from '../../../src/components/common/BackButton';
 import { AppIcon } from '../../../src/components/common/AppIcon';
 
 const REMINDERS = [
-  { hour: 5,  minute: 45, icon: Sunrise, label: 'Prière du matin',                  sub: 'Tous les jours à 05h45' },
-  { hour: 13, minute: 0,  icon: Sun,     label: 'Message de réconfort',              sub: 'Tous les jours à 13h00' },
-  { hour: 21, minute: 0,  icon: Moon,    label: 'Prière du soir',                    sub: 'Tous les jours à 21h00' },
+  { hour: 6,  minute: 0, icon: Sunrise, label: 'Prière du matin',     sub: 'Tous les jours à 06h00' },
+  { hour: 13, minute: 0, icon: Sun,     label: 'Message de réconfort', sub: 'Tous les jours à 13h00' },
+  { hour: 21, minute: 0, icon: Moon,    label: 'Prière du soir',       sub: 'Tous les jours à 21h00' },
 ];
 
 export default function NotificationsScreen() {
@@ -62,7 +63,7 @@ export default function NotificationsScreen() {
     setFeedback(null);
     try {
       if (Platform.OS === 'web') {
-        if (Notification.permission !== 'granted') {
+        if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
           setFeedback({ type: 'err', msg: 'Activez d\'abord les notifications.' });
           setLoading(false); return;
         }
@@ -76,13 +77,11 @@ export default function NotificationsScreen() {
         } as any);
         setFeedback({ type: 'ok', msg: 'Notification de test envoyée !' });
       } else {
-        const { sendLocal } = useNotifications();
-        // sendLocal est une fonction statique
-        const Notifs = require('expo-notifications');
-        await Notifs.scheduleNotificationAsync({
-          content: { title: 'Oracle Plus — Test', body: 'Vos notifications fonctionnent ! 🙏', sound: true },
-          trigger: null,
-        });
+        // Utiliser NotificationService directement — pas d'appel de hook ici
+        await NotificationService.sendLocalNotification(
+          'Oracle Plus — Test',
+          'Vos notifications fonctionnent correctement ! 🙏'
+        );
         setFeedback({ type: 'ok', msg: 'Notification de test envoyée !' });
       }
     } catch (e: any) {
