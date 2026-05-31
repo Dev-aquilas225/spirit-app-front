@@ -164,17 +164,26 @@ Object.assign(LibraryService, {
     const token = await StorageService.get<string>('@oracle/access_token');
     const apiBase = (process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://api.oracle-plus.online').replace(/\/$/, '');
 
-    // Sur React Native, FormData avec { uri, name, type } fonctionne
-    // NE PAS mettre Content-Type dans les headers — React Native le gère avec le boundary
+    // Sur Android, content:// URIs ne sont pas lisibles directement par fetch.
+    // Copier d'abord dans le cache via expo-file-system.
+    let uploadUri = fileUri;
+    if (Platform.OS !== 'web' && (fileUri.startsWith('content://') || fileUri.startsWith('ph://'))) {
+      const FS = await import('expo-file-system/legacy');
+      const ext = fileName.split('.').pop() ?? 'jpg';
+      const dest = `${FS.cacheDirectory}upload_${Date.now()}.${ext}`;
+      await FS.copyAsync({ from: fileUri, to: dest });
+      uploadUri = dest;
+    }
+
     const form = new FormData();
-    form.append('file', { uri: fileUri, name: fileName, type: mimeType } as any);
+    form.append('file', { uri: uploadUri, name: fileName, type: mimeType } as any);
 
     const res = await fetch(`${apiBase}/api/v1${endpoint}`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token ?? ''}`,
-        // Pas de Content-Type ici — React Native l'injecte automatiquement avec le boundary
         Accept: 'application/json',
+        // PAS de Content-Type — React Native l'injecte avec le boundary multipart
       },
       body: form,
     });
