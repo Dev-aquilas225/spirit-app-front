@@ -32,6 +32,7 @@ import {
   LibraryService,
 } from '../../../src/services/library.service';
 import { useTheme } from '../../../src/theme';
+import { STORAGE_KEYS } from '../../../src/utils/constants';
 
 /* ─── Helpers ─────────────────────────────────────────────────────────────── */
 
@@ -96,7 +97,7 @@ function BookForm({
           form.append('file', file);
           const apiBase = (process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://api.oracle-plus.online').replace(/\/$/, '');
           const { StorageService } = await import('../../../src/services/storage.service');
-          const token = await StorageService.get<string>('@oracle/access_token');
+          const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
           const res = await fetch(`${apiBase}/api/v1/library/upload/cover`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${token ?? ''}` },
@@ -142,7 +143,7 @@ function BookForm({
           form.append('file', file);
           const apiBase = (process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://api.oracle-plus.online').replace(/\/$/, '');
           const { StorageService } = await import('../../../src/services/storage.service');
-          const token = await StorageService.get<string>('@oracle/access_token');
+          const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
           const res = await fetch(`${apiBase}/api/v1/library/upload/pdf`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${token ?? ''}` },

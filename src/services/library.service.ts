@@ -1,6 +1,7 @@
 import { http } from './http.client';
 import { Platform } from 'react-native';
 import { StorageService } from './storage.service';
+import { STORAGE_KEYS } from '../utils/constants';
 
 export interface LibraryBook {
   id: string;
@@ -70,7 +71,7 @@ export const LibraryService = {
 
       if (Platform.OS === 'web') {
         // Sur web : fetch avec token puis déclencher le téléchargement via blob
-        const token = await StorageService.get<string>('@oracle/access_token');
+        const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
         const resp = await fetch(downloadUrl, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
@@ -100,7 +101,7 @@ export const LibraryService = {
       const info = await FS.getInfoAsync(localPath);
       if (info.exists) return { localUri: localPath };
 
-      const token = await StorageService.get<string>('@oracle/access_token');
+      const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
       const result = await FS.downloadAsync(downloadUrl, localPath, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
@@ -161,7 +162,8 @@ Object.assign(LibraryService, {
     mimeType: string,
   ): Promise<string> {
     const { StorageService } = await import('./storage.service');
-    const token = await StorageService.get<string>('@oracle/access_token');
+    const { STORAGE_KEYS } = await import('../utils/constants');
+    const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
     const apiBase = (process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://api.oracle-plus.online').replace(/\/$/, '');
 
     // Sur Android, content:// URIs ne sont pas lisibles directement par fetch.

@@ -10,7 +10,6 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { AppIcon } from '../../../src/components/common/AppIcon';
 import { useTheme } from '../../../src/theme';
 import { LibraryService } from '../../../src/services/library.service';
-import { useAccess } from '../../../src/hooks/useAccess';
 import { StorageService } from '../../../src/services/storage.service';
 import { STORAGE_KEYS } from '../../../src/utils/constants';
 
@@ -22,7 +21,6 @@ if (Platform.OS !== 'web') {
 export default function LibraryReader() {
   const { id, title } = useLocalSearchParams<{ id: string; title: string }>();
   const { colors } = useTheme();
-  const { hasSubscription } = useAccess();
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState('');
   const [fileUrl, setFileUrl] = useState('');
@@ -84,15 +82,15 @@ export default function LibraryReader() {
       {!loading && error === 'access' && (
         <View style={s.center}>
           <AppIcon icon={BookOpen} size={52} color={colors.textTertiary} strokeWidth={1.5} />
-          <Text style={[s.heading, { color: colors.text }]}>Abonnement requis</Text>
+          <Text style={[s.heading, { color: colors.text }]}>Crédits requis</Text>
           <Text style={{ color: colors.textSecondary, textAlign: 'center', lineHeight: 22 }}>
-            Abonnez-vous pour lire tous les livres de la bibliothèque.
+            Ce livre nécessite des crédits pour être débloqué. Revenez à la bibliothèque pour l'acheter avec vos crédits.
           </Text>
-          <TouchableOpacity onPress={() => router.replace('/subscription' as any)} style={[s.btn2, { backgroundColor: colors.primary }]}>
-            <Text style={{ color: '#fff', fontWeight: '800' }}>Voir les abonnements</Text>
+          <TouchableOpacity onPress={() => router.back()} style={[s.btn2, { backgroundColor: colors.primary }]}>
+            <Text style={{ color: '#fff', fontWeight: '800' }}>Retour à la bibliothèque</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.back()} style={[s.btn2, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}>
-            <Text style={{ color: colors.text, fontWeight: '700' }}>Retour</Text>
+          <TouchableOpacity onPress={() => router.replace('/subscription' as any)} style={[s.btn2, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}>
+            <Text style={{ color: colors.text, fontWeight: '700' }}>Recharger mes crédits</Text>
           </TouchableOpacity>
         </View>
       )}
