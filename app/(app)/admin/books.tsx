@@ -1,10 +1,9 @@
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 /**
  * Admin — Bibliothèque (CRUD complet)
- * - Liste des livres avec couverture, auteur, catégorie, coût
- * - Ajout : upload couverture (web FileReader → base64) + PDF URL
- * - Édition inline
- * - Suppression avec confirmation
+ * - Upload couverture depuis la galerie (natif) ou URL
+ * - Upload PDF depuis le stockage (natif) ou URL
+ * - Édition inline, suppression avec confirmation
  */
 import React, { useEffect, useState, useCallback } from 'react';
 import {
@@ -14,7 +13,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import {
-  BookOpen, ChevronLeft, Edit2, FileText, Plus, Save, Trash2, X,
+  BookOpen, ChevronLeft, Edit2, FileText, Plus, Save, Trash2, Upload, X,
 } from 'lucide-react-native';
 import { AppIcon } from '../../../src/components/common/AppIcon';
 import { http } from '../../../src/services/http.client';
@@ -43,7 +42,19 @@ const EMPTY_FORM: Omit<Book, 'id'> = {
 
 const CATEGORIES = ['Spiritualité', 'Prophétie', 'Prières', 'Rêves', 'Formation', 'Autre'];
 
-/* ─── (pas d'upload côté admin — l'admin saisit les URLs directement) ─── */
+/* ─── Upload helper ──────────────────────────────────────────────────────── */
+async function uploadFile(uri: string, type: 'cover' | 'pdf', mimeType: string): Promise<string | null> {
+  try {
+    const formData = new FormData();
+    const filename = uri.split('/').pop() ?? (type === 'cover' ? 'cover.jpg' : 'livre.pdf');
+    formData.append('file', { uri, name: filename, type: mimeType } as any);
+    const endpoint = type === 'cover' ? '/library/upload/cover' : '/library/upload/pdf';
+    const res = await http.upload<{ url?: string; error?: string }>(endpoint, formData);
+    return res?.url ?? null;
+  } catch {
+    return null;
+  }
+}
 
 /* ─── BookForm ───────────────────────────────────────────────────────────── */
 function BookForm({
@@ -55,7 +66,47 @@ function BookForm({
   saving: boolean;
 }) {
   const [form, setForm] = useState(initial);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [uploadingPdf,   setUploadingPdf]   = useState(false);
   const set = (k: keyof typeof form, v: any) => setForm(f => ({ ...f, [k]: v }));
+
+  async function pickCover() {
+    try {
+      const { launchImageLibraryAsync, MediaTypeOptions } = await import('expo-image-picker');
+      const result = await launchImageLibraryAsync({
+        mediaTypes: MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+      });
+      if (result.canceled || !result.assets?.[0]) return;
+      const asset = result.assets[0];
+      setUploadingCover(true);
+      const url = await uploadFile(asset.uri, 'cover', asset.mimeType ?? 'image/jpeg');
+      setUploadingCover(false);
+      if (url) set('coverUrl', url);
+      else Alert.alert('Erreur', 'Impossible d\'uploader la couverture.');
+    } catch (e: any) {
+      setUploadingCover(false);
+      Alert.alert('Erreur', e?.message ?? 'Erreur upload couverture');
+    }
+  }
+
+  async function pickPdf() {
+    try {
+      const { getDocumentAsync } = await import('expo-document-picker');
+      const result = await getDocumentAsync({ type: 'application/pdf', copyToCacheDirectory: true });
+      if (result.canceled || !result.assets?.[0]) return;
+      const asset = result.assets[0];
+      setUploadingPdf(true);
+      const url = await uploadFile(asset.uri, 'pdf', 'application/pdf');
+      setUploadingPdf(false);
+      if (url) set('pdfUrl', url);
+      else Alert.alert('Erreur', 'Impossible d\'uploader le PDF.');
+    } catch (e: any) {
+      setUploadingPdf(false);
+      Alert.alert('Erreur', e?.message ?? 'Erreur upload PDF');
+    }
+  }
 
   return (
     <ScrollView
@@ -70,22 +121,31 @@ function BookForm({
         </TouchableOpacity>
       </View>
 
-      {/* Aperçu couverture */}
-      {form.coverUrl ? (
-        <Image source={{ uri: form.coverUrl }} style={f.coverPreview} resizeMode="cover" />
-      ) : (
-        <View style={f.coverPlaceholder}>
-          <AppIcon icon={BookOpen} size={28} color="#C9A84C" strokeWidth={1.8} />
-          <Text style={f.coverHint}>Aucune couverture</Text>
-        </View>
-      )}
+      {/* Couverture — tap pour choisir depuis la galerie */}
+      <TouchableOpacity onPress={pickCover} disabled={uploadingCover} activeOpacity={0.8}>
+        {uploadingCover ? (
+          <View style={f.coverPlaceholder}><ActivityIndicator color="#C9A84C" /></View>
+        ) : form.coverUrl ? (
+          <View>
+            <Image source={{ uri: form.coverUrl }} style={f.coverPreview} resizeMode="cover" />
+            <View style={f.coverEditBadge}>
+              <AppIcon icon={Upload} size={14} color="#fff" strokeWidth={2.5} />
+              <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>Changer</Text>
+            </View>
+          </View>
+        ) : (
+          <View style={f.coverPlaceholder}>
+            <AppIcon icon={Upload} size={28} color="#C9A84C" strokeWidth={1.8} />
+            <Text style={f.coverHint}>Appuyer pour choisir une couverture</Text>
+          </View>
+        )}
+      </TouchableOpacity>
 
+      {/* Champs texte */}
       {[
-        { label: 'Titre *',           key: 'title'       as const },
-        { label: 'Auteur *',          key: 'author'      as const },
-        { label: 'URL couverture',    key: 'coverUrl'    as const },
-        { label: 'URL PDF',           key: 'pdfUrl'      as const },
-        { label: 'Description',       key: 'description' as const, multi: true },
+        { label: 'Titre *',        key: 'title'       as const },
+        { label: 'Auteur *',       key: 'author'      as const },
+        { label: 'Description',    key: 'description' as const, multi: true },
       ].map(({ label, key, multi }) => (
         <View key={key}>
           <Text style={f.lbl}>{label}</Text>
@@ -100,6 +160,24 @@ function BookForm({
           />
         </View>
       ))}
+
+      {/* PDF — bouton upload */}
+      <View>
+        <Text style={f.lbl}>Fichier PDF</Text>
+        <TouchableOpacity
+          style={[f.pdfBtn, form.pdfUrl ? f.pdfBtnOk : {}]}
+          onPress={pickPdf}
+          disabled={uploadingPdf}
+        >
+          {uploadingPdf
+            ? <ActivityIndicator color="#60A5FA" size="small" />
+            : <AppIcon icon={FileText} size={18} color={form.pdfUrl ? '#10B981' : '#60A5FA'} strokeWidth={2.2} />
+          }
+          <Text style={[f.pdfTxt, form.pdfUrl ? { color: '#10B981' } : {}]}>
+            {uploadingPdf ? 'Upload en cours…' : form.pdfUrl ? 'PDF chargé ✓ (appuyer pour changer)' : 'Choisir un PDF'}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Catégorie */}
       <View>
@@ -373,9 +451,13 @@ const f = StyleSheet.create({
   row:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   heading:   { fontSize: 18, fontWeight: '800', color: '#fff' },
   closeBtn:  { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center' },
-  coverPreview:{ width: '100%', aspectRatio: 1 / 1.414, borderRadius: 12, marginBottom: 4 },
+  coverPreview:    { width: '100%', aspectRatio: 1 / 1.414, borderRadius: 12, marginBottom: 4 },
   coverPlaceholder:{ width: '100%', aspectRatio: 3 / 1, borderRadius: 12, alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: 'rgba(201,168,76,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', borderStyle: 'dashed' },
-  coverHint: { fontSize: 13, color: 'rgba(255,255,255,0.4)' },
+  coverHint:       { fontSize: 13, color: 'rgba(255,255,255,0.4)', textAlign: 'center' },
+  coverEditBadge:  { position: 'absolute', bottom: 8, right: 8, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
+  pdfBtn:          { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(96,165,250,0.08)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(96,165,250,0.25)', padding: 14 },
+  pdfBtnOk:        { backgroundColor: 'rgba(16,185,129,0.08)', borderColor: 'rgba(16,185,129,0.3)' },
+  pdfTxt:          { fontSize: 14, color: '#60A5FA', fontWeight: '600', flex: 1 },
   lbl:       { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.5)', marginBottom: 4 },
   input:     { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', padding: 12, color: '#fff', fontSize: 14 },
   catBtn:    { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },

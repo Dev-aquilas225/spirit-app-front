@@ -39,16 +39,10 @@ export default function AdminNotifications() {
     setSending(true);
     try {
       // admin:true → le SW crée un tag unique et force renotify + requireInteraction
-      const res = await http.post<{ sent: number; failed: number }>('/push/send', {
+      const res = await http.post<{ sent: number; failed: number }>('/admin/notifications/push', {
         title,
         body,
         target,
-        admin: true,
-        url: '/',
-        actions: [
-          { action: 'open',    title: 'Ouvrir Oracle Plus' },
-          { action: 'dismiss', title: 'Ignorer' },
-        ],
       });
       setSent(true);
       setSentCount((res as any)?.sent ?? 0);
@@ -63,8 +57,7 @@ export default function AdminNotifications() {
   const triggerCron = async () => {
     setCronStatus('loading');
     try {
-      // Route backend réelle : POST /push/trigger
-      const res = await http.post<{ sentAt: string }>('/push/trigger', {});
+      const res = await http.post<{ sentAt: string }>('/admin/notifications/cron/trigger', {});
       setLastGenerated((res as any)?.sentAt ?? new Date().toISOString());
       setCronStatus('ok');
     } catch {
@@ -73,9 +66,8 @@ export default function AdminNotifications() {
     setTimeout(() => setCronStatus('idle'), 4000);
   };
 
-  // Charger le statut push au montage — /push/status retourne { enabled, subsCount }
   useEffect(() => {
-    http.get<{ enabled: boolean; subsCount: number; lastSentAt?: string | null }>('/push/status')
+    http.get<{ enabled: boolean; subsCount: number; lastSentAt?: string | null }>('/admin/notifications/cron/status')
       .then(s => {
         setCronEnabled(s.enabled ?? true);
         setSubsCount(s.subsCount ?? null);

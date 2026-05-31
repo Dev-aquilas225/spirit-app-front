@@ -142,7 +142,8 @@ export default function AccompagnementDetailScreen() {
 
   async function markDayComplete(day: number) {
     const updated = [...completedDays, day];
-    const nextDay = Math.min(day + 1, 7);
+    // Si c'est le dernier jour, rester sur 7 (allDone sera true)
+    const nextDay = day >= 7 ? 7 : day + 1;
     setCompletedDays(updated);
     setCurrentDay(nextDay);
     await StorageService.set(storageKey, { currentDay: nextDay, completedDays: updated, questionsUsed });
@@ -217,7 +218,7 @@ export default function AccompagnementDetailScreen() {
             <Text style={[s.dayPrayer, { color: colors.textSecondary }]}>{dayData?.prayer}</Text>
 
             <Button
-              label={`J'ai prié — Passer au jour ${currentDay + 1}`}
+              label={currentDay >= 7 ? "J'ai prié — Terminer le programme" : `J'ai prié — Passer au jour ${currentDay + 1}`}
               variant="gold"
               fullWidth
               onPress={() => markDayComplete(currentDay)}
