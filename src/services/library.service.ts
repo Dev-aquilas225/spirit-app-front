@@ -153,42 +153,48 @@ Object.assign(LibraryService, {
     return book.pdfUrl ?? null;
   },
 
-  /** Upload une image de couverture → retourne l'URL publique */
-  async uploadCover(fileUri: string, mimeType = 'image/jpeg'): Promise<string> {
+  /** Upload générique vers une route backend — retourne l'URL publique */
+  async _uploadFile(
+    endpoint: string,
+    fileUri: string,
+    fileName: string,
+    mimeType: string,
+  ): Promise<string> {
     const { StorageService } = await import('./storage.service');
     const token = await StorageService.get<string>('@oracle/access_token');
     const apiBase = (process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://api.oracle-plus.online').replace(/\/$/, '');
 
+    // Sur React Native, FormData avec { uri, name, type } fonctionne
+    // NE PAS mettre Content-Type dans les headers — React Native le gère avec le boundary
     const form = new FormData();
-    // React Native FormData accepte { uri, name, type }
-    form.append('file', { uri: fileUri, name: 'cover.jpg', type: mimeType } as any);
+    form.append('file', { uri: fileUri, name: fileName, type: mimeType } as any);
 
-    const res = await fetch(`${apiBase}/api/v1/library/upload/cover`, {
+    const res = await fetch(`${apiBase}/api/v1${endpoint}`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token ?? ''}` },
+      headers: {
+        Authorization: `Bearer ${token ?? ''}`,
+        // Pas de Content-Type ici — React Native l'injecte automatiquement avec le boundary
+        Accept: 'application/json',
+      },
       body: form,
     });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
+
+    const text = await res.text();
+    let data: any;
+    try { data = JSON.parse(text); } catch { throw new Error(`Réponse invalide: ${text.slice(0, 100)}`); }
+
+    if (!res.ok || data.error) throw new Error(data.error ?? data.message ?? `Erreur ${res.status}`);
+    if (!data.url) throw new Error('URL manquante dans la réponse');
     return data.url as string;
+  },
+
+  /** Upload une image de couverture → retourne l'URL publique */
+  async uploadCover(fileUri: string, mimeType = 'image/jpeg'): Promise<string> {
+    return (LibraryService as any)._uploadFile('/library/upload/cover', fileUri, 'cover.jpg', mimeType);
   },
 
   /** Upload un PDF → retourne l'URL publique */
   async uploadPdf(fileUri: string, mimeType = 'application/pdf'): Promise<string> {
-    const { StorageService } = await import('./storage.service');
-    const token = await StorageService.get<string>('@oracle/access_token');
-    const apiBase = (process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://api.oracle-plus.online').replace(/\/$/, '');
-
-    const form = new FormData();
-    form.append('file', { uri: fileUri, name: 'book.pdf', type: mimeType } as any);
-
-    const res = await fetch(`${apiBase}/api/v1/library/upload/pdf`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token ?? ''}` },
-      body: form,
-    });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-    return data.url as string;
+    return (LibraryService as any)._uploadFile('/library/upload/pdf', fileUri, 'book.pdf', mimeType);
   },
 });

@@ -38,24 +38,29 @@ export default function LibraryReader() {
     try {
       const data = await LibraryService.getOne(id!);
       if (!data) { setError('Livre introuvable.'); setLoading(false); return; }
-      // Accès : livre gratuit ou déjà acheté
+
+      // Accès : livre payant non acheté
       if ((data.tokenCost ?? 0) > 0 && !data.purchased) {
         setError('access'); setLoading(false); return;
       }
-      const url = data.pdfUrl ?? null;
-      if (!url) { setError('Aucun fichier PDF disponible pour ce livre.'); setLoading(false); return; }
+
+      // Utiliser l'endpoint /download qui vérifie l'achat et sert le fichier
+      const apiBase = (process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://api.oracle-plus.online').replace(/\/$/, '');
+      const downloadUrl = `${apiBase}/api/v1/library/${id}/download`;
+
       const tok = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN) ?? '';
       setToken(tok);
-      setFileUrl(url);
+      setFileUrl(downloadUrl);
     } catch (e: any) {
       setError(e?.message ?? 'Impossible de charger ce livre.');
     }
     setLoading(false);
   }
 
-  const iframeUrl = fileUrl
-    ? (token ? `${fileUrl}${fileUrl.includes('?') ? '&' : '?'}token=${token}` : fileUrl)
-    : '';
+  // Sur web : passer le token en query param pour l'iframe
+  const iframeUrl = fileUrl && token
+    ? `${fileUrl}?token=${encodeURIComponent(token)}`
+    : fileUrl;
 
   return (
     <View style={[s.container, { backgroundColor: colors.background }]}>
@@ -114,10 +119,16 @@ export default function LibraryReader() {
             </View>
           : WebView
             ? <WebView
-                source={{ uri: fileUrl, headers: token ? { Authorization: `Bearer ${token}` } : {} }}
+                // Google Docs viewer pour afficher le PDF dans WebView Android/iOS
+                source={{ uri: `https://docs.google.com/gviewer?embedded=true&url=${encodeURIComponent(iframeUrl)}` }}
                 style={{ flex: 1 }}
                 startInLoadingState
-                renderLoading={() => <View style={s.center}><ActivityIndicator size="large" color={colors.primary} /></View>}
+                renderLoading={() => (
+                  <View style={s.center}>
+                    <ActivityIndicator size="large" color={colors.primary} />
+                    <Text style={{ color: colors.textSecondary, marginTop: 12 }}>Chargement du PDF…</Text>
+                  </View>
+                )}
                 onError={() => setError("Impossible d'afficher ce PDF.")}
               />
             : <View style={s.center}><Text style={{ color: colors.textSecondary }}>Lecteur non disponible.</Text></View>

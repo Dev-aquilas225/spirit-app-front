@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
+import { router } from 'expo-router';
 import { BookOpen, Download, Lock, Search, Unlock, X } from 'lucide-react-native';
 import { useTheme } from '../../../../src/theme';
 import { LibraryBook, LibraryService } from '../../../../src/services/library.service';
@@ -214,24 +215,51 @@ export default function LibraryScreen() {
               </Text>
             </View>
 
-            {/* Bouton action */}
-            <TouchableOpacity
-              style={[s.actionBtn, canDownload ? s.downloadBtn : s.buyBtn]}
-              onPress={() => handleBuy(selected)}
-              disabled={paying || downloading}
-            >
-              {paying || downloading
-                ? <ActivityIndicator color="#fff" size="small" />
-                : <>
-                    <AppIcon icon={canDownload ? Download : Lock} size={18} color="#fff" strokeWidth={2.5} />
-                    <Text style={s.actionBtnTxt}>
-                      {canDownload
-                        ? 'Télécharger le PDF'
-                        : `Payer ${selected.tokenCost} XOF et télécharger`}
-                    </Text>
-                  </>
-              }
-            </TouchableOpacity>
+            {canDownload ? (
+              <>
+                {/* Lire dans l'app */}
+                <TouchableOpacity
+                  style={[s.actionBtn, s.readBtn]}
+                  onPress={() => {
+                    setSelected(null);
+                    router.push({ pathname: '/library/reader', params: { id: selected.id, title: selected.title } } as any);
+                  }}
+                >
+                  <AppIcon icon={BookOpen} size={18} color="#fff" strokeWidth={2.5} />
+                  <Text style={s.actionBtnTxt}>Lire dans l'application</Text>
+                </TouchableOpacity>
+
+                {/* Télécharger */}
+                <TouchableOpacity
+                  style={[s.actionBtn, s.downloadBtn, { marginTop: 8 }]}
+                  onPress={() => handleDownload(selected)}
+                  disabled={downloading}
+                >
+                  {downloading
+                    ? <ActivityIndicator color="#fff" size="small" />
+                    : <>
+                        <AppIcon icon={Download} size={18} color="#fff" strokeWidth={2.5} />
+                        <Text style={s.actionBtnTxt}>Télécharger le PDF</Text>
+                      </>
+                  }
+                </TouchableOpacity>
+              </>
+            ) : (
+              /* Bouton achat */
+              <TouchableOpacity
+                style={[s.actionBtn, s.buyBtn]}
+                onPress={() => handleBuy(selected)}
+                disabled={paying}
+              >
+                {paying
+                  ? <ActivityIndicator color="#fff" size="small" />
+                  : <>
+                      <AppIcon icon={Lock} size={18} color="#fff" strokeWidth={2.5} />
+                      <Text style={s.actionBtnTxt}>{`Payer ${selected.tokenCost} XOF`}</Text>
+                    </>
+                }
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </Modal>
@@ -324,6 +352,7 @@ const s = StyleSheet.create({
   priceLabel:   { fontSize: 16, fontWeight: '700' },
   actionBtn:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, borderRadius: 14, paddingVertical: 16, paddingHorizontal: 24 },
   buyBtn:       { backgroundColor: '#F59E0B' },
+  readBtn:      { backgroundColor: '#C9A84C' },
   downloadBtn:  { backgroundColor: '#10B981' },
   actionBtnTxt: { color: '#fff', fontSize: 16, fontWeight: '700' },
 });
