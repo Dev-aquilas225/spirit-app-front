@@ -109,6 +109,9 @@ export default function AppLayout() {
       <Stack.Screen name="library/reader" />
       <Stack.Screen name="library/callback" />
       <Stack.Screen name="books/admin" />
+      <Stack.Screen name="librairie/admin" />
+      <Stack.Screen name="librairie/reader" />
+      <Stack.Screen name="librairie/mes-livres" />
 
       {/* Compte & Paramètres */}
       <Stack.Screen name="settings/index" />

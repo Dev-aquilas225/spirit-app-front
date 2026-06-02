@@ -1,504 +1,369 @@
 /**
- * Librairie Spirituelle — Oracle Plus
- *
- * Règles :
- * - Chaque livre a un prix en FCFA (1 FCFA = 1 crédit).
- * - L'abonnement actif NE donne PAS accès aux livres.
- * - Tout le monde paie avec ses crédits (ou Paystack directement).
- * - Après paiement validé → PDF téléchargeable.
+ * Librairie — Oracle Plus
+ * Liste des livres, page détail, achat Paystack, téléchargement sécurisé.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, FlatList, Image, Modal,
-  Platform, ScrollView, StyleSheet, Text, TextInput,
+  ActivityIndicator, FlatList, Image, Modal, Platform,
+  Pressable, ScrollView, StyleSheet, Text,
   TouchableOpacity, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
-import { BookOpen, Download, Lock, Search, ShoppingCart, Unlock, X } from 'lucide-react-native';
+import { BookOpen, Download, RefreshCw, ShoppingCart, X, BookMarked } from 'lucide-react-native';
+import { router } from 'expo-router';
+import { AppIcon } from '../../../../src/components/common/AppIcon';
 import { useTheme } from '../../../../src/theme';
 import { Livre, LibrairieService } from '../../../../src/services/librairie.service';
-import { AppIcon } from '../../../../src/components/common/AppIcon';
-import { useCreditsStore } from '../../../../src/store/credits.store';
+import { StorageService } from '../../../../src/services/storage.service';
+import { STORAGE_KEYS } from '../../../../src/utils/constants';
 
 const CATEGORIES = ['Tous', 'Spiritualité', 'Prophétie', 'Prières', 'Rêves', 'Délivrance', 'Formation', 'Autre'];
-const POLL_INTERVAL = 4000;
-const POLL_MAX      = 45; // 3 minutes
+const POLL_MS = 4000;
+const TIMEOUT_MS = 10 * 60 * 1000;
 
 export default function LibrairieScreen() {
-  const { colors, spacing } = useTheme();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const { credits, fetchBalance } = useCreditsStore();
-
-  const [livres,      setLivres]      = useState<Livre[]>([]);
-  const [loading,     setLoading]     = useState(true);
-  const [search,      setSearch]      = useState('');
-  const [category,    setCategory]    = useState('Tous');
-  const [selected,    setSelected]    = useState<Livre | null>(null);
-  const [paying,      setPaying]      = useState(false);
-  const [downloading, setDownloading] = useState(false);
-  const [pollStep,    setPollStep]    = useState<'idle' | 'waiting' | 'success' | 'failed'>('idle');
-  const [countdown,   setCountdown]   = useState(0);
-
-  const pollRef      = useRef<ReturnType<typeof setInterval> | null>(null);
-  const timerRef     = useRef<ReturnType<typeof setInterval> | null>(null);
-  const pollCount    = useRef(0);
-  const currentRef   = useRef<string | null>(null); // référence Paystack en cours
-
-  const stopAll = useCallback(() => {
-    if (pollRef.current)  { clearInterval(pollRef.current);  pollRef.current  = null; }
-    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-  }, []);
+  const [books, setBooks]       = useState<Livre[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [cat, setCat]           = useState('Tous');
+  const [detail, setDetail]     = useState<Livre | null>(null);
+  const [paying, setPaying]     = useState(false);
+  const [payRef, setPayRef]     = useState<string | null>(null);
+  const [payError, setPayError] = useState('');
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const data = await LibrairieService.getAll(category === 'Tous' ? undefined : category);
-    setLivres(data);
+    const data = await LibrairieService.getAll(cat === 'Tous' ? undefined : cat);
+    setBooks(data);
     setLoading(false);
-  }, [category]);
+  }, [cat]);
 
   useEffect(() => { load(); }, [load]);
-  useEffect(() => () => stopAll(), [stopAll]);
 
-  const filtered = livres.filter(b =>
-    !search ||
-    b.title.toLowerCase().includes(search.toLowerCase()) ||
-    (b.author ?? '').toLowerCase().includes(search.toLowerCase())
-  );
+  function stopPolling() {
+    if (pollRef.current)  { clearInterval(pollRef.current);  pollRef.current  = null; }
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+  }
 
-  // ── Lancer le paiement Paystack ───────────────────────────────────────────
-  async function handleAcheter(livre: Livre) {
-    if (livre.purchased) {
-      handleTelecharger(livre);
-      return;
-    }
+  async function handleBuy(livre: Livre) {
+    setPayError('');
     setPaying(true);
     const result = await LibrairieService.initierPaiement(livre.id);
-    setPaying(false);
-
-    if (result.error || !result.authorizationUrl) {
-      Alert.alert('Erreur', result.error ?? 'Impossible d\'initier le paiement');
+    if (result.alreadyPurchased) {
+      setBooks((prev) => prev.map((b) => b.id === livre.id ? { ...b, purchased: true } : b));
+      if (detail?.id === livre.id) setDetail((d) => d ? { ...d, purchased: true } : d);
+      setPaying(false);
       return;
     }
+    if (result.error || !result.authorizationUrl || !result.reference) {
+      setPayError(result.error ?? 'Impossible d\'initier le paiement.');
+      setPaying(false);
+      return;
+    }
+    const ref = result.reference;
+    setPayRef(ref);
 
-    const ref = result.reference!;
-    currentRef.current = ref;
-    setPollStep('waiting');
-    pollCount.current = 0;
+    // Démarrer le polling avant d'ouvrir le navigateur
+    const startedAt = Date.now();
+    pollRef.current = setInterval(async () => {
+      const v = await LibrairieService.verifierPaiement(ref);
+      if (v.success) {
+        stopPolling();
+        try { if (Platform.OS !== 'web') await WebBrowser.dismissBrowser(); } catch {}
+        setBooks((prev) => prev.map((b) => b.id === livre.id ? { ...b, purchased: true } : b));
+        if (detail?.id === livre.id) setDetail((d) => d ? { ...d, purchased: true } : d);
+        setPaying(false);
+        setPayRef(null);
+      }
+    }, POLL_MS);
+
+    timerRef.current = setInterval(() => {
+      if (Date.now() - startedAt > TIMEOUT_MS) {
+        stopPolling();
+        try { if (Platform.OS !== 'web') WebBrowser.dismissBrowser(); } catch {}
+        setPaying(false);
+        setPayRef(null);
+        setPayError('Délai dépassé. Si vous avez été débité, le livre sera disponible sous peu.');
+      }
+    }, POLL_MS);
 
     // Ouvrir Paystack
     if (Platform.OS === 'web') {
       window.open(result.authorizationUrl, '_blank');
     } else {
-      WebBrowser.openAuthSessionAsync(result.authorizationUrl, 'oracle-plus://').catch(() => {});
-    }
-
-    // Décompte 3 minutes
-    setCountdown(POLL_MAX * (POLL_INTERVAL / 1000));
-    timerRef.current = setInterval(() => {
-      setCountdown(c => {
-        if (c <= 1) { clearInterval(timerRef.current!); return 0; }
-        return c - 1;
-      });
-    }, 1000);
-
-    // Polling
-    pollRef.current = setInterval(async () => {
-      pollCount.current++;
-      try {
-        const status = await LibrairieService.verifierPaiement(ref);
-        if (status.status === 'success') {
-          stopAll();
-          await LibrairieService.sauvegarderAchat(livre.id, ref);
-          await fetchBalance();
-          setLivres(prev => prev.map(b => b.id === livre.id ? { ...b, purchased: true } : b));
-          if (selected?.id === livre.id) setSelected(prev => prev ? { ...prev, purchased: true } : prev);
-          setPollStep('success');
-          return;
-        }
-        if (status.status === 'failed' || status.status === 'cancelled') {
-          stopAll();
-          setPollStep('failed');
-          return;
-        }
-      } catch { /* continuer */ }
-
-      if (pollCount.current >= POLL_MAX) {
-        stopAll();
-        setPollStep('failed');
+      await WebBrowser.openAuthSessionAsync(result.authorizationUrl, 'oracleplus://');
+      // Vérification immédiate au retour
+      const v = await LibrairieService.verifierPaiement(ref);
+      if (v.success) {
+        stopPolling();
+        setBooks((prev) => prev.map((b) => b.id === livre.id ? { ...b, purchased: true } : b));
+        if (detail?.id === livre.id) setDetail((d) => d ? { ...d, purchased: true } : d);
+        setPaying(false);
+        setPayRef(null);
       }
-    }, POLL_INTERVAL);
+    }
   }
 
-  // ── Télécharger le PDF ────────────────────────────────────────────────────
-  async function handleTelecharger(livre: Livre) {
-    setDownloading(true);
+  async function handleDownload(livre: Livre) {
     const result = await LibrairieService.telechargerPdf(livre);
-    setDownloading(false);
     if (result.error) {
-      Alert.alert('Erreur', result.error);
-      return;
-    }
-    if (Platform.OS !== 'web') {
-      Alert.alert('✅ Téléchargé', 'Le PDF a été enregistré sur votre appareil.');
+      setPayError(result.error);
     }
   }
 
-  function resetPoll() {
-    stopAll();
-    setPollStep('idle');
-    setCountdown(0);
-    currentRef.current = null;
+  function handleRead(livre: Livre) {
+    router.push(`/librairie/reader?id=${livre.id}&title=${encodeURIComponent(livre.title)}` as any);
   }
 
-  // ── Carte livre ───────────────────────────────────────────────────────────
-  function LivreCard({ livre }: { livre: Livre }) {
-    const isFree      = livre.priceFcfa === 0;
-    const isPurchased = livre.purchased;
-    const accessible  = isFree || isPurchased;
-
-    return (
-      <TouchableOpacity style={s.card} onPress={() => setSelected(livre)} activeOpacity={0.85}>
-        <View style={s.coverWrap}>
-          {livre.coverUrl
-            ? <Image source={{ uri: livre.coverUrl }} style={s.cover} resizeMode="cover" />
-            : <View style={[s.cover, s.coverFallback]}>
-                <AppIcon icon={BookOpen} size={32} color="#C9A84C" strokeWidth={1.5} />
-              </View>
-          }
-          <View style={[s.lockBadge, accessible ? s.lockOpen : s.lockClosed]}>
-            <AppIcon icon={accessible ? Unlock : Lock} size={11} color="#fff" strokeWidth={2.5} />
-          </View>
-        </View>
-
-        <Text style={[s.bookTitle, { color: colors.text }]} numberOfLines={2}>{livre.title}</Text>
-        <Text style={[s.bookAuthor, { color: colors.textSecondary }]} numberOfLines={1}>{livre.author}</Text>
-
-        {isFree
-          ? <Text style={s.freeTag}>Gratuit</Text>
-          : <Text style={[s.priceTag, isPurchased && s.paidTag]}>
-              {isPurchased ? '✓ Acheté' : `${livre.priceFcfa} FCFA`}
-            </Text>
-        }
-
-        <TouchableOpacity
-          style={[s.quickBtn, accessible ? s.quickBtnGold : s.quickBtnOutline]}
-          onPress={() => accessible ? handleTelecharger(livre) : setSelected(livre)}
-        >
-          <Text style={s.quickBtnTxt}>
-            {accessible ? 'Télécharger' : `${livre.priceFcfa} FCFA`}
-          </Text>
-        </TouchableOpacity>
-      </TouchableOpacity>
-    );
-  }
-
-  // ── Modal détail + paiement ───────────────────────────────────────────────
-  function LivreModal() {
-    if (!selected) return null;
-    const isFree      = selected.priceFcfa === 0;
-    const isPurchased = selected.purchased;
-    const accessible  = isFree || isPurchased;
-
-    // Écran de polling
-    if (pollStep === 'waiting') {
-      const mins = Math.floor(countdown / 60);
-      const secs = countdown % 60;
-      return (
-        <Modal visible animationType="slide" transparent onRequestClose={() => { resetPoll(); setSelected(null); }}>
-          <View style={s.modalOverlay}>
-            <View style={[s.modalBox, { backgroundColor: colors.surface }]}>
-              <ActivityIndicator color="#C9A84C" size="large" style={{ marginBottom: 16 }} />
-              <Text style={[s.modalTitle, { color: colors.text }]}>Paiement en cours…</Text>
-              <Text style={[s.modalDesc, { color: colors.textSecondary }]}>
-                Complétez le paiement dans la page Paystack qui s'est ouverte.
-              </Text>
-
-              {/* Bandeau partenaire */}
-              <View style={s.partnerBanner}>
-                <Text style={{ fontSize: 15 }}>🔒</Text>
-                <Text style={[s.partnerText, { flex: 1 }]}>
-                  La transaction apparaîtra sous{' '}
-                  <Text style={s.partnerName}>universdeslivres.squares</Text>
-                  {' '}sur votre relevé — c'est notre partenaire financier.
-                </Text>
-              </View>
-
-              <Text style={{ color: colors.textTertiary, fontSize: 12, marginTop: 8 }}>
-                Expire dans {mins}:{String(secs).padStart(2, '0')}
-              </Text>
-              <TouchableOpacity onPress={() => { resetPoll(); setSelected(null); }} style={{ marginTop: 16 }}>
-                <Text style={{ color: colors.textTertiary, fontSize: 12, textDecorationLine: 'underline' }}>Annuler</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
-      );
-    }
-
-    // Succès
-    if (pollStep === 'success') {
-      return (
-        <Modal visible animationType="slide" transparent onRequestClose={() => { resetPoll(); setSelected(null); }}>
-          <View style={s.modalOverlay}>
-            <View style={[s.modalBox, { backgroundColor: colors.surface }]}>
-              <Text style={{ fontSize: 48, textAlign: 'center', marginBottom: 12 }}>✅</Text>
-              <Text style={[s.modalTitle, { color: colors.text }]}>Paiement confirmé !</Text>
-              <Text style={[s.modalDesc, { color: colors.textSecondary }]}>
-                "{selected.title}" est maintenant disponible au téléchargement.
-              </Text>
-              <TouchableOpacity
-                style={[s.actionBtn, s.downloadBtn, { marginTop: 20 }]}
-                onPress={() => { resetPoll(); handleTelecharger(selected); }}
-              >
-                <AppIcon icon={Download} size={18} color="#fff" strokeWidth={2.5} />
-                <Text style={s.actionBtnTxt}>Télécharger le PDF</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => { resetPoll(); setSelected(null); }} style={{ marginTop: 12 }}>
-                <Text style={{ color: colors.textTertiary, fontSize: 13 }}>Plus tard</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
-      );
-    }
-
-    // Échec
-    if (pollStep === 'failed') {
-      return (
-        <Modal visible animationType="slide" transparent onRequestClose={() => { resetPoll(); setSelected(null); }}>
-          <View style={s.modalOverlay}>
-            <View style={[s.modalBox, { backgroundColor: colors.surface }]}>
-              <Text style={{ fontSize: 48, textAlign: 'center', marginBottom: 12 }}>❌</Text>
-              <Text style={[s.modalTitle, { color: colors.text }]}>Paiement non abouti</Text>
-              <Text style={[s.modalDesc, { color: colors.textSecondary }]}>
-                Le paiement a été annulé ou a expiré. Vous pouvez réessayer.
-              </Text>
-              <TouchableOpacity
-                style={[s.actionBtn, s.buyBtn, { marginTop: 20 }]}
-                onPress={() => { resetPoll(); handleAcheter(selected); }}
-              >
-                <Text style={s.actionBtnTxt}>Réessayer</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => { resetPoll(); setSelected(null); }} style={{ marginTop: 12 }}>
-                <Text style={{ color: colors.textTertiary, fontSize: 13 }}>Annuler</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
-      );
-    }
-
-    // Détail normal
-    return (
-      <Modal visible animationType="slide" transparent onRequestClose={() => setSelected(null)}>
-        <View style={s.modalOverlay}>
-          <View style={[s.modalBox, { backgroundColor: colors.surface }]}>
-            <TouchableOpacity style={s.modalClose} onPress={() => setSelected(null)}>
-              <AppIcon icon={X} size={22} color={colors.textSecondary} strokeWidth={2.5} />
-            </TouchableOpacity>
-
-            {selected.coverUrl
-              ? <Image source={{ uri: selected.coverUrl }} style={s.modalCover} resizeMode="cover" />
-              : <View style={[s.modalCover, s.coverFallback]}>
-                  <AppIcon icon={BookOpen} size={48} color="#C9A84C" strokeWidth={1.5} />
-                </View>
-            }
-
-            <Text style={[s.modalTitle, { color: colors.text }]}>{selected.title}</Text>
-            {selected.author
-              ? <Text style={[s.modalAuthor, { color: colors.textSecondary }]}>{selected.author}</Text>
-              : null}
-            {selected.description
-              ? <Text style={[s.modalDesc, { color: colors.textSecondary }]}>{selected.description}</Text>
-              : null}
-
-            {/* Prix */}
-            <View style={s.priceRow}>
-              <AppIcon
-                icon={accessible ? Unlock : ShoppingCart}
-                size={18}
-                color={accessible ? '#10B981' : '#F59E0B'}
-                strokeWidth={2.5}
-              />
-              <Text style={[s.priceLabel, { color: accessible ? '#10B981' : '#F59E0B' }]}>
-                {isFree ? 'Gratuit' : isPurchased ? 'Déjà acheté' : `${selected.priceFcfa} FCFA`}
-              </Text>
-            </View>
-
-            {/* Note : abonnement ne donne pas accès */}
-            {!accessible && (
-              <View style={s.noteBanner}>
-                <Text style={s.noteText}>
-                  ℹ️ L'abonnement Oracle Plus ne donne pas accès aux livres. Chaque livre s'achète séparément.
-                </Text>
-              </View>
-            )}
-
-            {/* Bandeau partenaire */}
-            {!accessible && (
-              <View style={s.partnerBanner}>
-                <Text style={{ fontSize: 13 }}>🔒</Text>
-                <Text style={[s.partnerText, { flex: 1 }]}>
-                  Paiement sécurisé via{' '}
-                  <Text style={s.partnerName}>universdeslivres.squares</Text>
-                  {' '}(partenaire financier Oracle Plus).
-                </Text>
-              </View>
-            )}
-
-            {accessible ? (
-              <TouchableOpacity
-                style={[s.actionBtn, s.downloadBtn]}
-                onPress={() => { setSelected(null); handleTelecharger(selected); }}
-                disabled={downloading}
-              >
-                {downloading
-                  ? <ActivityIndicator color="#fff" size="small" />
-                  : <>
-                      <AppIcon icon={Download} size={18} color="#fff" strokeWidth={2.5} />
-                      <Text style={s.actionBtnTxt}>Télécharger le PDF</Text>
-                    </>
-                }
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                style={[s.actionBtn, s.buyBtn]}
-                onPress={() => handleAcheter(selected)}
-                disabled={paying}
-              >
-                {paying
-                  ? <ActivityIndicator color="#fff" size="small" />
-                  : <>
-                      <AppIcon icon={ShoppingCart} size={18} color="#fff" strokeWidth={2.5} />
-                      <Text style={s.actionBtnTxt}>Acheter — {selected.priceFcfa} FCFA</Text>
-                    </>
-                }
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-      </Modal>
-    );
-  }
-
-  // ── Rendu principal ───────────────────────────────────────────────────────
   return (
-    <View style={[s.root, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+    <View style={[s.root, { backgroundColor: colors.background, paddingTop: insets.top }]}>
       {/* Header */}
-      <View style={[s.header, { paddingHorizontal: spacing.lg }]}>
-        <Text style={[s.title, { color: colors.text }]}>Librairie Spirituelle</Text>
-        <Text style={[s.subtitle, { color: colors.textSecondary }]}>
-          {livres.length} livre{livres.length !== 1 ? 's' : ''} · Solde : {credits} FCFA
-        </Text>
+      <View style={[s.header, { borderBottomColor: colors.border }]}>
+        <AppIcon icon={BookOpen} size={22} color={colors.primary} strokeWidth={2} />
+        <Text style={[s.headerTitle, { color: colors.text }]}>Librairie</Text>
+        <TouchableOpacity onPress={() => router.push('/librairie/mes-livres' as any)} style={s.myBooksBtn}>
+          <AppIcon icon={BookMarked} size={20} color={colors.primary} strokeWidth={2} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={load} style={s.refreshBtn}>
+          <AppIcon icon={RefreshCw} size={18} color={colors.textSecondary} strokeWidth={2} />
+        </TouchableOpacity>
       </View>
 
-      {/* Recherche */}
-      <View style={[s.searchRow, { marginHorizontal: spacing.lg, backgroundColor: colors.surface }]}>
-        <AppIcon icon={Search} size={16} color={colors.textSecondary} strokeWidth={2} />
-        <TextInput
-          value={search}
-          onChangeText={setSearch}
-          placeholder="Rechercher un livre…"
-          placeholderTextColor={colors.textSecondary}
-          style={[s.searchInput, { color: colors.text }]}
-        />
-      </View>
-
-      {/* Catégories */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={s.catScroll}
-        contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: 8 }}
-      >
-        {CATEGORIES.map(c => (
+      {/* Filtres catégorie */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.catBar} contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}>
+        {CATEGORIES.map((c) => (
           <TouchableOpacity
             key={c}
-            onPress={() => setCategory(c)}
-            style={[s.catChip, category === c && s.catChipActive]}
+            style={[s.catChip, { backgroundColor: cat === c ? colors.primary : colors.surface, borderColor: cat === c ? colors.primary : colors.border }]}
+            onPress={() => setCat(c)}
           >
-            <Text style={[s.catTxt, category === c && s.catTxtActive]}>{c}</Text>
+            <Text style={{ color: cat === c ? '#fff' : colors.textSecondary, fontSize: 13, fontWeight: '600' }}>{c}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
 
-      {/* Grille */}
-      {loading
-        ? <ActivityIndicator color="#C9A84C" style={{ marginTop: 40 }} />
-        : <FlatList
-            data={filtered}
-            keyExtractor={b => b.id}
-            numColumns={2}
-            contentContainerStyle={{ padding: spacing.lg, gap: 16 }}
-            columnWrapperStyle={{ gap: 16 }}
-            renderItem={({ item }) => <LivreCard livre={item} />}
-            ListEmptyComponent={
-              <View style={{ alignItems: 'center', marginTop: 60, gap: 12 }}>
-                <AppIcon icon={BookOpen} size={52} color={colors.textTertiary} strokeWidth={1.5} />
-                <Text style={[s.empty, { color: colors.textSecondary }]}>
-                  Aucun livre disponible
-                </Text>
-                <Text style={{ color: colors.textTertiary, fontSize: 12, textAlign: 'center' }}>
-                  Les livres seront ajoutés par l'administrateur.
-                </Text>
-              </View>
-            }
-          />
-      }
+      {/* Erreur paiement */}
+      {payError ? (
+        <View style={[s.errorBanner, { backgroundColor: 'rgba(239,68,68,0.1)', borderColor: '#EF4444' }]}>
+          <Text style={{ color: '#EF4444', fontSize: 13, flex: 1 }}>{payError}</Text>
+          <TouchableOpacity onPress={() => setPayError('')}><AppIcon icon={X} size={16} color="#EF4444" strokeWidth={2} /></TouchableOpacity>
+        </View>
+      ) : null}
 
-      <LivreModal />
+      {/* Liste */}
+      {loading ? (
+        <View style={s.center}><ActivityIndicator size="large" color={colors.primary} /></View>
+      ) : books.length === 0 ? (
+        <View style={s.center}>
+          <AppIcon icon={BookOpen} size={52} color={colors.textTertiary} strokeWidth={1.5} />
+          <Text style={{ color: colors.textSecondary, fontSize: 15, textAlign: 'center' }}>Aucun livre disponible pour le moment.</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={books}
+          keyExtractor={(b) => b.id}
+          numColumns={2}
+          contentContainerStyle={{ padding: 12, gap: 12 }}
+          columnWrapperStyle={{ gap: 12 }}
+          showsVerticalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <BookCard
+              book={item}
+              colors={colors}
+              onPress={() => setDetail(item)}
+              onBuy={() => handleBuy(item)}
+              onDownload={() => handleDownload(item)}
+              paying={paying && payRef !== null}
+            />
+          )}
+        />
+      )}
+
+      {/* Modal détail */}
+      {detail && (
+        <BookDetailModal
+          book={detail}
+          colors={colors}
+          onClose={() => setDetail(null)}
+          onBuy={() => handleBuy(detail)}
+          onDownload={() => handleDownload(detail)}
+          onRead={() => handleRead(detail)}
+          paying={paying}
+        />
+      )}
     </View>
   );
 }
 
+// ── Carte livre ───────────────────────────────────────────────────────────────
+function BookCard({ book, colors, onPress, onBuy, onDownload, paying }: {
+  book: Livre; colors: any; onPress: () => void;
+  onBuy: () => void; onDownload: () => void; paying: boolean;
+}) {
+  return (
+    <TouchableOpacity style={[s.card, { backgroundColor: colors.surface, borderColor: colors.border }]} onPress={onPress} activeOpacity={0.85}>
+      {/* Couverture */}
+      <View style={s.cardCover}>
+        {book.coverUrl
+          ? <Image source={{ uri: book.coverUrl }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+          : <View style={[StyleSheet.absoluteFillObject, { backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' }]}>
+              <AppIcon icon={BookOpen} size={32} color={colors.textTertiary} strokeWidth={1.5} />
+            </View>
+        }
+        {book.purchased && (
+          <View style={s.purchasedBadge}>
+            <Text style={s.purchasedBadgeTxt}>Acheté</Text>
+          </View>
+        )}
+      </View>
+      {/* Infos */}
+      <View style={s.cardBody}>
+        <Text style={[s.cardTitle, { color: colors.text }]} numberOfLines={2}>{book.title}</Text>
+        {book.author ? <Text style={[s.cardAuthor, { color: colors.textSecondary }]} numberOfLines={1}>{book.author}</Text> : null}
+        <Text style={[s.cardPrice, { color: colors.primary }]}>{book.priceFcfa.toLocaleString()} FCFA</Text>
+        {book.purchased ? (
+          <TouchableOpacity style={[s.cardBtn, { backgroundColor: '#10B981' }]} onPress={onDownload}>
+            <AppIcon icon={Download} size={14} color="#fff" strokeWidth={2.5} />
+            <Text style={s.cardBtnTxt}>Télécharger</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={[s.cardBtn, { backgroundColor: colors.primary }]} onPress={onBuy} disabled={paying}>
+            <AppIcon icon={ShoppingCart} size={14} color="#fff" strokeWidth={2.5} />
+            <Text style={s.cardBtnTxt}>Acheter</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+// ── Modal détail ──────────────────────────────────────────────────────────────
+function BookDetailModal({ book, colors, onClose, onBuy, onDownload, onRead, paying }: {
+  book: Livre; colors: any; onClose: () => void;
+  onBuy: () => void; onDownload: () => void; onRead: () => void; paying: boolean;
+}) {
+  return (
+    <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <View style={[s.detailRoot, { backgroundColor: colors.background }]}>
+        {/* Bouton fermer */}
+        <TouchableOpacity style={[s.detailClose, { backgroundColor: colors.surface }]} onPress={onClose}>
+          <AppIcon icon={X} size={20} color={colors.text} strokeWidth={2} />
+        </TouchableOpacity>
+
+        <ScrollView showsVerticalScrollIndicator={false}>
+          {/* Grande couverture */}
+          <View style={s.detailCoverWrap}>
+            {book.coverUrl
+              ? <Image source={{ uri: book.coverUrl }} style={s.detailCover} resizeMode="cover" />
+              : <View style={[s.detailCover, { backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' }]}>
+                  <AppIcon icon={BookOpen} size={64} color={colors.textTertiary} strokeWidth={1.5} />
+                </View>
+            }
+          </View>
+
+          <View style={{ padding: 24, gap: 16 }}>
+            {/* Titre + auteur */}
+            <View style={{ gap: 4 }}>
+              <Text style={[s.detailTitle, { color: colors.text }]}>{book.title}</Text>
+              {book.author ? <Text style={[s.detailAuthor, { color: colors.textSecondary }]}>{book.author}</Text> : null}
+              {book.category ? (
+                <View style={[s.catTag, { backgroundColor: 'rgba(201,168,76,0.12)' }]}>
+                  <Text style={[s.catTagTxt, { color: colors.primary }]}>{book.category}</Text>
+                </View>
+              ) : null}
+            </View>
+
+            {/* Prix */}
+            <View style={[s.priceBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Text style={[s.priceLabel, { color: colors.textSecondary }]}>Prix</Text>
+              <Text style={[s.priceValue, { color: colors.primary }]}>{book.priceFcfa.toLocaleString()} FCFA</Text>
+            </View>
+
+            {/* Description complète */}
+            {(book.description || book.shortDescription) ? (
+              <View style={{ gap: 8 }}>
+                <Text style={[s.descLabel, { color: colors.textSecondary }]}>PRÉSENTATION</Text>
+                <Text style={[s.descText, { color: colors.text }]}>
+                  {book.description || book.shortDescription}
+                </Text>
+              </View>
+            ) : null}
+
+            {/* Boutons d'action */}
+            {book.purchased ? (
+              <View style={{ gap: 10 }}>
+                <TouchableOpacity style={[s.actionBtn, { backgroundColor: '#10B981' }]} onPress={onDownload}>
+                  <AppIcon icon={Download} size={20} color="#fff" strokeWidth={2.5} />
+                  <Text style={s.actionBtnTxt}>Télécharger le PDF</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[s.actionBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]} onPress={onRead}>
+                  <AppIcon icon={BookOpen} size={20} color={colors.text} strokeWidth={2} />
+                  <Text style={[s.actionBtnTxt, { color: colors.text }]}>Lire en ligne</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity style={[s.actionBtn, { backgroundColor: colors.primary }]} onPress={onBuy} disabled={paying}>
+                {paying
+                  ? <ActivityIndicator size="small" color="#fff" />
+                  : <><AppIcon icon={ShoppingCart} size={20} color="#fff" strokeWidth={2.5} /><Text style={s.actionBtnTxt}>Acheter maintenant</Text></>
+                }
+              </TouchableOpacity>
+            )}
+
+            {/* Notice sécurité */}
+            <View style={[s.securityNote, { backgroundColor: 'rgba(16,185,129,0.07)', borderColor: 'rgba(16,185,129,0.2)' }]}>
+              <Text style={{ fontSize: 11, color: colors.textSecondary, lineHeight: 17 }}>
+                🔒 Paiement sécurisé via <Text style={{ fontWeight: '700', color: '#10B981' }}>universdeslivres.squares</Text>. Le PDF est protégé et accessible uniquement après achat.
+              </Text>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    </Modal>
+  );
+}
+
+// ── Styles ────────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
-  root:            { flex: 1 },
-  header:          { paddingVertical: 16 },
-  title:           { fontSize: 22, fontWeight: '700' },
-  subtitle:        { fontSize: 13, marginTop: 2 },
-  searchRow:       { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 12 },
-  searchInput:     { flex: 1, fontSize: 14 },
-  catScroll:       { maxHeight: 44, marginBottom: 8 },
-  catChip:         { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  catChipActive:   { backgroundColor: '#C9A84C', borderColor: '#C9A84C' },
-  catTxt:          { fontSize: 13, color: 'rgba(255,255,255,0.6)', fontWeight: '600' },
-  catTxtActive:    { color: '#fff' },
+  root:        { flex: 1 },
+  center:      { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14, padding: 24 },
+  header:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 0.5, gap: 10 },
+  headerTitle: { flex: 1, fontSize: 20, fontWeight: '900' },
+  myBooksBtn:  { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  refreshBtn:  { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  catBar:      { maxHeight: 52, paddingVertical: 8 },
+  catChip:     { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },
+  errorBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, margin: 12, padding: 12, borderRadius: 10, borderWidth: 1 },
   // Carte
-  card:            { flex: 1, borderRadius: 14, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-  coverWrap:       { position: 'relative' },
-  cover:           { width: '100%', aspectRatio: 2 / 3 },
-  coverFallback:   { alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(201,168,76,0.08)' },
-  lockBadge:       { position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  lockClosed:      { backgroundColor: '#F59E0B' },
-  lockOpen:        { backgroundColor: '#10B981' },
-  bookTitle:       { fontSize: 13, fontWeight: '700', padding: 8, paddingBottom: 2 },
-  bookAuthor:      { fontSize: 11, paddingHorizontal: 8, paddingBottom: 4 },
-  freeTag:         { fontSize: 11, fontWeight: '700', color: '#10B981', paddingHorizontal: 8, paddingBottom: 4 },
-  priceTag:        { fontSize: 11, fontWeight: '700', color: '#F59E0B', paddingHorizontal: 8, paddingBottom: 4 },
-  paidTag:         { color: '#10B981' },
-  quickBtn:        { margin: 8, borderRadius: 10, paddingVertical: 8, alignItems: 'center' },
-  quickBtnGold:    { backgroundColor: '#10B981' },
-  quickBtnOutline: { backgroundColor: 'rgba(201,168,76,0.12)', borderWidth: 1, borderColor: '#C9A84C' },
-  quickBtnTxt:     { fontSize: 12, fontWeight: '700', color: '#fff' },
-  empty:           { textAlign: 'center', fontSize: 15 },
-  // Modal
-  modalOverlay:    { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' },
-  modalBox:        { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, maxHeight: '92%' },
-  modalClose:      { alignSelf: 'flex-end', marginBottom: 12 },
-  modalCover:      { width: 120, height: 180, borderRadius: 12, alignSelf: 'center', marginBottom: 16 },
-  modalTitle:      { fontSize: 20, fontWeight: '700', textAlign: 'center', marginBottom: 4 },
-  modalAuthor:     { fontSize: 14, textAlign: 'center', marginBottom: 8, opacity: 0.7 },
-  modalDesc:       { fontSize: 13, lineHeight: 20, marginBottom: 12, textAlign: 'center' },
-  priceRow:        { flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center', marginBottom: 10 },
-  priceLabel:      { fontSize: 18, fontWeight: '800' },
-  noteBanner:      { backgroundColor: 'rgba(99,102,241,0.08)', borderWidth: 1, borderColor: 'rgba(99,102,241,0.2)', borderRadius: 10, padding: 10, marginBottom: 10 },
-  noteText:        { fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 18, textAlign: 'center' },
-  partnerBanner:   { flexDirection: 'row', alignItems: 'flex-start', gap: 8, backgroundColor: 'rgba(16,185,129,0.08)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.2)', borderRadius: 10, padding: 10, marginBottom: 14 },
-  partnerText:     { fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 18 },
-  partnerName:     { fontWeight: '700', color: '#10B981' },
-  actionBtn:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, borderRadius: 14, paddingVertical: 16, paddingHorizontal: 24 },
-  buyBtn:          { backgroundColor: '#C9A84C' },
-  downloadBtn:     { backgroundColor: '#10B981' },
-  actionBtnTxt:    { color: '#fff', fontSize: 16, fontWeight: '700' },
+  card:        { flex: 1, borderRadius: 14, borderWidth: 1, overflow: 'hidden' },
+  cardCover:   { width: '100%', aspectRatio: 0.7, position: 'relative' },
+  purchasedBadge: { position: 'absolute', top: 8, right: 8, backgroundColor: '#10B981', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  purchasedBadgeTxt: { color: '#fff', fontSize: 10, fontWeight: '800' },
+  cardBody:    { padding: 10, gap: 5 },
+  cardTitle:   { fontSize: 13, fontWeight: '700', lineHeight: 18 },
+  cardAuthor:  { fontSize: 11 },
+  cardPrice:   { fontSize: 13, fontWeight: '800' },
+  cardBtn:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingVertical: 8, borderRadius: 8, marginTop: 4 },
+  cardBtnTxt:  { color: '#fff', fontSize: 12, fontWeight: '700' },
+  // Détail
+  detailRoot:  { flex: 1 },
+  detailClose: { position: 'absolute', top: 16, right: 16, zIndex: 10, width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  detailCoverWrap: { width: '100%', alignItems: 'center', paddingTop: 24, paddingBottom: 8 },
+  detailCover: { width: 180, height: 260, borderRadius: 12, overflow: 'hidden' },
+  detailTitle: { fontSize: 22, fontWeight: '900', lineHeight: 28 },
+  detailAuthor:{ fontSize: 15, fontWeight: '500' },
+  catTag:      { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, marginTop: 4 },
+  catTagTxt:   { fontSize: 12, fontWeight: '700' },
+  priceBox:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, borderRadius: 12, borderWidth: 1 },
+  priceLabel:  { fontSize: 13, fontWeight: '600' },
+  priceValue:  { fontSize: 22, fontWeight: '900' },
+  descLabel:   { fontSize: 11, fontWeight: '700', letterSpacing: 0.8 },
+  descText:    { fontSize: 15, lineHeight: 24 },
+  actionBtn:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 16, borderRadius: 14 },
+  actionBtnTxt:{ color: '#fff', fontSize: 16, fontWeight: '800' },
+  securityNote:{ padding: 12, borderRadius: 10, borderWidth: 1 },
 });

@@ -2,12 +2,11 @@
  * Librairie Service — Oracle Plus
  *
  * Règles métier :
- * - Chaque livre a un prix en FCFA (= crédits, 1 FCFA = 1 crédit).
- * - Le paiement appelle directement l'API Paystack (pas de dépendance
- *   aux autres services de l'app).
- * - L'abonnement actif NE donne PAS accès aux livres — tout le monde
- *   doit payer avec ses crédits.
- * - Après paiement validé, le PDF est téléchargeable.
+ * - Chaque livre a un prix en FCFA (1 FCFA = 1 crédit).
+ * - L'abonnement actif NE donne PAS accès aux livres.
+ * - Tout le monde paie avec Paystack directement.
+ * - Après paiement validé, le PDF est téléchargeable et lisible en ligne.
+ * - Les PDF sont servis uniquement via le backend après vérification d'achat.
  */
 import { StorageService } from './storage.service';
 import { STORAGE_KEYS } from '../utils/constants';
@@ -15,123 +14,175 @@ import { STORAGE_KEYS } from '../utils/constants';
 const API = () =>
   (process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://api.oracle-plus.online').replace(/\/$/, '');
 
+// ── Types ─────────────────────────────────────────────────────────────────────
+
 export interface Livre {
   id: string;
   title: string;
   author?: string;
+  shortDescription?: string;
   description?: string;
   category?: string;
   coverUrl?: string;
   pdfUrl?: string;
-  priceFcfa: number;       // prix en FCFA (= crédits)
+  priceFcfa: number;
   status: 'active' | 'inactive';
-  purchased?: boolean;     // true si l'utilisateur a déjà acheté ce livre
+  purchased?: boolean;
+  purchasedAt?: string;
+  purchaseCount?: number;
+  downloadCount?: number;
 }
 
 export interface LivreAchat {
+  id: string;
   livreId: string;
   reference: string;
-  paidAt: string;
+  amount: number;
+  status: 'pending' | 'paid' | 'success';
+  paidAt?: string;
+  createdAt: string;
+  book?: Livre;
 }
 
-// ── Clé de cache local des achats ────────────────────────────────────────────
-const ACHATS_KEY = '@oracle/librairie_achats';
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+async function authHeaders(): Promise<Record<string, string>> {
+  const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+function normalizeBook(b: any): Livre {
+  return {
+    id:               b.id,
+    title:            b.title ?? '',
+    author:           b.author,
+    shortDescription: b.shortDescription ?? b.excerpt,
+    description:      b.description ?? b.fullDescription,
+    category:         b.category,
+    coverUrl:         b.coverUrl,
+    pdfUrl:           b.pdfUrl,
+    priceFcfa:        b.tokenCost ?? b.priceFcfa ?? b.price ?? 0,
+    status:           b.status ?? 'active',
+    purchased:        b.purchased ?? false,
+    purchasedAt:      b.purchasedAt,
+    purchaseCount:    b.purchaseCount ?? b._count?.purchases,
+    downloadCount:    b.downloadCount ?? b._count?.downloads,
+  };
+}
+
+// ── Service ───────────────────────────────────────────────────────────────────
 
 export const LibrairieService = {
 
-  // ── Liste tous les livres actifs ──────────────────────────────────────────
   async getAll(category?: string): Promise<Livre[]> {
     try {
-      const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
+      const headers = await authHeaders();
       const url = category
         ? `${API()}/api/v1/library?category=${encodeURIComponent(category)}`
         : `${API()}/api/v1/library`;
-      const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${token ?? ''}` },
-      });
+      const res = await fetch(url, { headers });
       if (!res.ok) return [];
       const data = await res.json();
-      const list: any[] = Array.isArray(data) ? data : [];
-      // Normaliser priceFcfa depuis tokenCost (backend) ou price
-      return list.map((b) => ({
-        id:          b.id,
-        title:       b.title ?? '',
-        author:      b.author,
-        description: b.description,
-        category:    b.category,
-        coverUrl:    b.coverUrl,
-        pdfUrl:      b.pdfUrl,
-        priceFcfa:   b.tokenCost ?? b.priceFcfa ?? 0,
-        status:      b.status ?? 'active',
-        purchased:   b.purchased ?? false,
+      return (Array.isArray(data) ? data : []).map(normalizeBook);
+    } catch { return []; }
+  },
+
+  async getOne(id: string): Promise<Livre | null> {
+    try {
+      const headers = await authHeaders();
+      const res = await fetch(`${API()}/api/v1/library/${id}`, { headers });
+      if (!res.ok) return null;
+      return normalizeBook(await res.json());
+    } catch { return null; }
+  },
+
+  async getMyPurchases(): Promise<LivreAchat[]> {
+    try {
+      const headers = await authHeaders();
+      let res = await fetch(`${API()}/api/v1/library/purchases/me`, { headers });
+      if (!res.ok) res = await fetch(`${API()}/api/v1/library/purchases`, { headers });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return (Array.isArray(data) ? data : []).map((p: any) => ({
+        id:        p.id ?? p.bookId ?? p.livreId,
+        livreId:   p.bookId ?? p.livreId,
+        reference: p.reference ?? p.paystackRef ?? '',
+        amount:    p.amount ?? 0,
+        status:    p.status ?? 'pending',
+        paidAt:    p.paidAt ?? p.updatedAt,
+        createdAt: p.createdAt,
+        book:      p.book ? normalizeBook(p.book) : undefined,
       }));
     } catch { return []; }
   },
 
-  // ── Initier un paiement Paystack pour un livre ────────────────────────────
-  // Appel direct à l'API Paystack via le backend (POST /library/:id/pay)
   async initierPaiement(livreId: string): Promise<{
     authorizationUrl?: string;
     reference?: string;
     error?: string;
+    alreadyPurchased?: boolean;
   }> {
     try {
-      const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
-      const res = await fetch(`${API()}/api/v1/library/${livreId}/pay`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token ?? ''}`,
-        },
-        body: JSON.stringify({}),
+      const headers = { ...(await authHeaders()), 'Content-Type': 'application/json' };
+      let res = await fetch(`${API()}/api/v1/library/${livreId}/pay`, {
+        method: 'POST', headers, body: JSON.stringify({}),
       });
+      if (res.status === 404) {
+        res = await fetch(`${API()}/api/v1/library/${livreId}/purchase/initiate`, {
+          method: 'POST', headers, body: JSON.stringify({}),
+        });
+      }
       const data = await res.json();
-      if (!res.ok) return { error: data?.message ?? 'Erreur paiement' };
+      if (!res.ok) {
+        if (data?.message?.toLowerCase().includes('already') || data?.purchased)
+          return { alreadyPurchased: true };
+        return { error: data?.message ?? 'Erreur paiement' };
+      }
       return {
-        authorizationUrl: data.authorization_url ?? data.paymentUrl,
+        authorizationUrl: data.authorization_url ?? data.paymentUrl ?? data.authorizationUrl,
         reference:        data.reference,
+        alreadyPurchased: data.alreadyPurchased ?? false,
       };
     } catch (e: any) {
       return { error: e?.message ?? 'Erreur réseau' };
     }
   },
 
-  // ── Vérifier le statut d'un paiement ─────────────────────────────────────
   async verifierPaiement(reference: string): Promise<{
+    success: boolean;
     status: 'success' | 'pending' | 'failed' | 'cancelled';
     livreId?: string;
   }> {
     try {
-      const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
-      const res = await fetch(`${API()}/api/v1/library/pay/verify/${reference}`, {
-        headers: { Authorization: `Bearer ${token ?? ''}` },
-      });
+      const headers = await authHeaders();
+      let res = await fetch(`${API()}/api/v1/library/pay/verify/${reference}`, { headers });
+      if (res.status === 404)
+        res = await fetch(`${API()}/api/v1/library/purchase/verify/${reference}`, { headers });
       const data = await res.json();
+      const status = data.status ?? (data.success ? 'success' : 'pending');
       return {
-        status:  data.status ?? 'pending',
+        success: status === 'success' || data.success === true,
+        status,
         livreId: data.livreId ?? data.bookId,
       };
     } catch {
-      return { status: 'pending' };
+      return { success: false, status: 'pending' };
     }
   },
 
-  // ── Télécharger le PDF (web : blob, natif : fichier local) ────────────────
   async telechargerPdf(livre: Livre): Promise<{ localUri?: string; error?: string }> {
     try {
-      if (!livre.pdfUrl && !livre.id) return { error: 'Aucun PDF disponible' };
       const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
       const downloadUrl = `${API()}/api/v1/library/${livre.id}/download`;
 
       if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-        // Web
         const resp = await fetch(downloadUrl, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         if (!resp.ok) {
-          const err = await resp.json().catch(() => ({}));
           if (resp.status === 401 || resp.status === 403)
-            return { error: 'Accès refusé — veuillez acheter ce livre d\'abord' };
+            return { error: "Accès refusé — veuillez acheter ce livre d'abord" };
+          const err = await resp.json().catch(() => ({}));
           return { error: (err as any).message ?? `Erreur HTTP ${resp.status}` };
         }
         const blob = await resp.blob();
@@ -146,13 +197,11 @@ export const LibrairieService = {
         return { localUri: downloadUrl };
       }
 
-      // Natif
       const FS = await import('expo-file-system/legacy');
       const dir = `${FS.documentDirectory}oracle_librairie/`;
       await FS.makeDirectoryAsync(dir, { intermediates: true });
       const localPath = `${dir}${livre.id}.pdf`;
 
-      // Vérifier cache valide (> 1 Ko)
       const info = await FS.getInfoAsync(localPath);
       if (info.exists && (info as any).size > 1024) return { localUri: localPath };
       if (info.exists) await FS.deleteAsync(localPath, { idempotent: true });
@@ -161,7 +210,7 @@ export const LibrairieService = {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (result.status === 401 || result.status === 403)
-        return { error: 'Accès refusé — veuillez acheter ce livre d\'abord' };
+        return { error: "Accès refusé — veuillez acheter ce livre d'abord" };
       if (result.status !== 200)
         return { error: `Téléchargement échoué (HTTP ${result.status})` };
 
@@ -176,137 +225,125 @@ export const LibrairieService = {
     }
   },
 
-  // ── Sauvegarder un achat localement (cache) ───────────────────────────────
-  async sauvegarderAchat(livreId: string, reference: string): Promise<void> {
-    const existing = await StorageService.get<LivreAchat[]>(ACHATS_KEY) ?? [];
-    if (existing.some((a) => a.livreId === livreId)) return;
-    await StorageService.set(ACHATS_KEY, [
-      ...existing,
-      { livreId, reference, paidAt: new Date().toISOString() },
-    ]);
+  getReadUrl(livreId: string, token: string): string {
+    return `${API()}/api/v1/library/${livreId}/download?token=${encodeURIComponent(token)}`;
   },
 
-  async estAchete(livreId: string): Promise<boolean> {
-    const list = await StorageService.get<LivreAchat[]>(ACHATS_KEY) ?? [];
-    return list.some((a) => a.livreId === livreId);
+  // ── Admin ─────────────────────────────────────────────────────────────────
+
+  async getAllAdmin(): Promise<Livre[]> {
+    try {
+      const headers = await authHeaders();
+      let res = await fetch(`${API()}/api/v1/library/admin/books`, { headers });
+      if (!res.ok) res = await fetch(`${API()}/api/v1/library?all=true`, { headers });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return (Array.isArray(data) ? data : []).map(normalizeBook);
+    } catch { return []; }
   },
 
-  // ── Admin : créer un livre ────────────────────────────────────────────────
-  async creerLivre(payload: Omit<Livre, 'id' | 'purchased'>): Promise<Livre> {
-    const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
+  async creerLivre(payload: Omit<Livre, 'id' | 'purchased' | 'purchasedAt' | 'purchaseCount' | 'downloadCount'>): Promise<Livre> {
+    const headers = { ...(await authHeaders()), 'Content-Type': 'application/json' };
     const res = await fetch(`${API()}/api/v1/library`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token ?? ''}`,
-      },
+      method: 'POST', headers,
       body: JSON.stringify({
-        title:       payload.title,
-        author:      payload.author,
-        description: payload.description,
-        category:    payload.category,
-        coverUrl:    payload.coverUrl,
-        pdfUrl:      payload.pdfUrl,
-        tokenCost:   payload.priceFcfa,
-        status:      payload.status ?? 'active',
+        title:            payload.title,
+        author:           payload.author,
+        shortDescription: payload.shortDescription,
+        description:      payload.description,
+        category:         payload.category,
+        coverUrl:         payload.coverUrl,
+        pdfUrl:           payload.pdfUrl,
+        tokenCost:        payload.priceFcfa,
+        status:           payload.status ?? 'active',
       }),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error((err as any).message ?? 'Erreur création');
     }
-    return res.json();
+    return normalizeBook(await res.json());
   },
 
-  // ── Admin : modifier un livre ─────────────────────────────────────────────
   async modifierLivre(id: string, payload: Partial<Omit<Livre, 'id' | 'purchased'>>): Promise<Livre> {
-    const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
+    const headers = { ...(await authHeaders()), 'Content-Type': 'application/json' };
+    const body: any = {};
+    if (payload.title            !== undefined) body.title            = payload.title;
+    if (payload.author           !== undefined) body.author           = payload.author;
+    if (payload.shortDescription !== undefined) body.shortDescription = payload.shortDescription;
+    if (payload.description      !== undefined) body.description      = payload.description;
+    if (payload.category         !== undefined) body.category         = payload.category;
+    if (payload.coverUrl         !== undefined) body.coverUrl         = payload.coverUrl;
+    if (payload.pdfUrl           !== undefined) body.pdfUrl           = payload.pdfUrl;
+    if (payload.priceFcfa        !== undefined) body.tokenCost        = payload.priceFcfa;
+    if (payload.status           !== undefined) body.status           = payload.status;
     const res = await fetch(`${API()}/api/v1/library/${id}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token ?? ''}`,
-      },
-      body: JSON.stringify({
-        title:       payload.title,
-        author:      payload.author,
-        description: payload.description,
-        category:    payload.category,
-        coverUrl:    payload.coverUrl,
-        pdfUrl:      payload.pdfUrl,
-        tokenCost:   payload.priceFcfa,
-        status:      payload.status,
-      }),
+      method: 'PATCH', headers, body: JSON.stringify(body),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error((err as any).message ?? 'Erreur modification');
     }
-    return res.json();
+    return normalizeBook(await res.json());
   },
 
-  // ── Admin : uploader une couverture ──────────────────────────────────────
+  async supprimerLivre(id: string): Promise<void> {
+    const headers = await authHeaders();
+    const res = await fetch(`${API()}/api/v1/library/${id}`, { method: 'DELETE', headers });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error((err as any).message ?? 'Erreur suppression');
+    }
+  },
+
+  async toggleStatut(id: string, status: 'active' | 'inactive'): Promise<void> {
+    const headers = { ...(await authHeaders()), 'Content-Type': 'application/json' };
+    await fetch(`${API()}/api/v1/library/${id}`, {
+      method: 'PATCH', headers, body: JSON.stringify({ status }),
+    });
+  },
+
   async uploaderCouverture(fileUri: string, mimeType = 'image/jpeg'): Promise<string> {
-    const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
-    const form = new FormData();
-
-    if (typeof window !== 'undefined') {
-      // Web : fileUri est une data URL ou object URL — récupérer le blob
-      const resp = await fetch(fileUri);
-      const blob = await resp.blob();
-      form.append('file', blob, 'cover.jpg');
-    } else {
-      // Natif
-      const { Platform } = await import('react-native');
-      let uri = fileUri;
-      if (Platform.OS !== 'web' && (fileUri.startsWith('content://') || fileUri.startsWith('ph://'))) {
-        const FS = await import('expo-file-system/legacy');
-        const ext = mimeType.split('/')[1] ?? 'jpg';
-        const dest = `${FS.cacheDirectory}cover_${Date.now()}.${ext}`;
-        await FS.copyAsync({ from: fileUri, to: dest });
-        uri = dest;
-      }
-      (form as any).append('file', { uri, name: 'cover.jpg', type: mimeType });
-    }
-
-    const res = await fetch(`${API()}/api/v1/library/upload/cover`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token ?? ''}` },
-      body: form,
-    });
-    const data = await res.json();
-    if (!data.url) throw new Error(data.error ?? 'Upload couverture échoué');
-    return data.url;
+    return LibrairieService._uploadFile('/library/upload/cover', fileUri, `cover_${Date.now()}.jpg`, mimeType);
   },
 
-  // ── Admin : uploader un PDF ───────────────────────────────────────────────
-  async uploaderPdf(fileUri: string): Promise<string> {
+  async uploaderPdf(fileUri: string, fileName = 'book.pdf'): Promise<string> {
+    return LibrairieService._uploadFile('/library/upload/pdf', fileUri, fileName, 'application/pdf');
+  },
+
+  async _uploadFile(endpoint: string, fileUri: string, fileName: string, mimeType: string): Promise<string> {
     const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
     const form = new FormData();
 
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
       const resp = await fetch(fileUri);
       const blob = await resp.blob();
-      form.append('file', blob, 'book.pdf');
+      form.append('file', blob, fileName);
     } else {
-      const { Platform } = await import('react-native');
       let uri = fileUri;
-      if (Platform.OS !== 'web' && fileUri.startsWith('content://')) {
+      if (fileUri.startsWith('content://') || fileUri.startsWith('ph://')) {
         const FS = await import('expo-file-system/legacy');
-        const dest = `${FS.cacheDirectory}pdf_${Date.now()}.pdf`;
+        const ext = fileName.split('.').pop() ?? 'bin';
+        const dest = `${FS.cacheDirectory}upload_${Date.now()}.${ext}`;
         await FS.copyAsync({ from: fileUri, to: dest });
         uri = dest;
       }
-      (form as any).append('file', { uri, name: 'book.pdf', type: 'application/pdf' });
+      (form as any).append('file', { uri, name: fileName, type: mimeType });
     }
 
-    const res = await fetch(`${API()}/api/v1/library/upload/pdf`, {
+    const res = await fetch(`${API()}/api/v1${endpoint}`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token ?? ''}` },
+      headers: { Authorization: `Bearer ${token ?? ''}`, Accept: 'application/json' },
       body: form,
     });
-    const data = await res.json();
-    if (!data.url) throw new Error(data.error ?? 'Upload PDF échoué');
-    return data.url;
+
+    const text = await res.text();
+    let data: any;
+    try { data = JSON.parse(text); } catch {
+      throw new Error(`Réponse invalide du serveur: ${text.slice(0, 120)}`);
+    }
+    if (!res.ok || data.error) throw new Error(data.error ?? data.message ?? `Erreur upload HTTP ${res.status}`);
+    if (!data.url) throw new Error('URL manquante dans la réponse du serveur');
+    return data.url as string;
   },
 };
