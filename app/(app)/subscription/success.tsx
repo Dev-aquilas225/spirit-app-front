@@ -41,13 +41,28 @@ export default function PaymentSuccessScreen() {
   const amount       = PLAN_AMOUNTS[plan ?? ''] ?? 0;
 
   useEffect(() => {
-    const CREDIT_PACKS = ['starter', 'standard', 'premium'];
-    const isCreditPack = CREDIT_PACKS.includes(plan ?? '');
-    // Pour les crédits : ne pas appeler loadSubscription (évite d'écraser l'état)
-    const tasks = isCreditPack
-      ? [fetchBalance(), refreshUser()]
-      : [refreshUser(), loadSubscription(), fetchBalance()];
-    Promise.all(tasks).catch(() => {});
+    const CREDIT_PACKS_IDS = ['starter', 'standard', 'premium'];
+    const isCreditPack = CREDIT_PACKS_IDS.includes(plan ?? '');
+
+    // Rafraîchir immédiatement puis une 2e fois après 4s
+    // (le backend peut avoir un léger délai de traitement Paystack)
+    async function refresh() {
+      if (isCreditPack) {
+        await Promise.all([fetchBalance(), refreshUser()]).catch(() => {});
+        // 2e tentative après 4s pour s'assurer que les crédits sont bien ajoutés
+        setTimeout(() => fetchBalance().catch(() => {}), 4000);
+        // 3e tentative après 10s en cas de lenteur backend
+        setTimeout(() => fetchBalance().catch(() => {}), 10000);
+      } else {
+        await Promise.all([refreshUser(), loadSubscription(), fetchBalance()]).catch(() => {});
+        // 2e tentative pour l'abonnement — s'assurer que isActive est bien true
+        setTimeout(async () => {
+          await Promise.all([loadSubscription(), fetchBalance()]).catch(() => {});
+        }, 4000);
+      }
+    }
+    refresh();
+
     Animated.sequence([
       Animated.spring(scaleAnim, { toValue: 1, tension: 50, friction: 6, useNativeDriver: true }),
       Animated.timing(fadeAnim,  { toValue: 1, duration: 500, useNativeDriver: true }),
@@ -78,7 +93,7 @@ export default function PaymentSuccessScreen() {
           />
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
             {isCreditPack
-              ? `+${creditPack?.credits?.toLocaleString() ?? '?'} crédits ajoutés à votre compte`
+              ? `+${creditPack?.credits?.toLocaleString() ?? '?'} crédits ajoutés · Solde : ${credits.toLocaleString()} crédits`
               : 'Bienvenue dans la famille Premium Oracle Plus'}
           </Text>
         </View>

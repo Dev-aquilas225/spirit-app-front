@@ -207,11 +207,16 @@ export default function PaymentScreen() {
       stopAll();
       cleanupListeners();
       try { if (Platform.OS !== 'web') await WebBrowser.dismissBrowser(); } catch {}
-      // Rafraîchir les données en arrière-plan
+      // Rafraîchir immédiatement + retry après 4s (délai traitement backend Paystack)
       if (isCreditPack) {
         await Promise.all([fetchBalance(), refreshUser()]);
+        setTimeout(() => fetchBalance().catch(() => {}), 4000);
       } else {
         await Promise.all([loadSubscription(), refreshUser(), fetchBalance()]);
+        // S'assurer que isActive est bien true après traitement complet
+        setTimeout(async () => {
+          await Promise.all([loadSubscription(), fetchBalance()]).catch(() => {});
+        }, 4000);
       }
       fbPurchase(plan, PLAN_AMOUNTS[plan] ?? 0);
       // Étape obligatoire : afficher la page partenaire avant de valider

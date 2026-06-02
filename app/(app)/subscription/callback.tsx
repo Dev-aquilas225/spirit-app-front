@@ -87,11 +87,15 @@ export default function PaystackCallbackScreen() {
         return;
       }
 
-      // Rafraîchir selon le type
+      // Rafraîchir immédiatement + retry après 4s (délai traitement backend Paystack)
       if (isCreditPack) {
         await Promise.all([fetchBalance(), refreshUser()]).catch(() => {});
+        setTimeout(() => fetchBalance().catch(() => {}), 4000);
       } else {
         await Promise.all([refreshUser(), loadSubscription(), fetchBalance()]).catch(() => {});
+        setTimeout(async () => {
+          await Promise.all([loadSubscription(), fetchBalance()]).catch(() => {});
+        }, 4000);
       }
 
       // Signaler à payment.tsx (si ouvert) que la vérification backend a réussi
