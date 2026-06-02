@@ -149,8 +149,8 @@ export const PaymentService = {
   async getPaymentHistory(): Promise<PaymentRecord[]> {
     const PLAN_LABELS: Record<string, string> = {
       starter:     'Pack Départ (500 crédits)',
-      standard:    'Pack Standard (1 000 crédits)',
-      premium:     'Pack Premium (2 500 crédits)',
+      standard:    'Pack Standard (2 000 crédits)',
+      premium:     'Pack Premium (5 000 crédits)',
       weekly_plus: 'Abonnement Hebdomadaire',
       monthly:     'Abonnement Mensuel',
       yearly:      'Abonnement Annuel',

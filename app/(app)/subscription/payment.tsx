@@ -331,14 +331,14 @@ export default function PaymentScreen() {
   // ── Écran de confirmation ──────────────────────────────────────────────
   // Montants en FCFA pour le Pixel Facebook
   const PLAN_AMOUNTS: Record<string, number> = {
-    starter: 500, standard: 1000, premium: 2500,
+    starter: 500, standard: 1000, premium: 2500,  // prix FCFA (pas crédits)
     weekly_plus: 3000, monthly: 8000, yearly: 15000,
   };
 
   const planLabels: Record<string, { name: string; price: string; desc: string }> = {
     starter:     { name: 'Pack Départ',       price: '500 FCFA',   desc: '500 crédits (500 mots)' },
-    standard:    { name: 'Pack Standard',     price: '1 000 FCFA', desc: '1 000 crédits · ⭐ Populaire' },
-    premium:     { name: 'Pack Premium',      price: '2 500 FCFA', desc: '2 500 crédits · 🏆 Meilleure valeur' },
+    standard:    { name: 'Pack Standard',     price: '1 000 FCFA', desc: '2 000 crédits · ⭐ Populaire' },
+    premium:     { name: 'Pack Premium',      price: '2 500 FCFA', desc: '5 000 crédits · 🏆 Meilleure valeur' },
     weekly_plus: { name: 'Hebdomadaire Plus', price: '3 000 FCFA', desc: '7 jours d\'accès illimité' },
     monthly:     { name: 'Mensuel',           price: '8 000 FCFA', desc: '30 jours d\'accès illimité' },
     yearly:      { name: 'Annuel',            price: '15 000 FCFA',desc: '365 jours d\'accès illimité' },

@@ -19,7 +19,7 @@ import { formatDate, formatCurrency } from '../../../src/utils/helpers';
 
 // Montants FCFA par plan (source de vérité locale — ne dépend pas du backend)
 const PLAN_AMOUNTS: Record<string, number> = {
-  starter: 500, standard: 1000, premium: 2500,
+  starter: 500, standard: 2000, premium: 5000,
   weekly_plus: 3000, monthly: 8000, yearly: 15000,
 };
 

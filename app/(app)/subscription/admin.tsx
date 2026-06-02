@@ -105,7 +105,7 @@ function SubscriptionCard({
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
             {[
               { label: '500 cr.', credits: 500, days: 0, price: '500F' },
-              { label: '1000 cr.', credits: 1000, days: 0, price: '1000F' },
+              { label: '2000 cr.', credits: 2000, days: 0, price: '1000F' },
               { label: '1 Semaine', credits: 0, days: 7, price: '3000F' },
               { label: '1 Mois', credits: 0, days: 30, price: '8000F' },
             ].map(f => (
@@ -191,7 +191,7 @@ export default function AdminSubscriptionsScreen() {
   // ── Forfaits disponibles pour activation manuelle ────────────────────
   const FORFAITS = [
     { label: 'Pack 500 cr.', credits: 500,  days: 0,  price: '500 FCFA' },
-    { label: 'Pack 1000 cr.', credits: 1000, days: 0,  price: '1 000 FCFA' },
+    { label: 'Pack 2000 cr.', credits: 2000, days: 0,  price: '1 000 FCFA' },
     { label: 'Semaine',       credits: 0,    days: 7,  price: '3 000 FCFA' },
     { label: 'Mensuel',       credits: 0,    days: 30, price: '8 000 FCFA' },
   ];
