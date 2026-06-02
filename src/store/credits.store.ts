@@ -111,7 +111,15 @@ export const useCreditsStore = create<CreditsState>((set, get) => ({
 
   fetchBalance: async () => {
     try {
-      const res = await http.get<any>('/credits/me');
+      // Essayer /credits d'abord, puis /credits/me, puis /users/me
+      let res = await http.get<any>('/credits').catch(() => null);
+      if (!res?.credits && res?.credits !== 0) {
+        res = await http.get<any>('/credits/me').catch(() => null);
+      }
+      if (!res?.credits && res?.credits !== 0) {
+        const user = await http.get<any>('/users/me').catch(() => null);
+        if (user?.credits !== undefined) res = { credits: user.credits };
+      }
       if (res?.credits !== undefined) {
         set({ credits: res.credits, adsAvailable: res.adsAvailable ?? res.adsRemaining ?? 3 });
         await StorageService.set(CREDITS_KEY, res.credits);

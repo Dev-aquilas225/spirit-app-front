@@ -214,6 +214,11 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         };
         set({ user: refreshed, isProfileComplete: isUserProfileComplete(refreshed) });
         StorageService.set(STORAGE_KEYS.USER, refreshed);
+        // Synchroniser le store crédits si le profil contient le solde
+        if (refreshed.credits !== undefined) {
+          const { useCreditsStore } = await import('./credits.store');
+          useCreditsStore.getState().setCredits(refreshed.credits);
+        }
       }
     } catch { /* silencieux */ }
   },
