@@ -55,20 +55,34 @@ export function useForceNotifications(isAuthenticated: boolean) {
     return () => sub.remove();
   }, [isAuthenticated]);
 
-  // Demande initiale de permission (une seule fois)
+  // Demande de permission + replanification à chaque démarrage
   useEffect(() => {
     if (!isAuthenticated) return;
 
     async function ask() {
       try {
-        const alreadyDone = await StorageService.get<boolean>(ASKED_KEY);
-        if (alreadyDone) return;
-
         // Délai pour ne pas bloquer le rendu initial
         await new Promise((r) => setTimeout(r, 2500));
 
         if (Platform.OS !== 'web') {
           // ── Natif (iOS / Android) ──────────────────────────────────────────
+          const alreadyAsked = await StorageService.get<boolean>(ASKED_KEY);
+
+          // Vérifier si la permission est déjà accordée
+          const Notifs = await import('expo-notifications');
+          const perms = await Notifs.getPermissionsAsync() as any;
+          const alreadyGranted = perms.granted === true;
+
+          if (alreadyGranted) {
+            // Replanifier à chaque démarrage — les notifications locales Expo
+            // sont perdues après un redémarrage du téléphone.
+            await NotificationService.scheduleDailyNotifications();
+            setNotifBlocked(false);
+            return;
+          }
+
+          if (alreadyAsked) return; // Permission refusée, ne pas redemander
+
           const granted = await NotificationService.requestPermissions();
           if (granted) {
             await NotificationService.scheduleDailyNotifications();

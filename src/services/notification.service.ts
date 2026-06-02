@@ -18,15 +18,19 @@ Notifications.setNotificationHandler({
   }),
 });
 
-// Canal Android requis pour son + vibration sur Android 8+
+// Canal Android — HIGH importance requis pour afficher hors app (Android 8+)
+// Sans ce canal, les notifications n'apparaissent pas en background.
 if (Platform.OS === 'android') {
   Notifications.setNotificationChannelAsync('oracle-default', {
     name: 'Oracle Plus',
+    description: 'Prières et rappels spirituels quotidiens',
     importance: Notifications.AndroidImportance.HIGH,
     sound: 'default',
     vibrationPattern: [0, 250, 250, 250],
     enableVibrate: true,
     showBadge: true,
+    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+    bypassDnd: false,
   }).catch(() => {});
 }
 

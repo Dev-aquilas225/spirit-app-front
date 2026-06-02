@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Flame, Home, MessageCircle, Share2, User as UserIcon } from 'lucide-react-native';
+import { BookOpen, Flame, Home, MessageCircle, Share2, User as UserIcon } from 'lucide-react-native';
 import React, { useRef, useEffect } from 'react';
 import { Animated, Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -87,8 +87,13 @@ export default function TabsLayout() {
         name="profile/index"
         options={{ tabBarLabel: 'Profil', tabBarIcon: ({ color, focused }) => <TabIcon icon={UserIcon} focused={focused} color={color} /> }}
       />
-      {/* Onglets cachés — accessibles via navigation directe */}
-      <Tabs.Screen name="home/index" options={{ href: null }} />
+      {/* Librairie — onglet visible */}
+      <Tabs.Screen
+        name="librairie/index"
+        options={{ tabBarLabel: 'Librairie', tabBarIcon: ({ color, focused }) => <TabIcon icon={BookOpen} focused={focused} color={color} /> }}
+      />
+      {/* Onglets cachés */}
+      <Tabs.Screen name="home/index"    options={{ href: null }} />
       <Tabs.Screen name="prayers/index" options={{ href: null }} />
       <Tabs.Screen name="library/index" options={{ href: null }} />
     </Tabs>

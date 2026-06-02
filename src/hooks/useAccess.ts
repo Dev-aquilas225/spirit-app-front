@@ -1,10 +1,14 @@
 /**
- * useAccess — unified access control hook
+ * useAccess — contrôle d'accès unifié pour les services IA
  *
- * Logic:
- * - Admin → always full access
- * - Active subscription → full access, credits NOT consumed
- * - No subscription → freemium, credits consumed per action
+ * Règles :
+ * - Admin → accès total, crédits jamais consommés
+ * - Abonnement actif → accès illimité aux services IA, crédits NON consommés
+ * - Sans abonnement → freemium, crédits consommés par action (1 crédit = 1 mot)
+ *
+ * ⚠️  L'abonnement NE donne PAS accès à la Librairie.
+ *     Les livres s'achètent séparément via LibrairieService (Paystack direct).
+ *     1 FCFA = 1 crédit = 1 mot généré par ChatGPT.
  */
 import { useAuthStore } from '../store/auth.store';
 import { useSubscriptionStore } from '../store/subscription.store';

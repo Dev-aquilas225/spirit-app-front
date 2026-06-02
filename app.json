@@ -59,11 +59,12 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/images/icon.png",
+          "icon": "./assets/images/android-icon-monochrome.png",
           "color": "#C9A84C",
           "sounds": [
             "./assets/notification.wav"
-          ]
+          ],
+          "androidMode": "default"
         }
       ],
       "expo-font",
@@ -74,6 +75,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "notification": {
+      "icon": "./assets/images/android-icon-monochrome.png",
+      "color": "#C9A84C",
+      "androidMode": "default",
+      "androidCollapsedTitle": "Oracle Plus"
     }
   }
 }
