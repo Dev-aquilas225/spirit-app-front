@@ -43,8 +43,16 @@ export const LibraryService = {
     catch { return null; }
   },
 
-  async initiatePurchase(bookId: string): Promise<{ authorization_url?: string; reference?: string; error?: string; purchased?: boolean }> {
-    try { return await http.post<any>(`/library/${bookId}/purchase/initiate`, {}); }
+  async initiatePurchase(bookId: string): Promise<{ authorization_url?: string; reference?: string; error?: string; purchased?: boolean; alreadyPurchased?: boolean }> {
+    try {
+      // Route principale : POST /library/pay/:id
+      let data = await http.post<any>(`/library/pay/${bookId}`, {}).catch(() => null);
+      // Fallbacks
+      if (!data) data = await http.post<any>(`/library/${bookId}/pay`, {}).catch(() => null);
+      if (!data) data = await http.post<any>(`/library/${bookId}/purchase/initiate`, {}).catch((e: any) => ({ error: e?.message ?? 'Erreur paiement' }));
+      if (data?.alreadyPurchased || data?.purchased === true) return { alreadyPurchased: true, purchased: true };
+      return data ?? { error: 'Erreur paiement' };
+    }
     catch (e: any) { return { error: e?.message ?? 'Erreur paiement' }; }
   },
 
