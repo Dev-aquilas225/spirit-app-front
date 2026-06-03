@@ -32,6 +32,14 @@ export default function AppLayout() {
     loadSubscription();
     // Charger le solde de crédits depuis le backend (2000 à l'inscription)
     initCredits();
+
+    // Rafraîchir abonnement + crédits toutes les 60s pour détecter expiration
+    // et s'assurer que le solde reflète les débits backend réels.
+    const interval = setInterval(() => {
+      loadSubscription().catch(() => {});
+      initCredits().catch(() => {});
+    }, 60_000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {

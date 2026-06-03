@@ -11,7 +11,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { fbViewContent } from '../../../src/utils/fbpixel';
 import {
-  Calendar, Check, Clock, Crown, History, Infinity,
+  Calendar, Check, Clock, Crown, History, Infinity as InfinityIcon,
   ShoppingBag, Sparkles, Star, Zap,
 } from 'lucide-react-native';
 import { AppIcon } from '../../../src/components/common/AppIcon';
@@ -72,7 +72,7 @@ function CreditsTab() {
           </View>
           {hasSubscription && (
             <View style={ct.subBadge}>
-              <AppIcon icon={Infinity} size={14} color="#C9A84C" />
+              <AppIcon icon={InfinityIcon} size={14} color="#C9A84C" />
               <Text style={ct.subBadgeText}>Illimité</Text>
             </View>
           )}
@@ -194,7 +194,7 @@ function SubscriptionsTab() {
       <View style={[st.valueCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Text style={[st.valueTitle, { color: colors.text }]}>Pourquoi s'abonner ?</Text>
         {[
-          [Infinity, 'Crédits non consommés — accès illimité'],
+          [InfinityIcon, 'Crédits non consommés — accès illimité'],
           [ShoppingBag, 'Audio illimité'],
           [Star, 'Consultations prophétiques prioritaires'],
           [Check, 'Bibliothèque complète débloquée'],

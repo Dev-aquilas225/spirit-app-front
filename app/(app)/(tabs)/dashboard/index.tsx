@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import {
   Bell, BookOpen, CloudMoon, Crown, Eye,
-  Heart, MessageCircle, Share2, Sparkles, Star, Users, Zap,
+  Heart, Lock, MessageCircle, Share2, Sparkles, Star, Users, Zap,
 } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -91,28 +91,46 @@ const MODULES = [
   { id: 'prayer',  label: 'Prières',            sub: 'Gratuit',  icon: Sparkles,  color: '#FBBF24', bg: 'rgba(251,191,36,0.12)',  route: '/(app)/(tabs)/prayers' },
 ] as const;
 
-function ModuleCard({ mod, index, hasSub }: { mod: typeof MODULES[number]; index: number; hasSub: boolean }) {
+function ModuleCard({ mod, index, hasSub, credits }: { mod: typeof MODULES[number]; index: number; hasSub: boolean; credits: number }) {
   const { colors } = useTheme();
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.spring(anim, { toValue: 1, delay: index * 60, tension: 50, friction: 8, useNativeDriver: true }).start();
   }, []);
+
   const free = mod.id === 'prayer' || mod.id === 'library';
-  const badgeTxt = hasSub && !free ? '∞ Illimité' : mod.sub;
-  const badgeColor = hasSub && !free ? '#2DD4A0' : mod.color;
+  // Verrouillé si : pas abonné ET pas gratuit ET crédits insuffisants (min 20)
+  const locked = !hasSub && !free && credits < 20;
+
+  const badgeTxt   = locked ? 'Crédits épuisés' : hasSub && !free ? '∞ Illimité' : mod.sub;
+  const badgeColor = locked ? '#EF4444' : hasSub && !free ? '#2DD4A0' : mod.color;
+
+  const handlePress = () => {
+    if (locked) {
+      router.push('/subscription' as any);
+      return;
+    }
+    router.push(mod.route as any);
+  };
 
   return (
     <Animated.View style={{ opacity: anim, transform: [{ scale: anim }, { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] }}>
       <TouchableOpacity
-        onPress={() => router.push(mod.route as any)}
-        style={[mc.card, { width: CARD_W, borderColor: mod.color + '30', backgroundColor: colors.surface }]}
+        onPress={handlePress}
+        style={[mc.card, { width: CARD_W, borderColor: locked ? '#EF444430' : mod.color + '30', backgroundColor: colors.surface, opacity: locked ? 0.75 : 1 }]}
         activeOpacity={0.75}
       >
-        <View style={[mc.cardBg, { backgroundColor: mod.bg }]} />
-        <View style={[mc.iconWrap, { backgroundColor: mod.bg, borderColor: mod.color + '35' }]}>
-          <AppIcon icon={mod.icon} size={22} color={mod.color} strokeWidth={2} />
+        <View style={[mc.cardBg, { backgroundColor: locked ? 'rgba(239,68,68,0.08)' : mod.bg }]} />
+        {/* Icône cadenas en overlay si verrouillé */}
+        {locked && (
+          <View style={mc.lockOverlay}>
+            <AppIcon icon={Lock} size={16} color="#EF4444" strokeWidth={2.5} />
+          </View>
+        )}
+        <View style={[mc.iconWrap, { backgroundColor: locked ? 'rgba(239,68,68,0.10)' : mod.bg, borderColor: locked ? '#EF444435' : mod.color + '35' }]}>
+          <AppIcon icon={mod.icon} size={22} color={locked ? '#EF4444' : mod.color} strokeWidth={2} />
         </View>
-        <Text style={{ fontSize: 13, fontWeight: '800', color: colors.text, lineHeight: 18 }}>{mod.label}</Text>
+        <Text style={{ fontSize: 13, fontWeight: '800', color: locked ? colors.textSecondary : colors.text, lineHeight: 18 }}>{mod.label}</Text>
         <View style={[mc.badge, { backgroundColor: badgeColor + '18', borderColor: badgeColor + '35' }]}>
           <Text style={[mc.badgeTxt, { color: badgeColor }]}>{badgeTxt}</Text>
         </View>
@@ -231,7 +249,7 @@ export default function DashboardScreen() {
             </View>
             <View style={s.grid}>
               {MODULES.map((m, i) => (
-                <ModuleCard key={m.id} mod={m} index={i} hasSub={hasSubscription} />
+                <ModuleCard key={m.id} mod={m} index={i} hasSub={hasSubscription} credits={credits} />
               ))}
             </View>
           </View>
@@ -335,9 +353,10 @@ const xp_ = StyleSheet.create({
 });
 
 const mc = StyleSheet.create({
-  card:     { borderRadius: 16, borderWidth: 1, padding: 14, gap: 8, overflow: 'hidden', position: 'relative' },
-  cardBg:   { position: 'absolute', top: 0, right: 0, width: 80, height: 80, borderRadius: 40, opacity: 0.4 },
-  iconWrap: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-  badge:    { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, borderWidth: 1 },
-  badgeTxt: { fontSize: 11, fontWeight: '700' },
+  card:        { borderRadius: 16, borderWidth: 1, padding: 14, gap: 8, overflow: 'hidden', position: 'relative' },
+  cardBg:      { position: 'absolute', top: 0, right: 0, width: 80, height: 80, borderRadius: 40, opacity: 0.4 },
+  iconWrap:    { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  badge:       { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, borderWidth: 1 },
+  badgeTxt:    { fontSize: 11, fontWeight: '700' },
+  lockOverlay: { position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(239,68,68,0.15)', borderRadius: 10, padding: 4 },
 });

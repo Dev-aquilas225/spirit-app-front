@@ -33,7 +33,7 @@ function InterpretTab({ onSuccess }: { onSuccess: () => void }) {
   const { colors, spacing } = useTheme();
   const { t } = useI18n();
   const { hasSubscription, canPerform } = useAccess();
-  const { spend } = useCreditsStore();
+  const { fetchBalance } = useCreditsStore();
   const [dream, setDream] = useState('');
   const [loading, setLoading] = useState(false);
   const [interpretation, setInterpretation] = useState('');
@@ -50,8 +50,6 @@ function InterpretTab({ onSuccess }: { onSuccess: () => void }) {
     }
     if (!hasSubscription) {
       if (!canPerform('dream_interpretation')) { setGateVisible(true); return; }
-      const ok = await spend('dream_interpretation');
-      if (!ok) { setGateVisible(true); return; }
     }
     setLoading(true);
     setInterpretation('');
@@ -61,6 +59,8 @@ function InterpretTab({ onSuccess }: { onSuccess: () => void }) {
       setDream('');
       setDate(new Date().toISOString());
       onSuccess();
+      // Resynchroniser le solde depuis le backend après débit réel (1 crédit = 1 mot)
+      fetchBalance().catch(() => {});
     } catch (err) {
       showApiError(err);
     } finally {
