@@ -124,24 +124,31 @@ export const LibrairieService = {
   }> {
     try {
       const headers = { ...(await authHeaders()), 'Content-Type': 'application/json' };
-      let res = await fetch(`${API()}/api/v1/library/${livreId}/pay`, {
+      // Route backend : POST /library/pay/:id
+      let res = await fetch(`${API()}/api/v1/library/pay/${livreId}`, {
         method: 'POST', headers, body: JSON.stringify({}),
       });
+      // Fallbacks pour compatibilité
+      if (res.status === 404) {
+        res = await fetch(`${API()}/api/v1/library/${livreId}/pay`, {
+          method: 'POST', headers, body: JSON.stringify({}),
+        });
+      }
       if (res.status === 404) {
         res = await fetch(`${API()}/api/v1/library/${livreId}/purchase/initiate`, {
           method: 'POST', headers, body: JSON.stringify({}),
         });
       }
       const data = await res.json();
-      if (!res.ok) {
-        if (data?.message?.toLowerCase().includes('already') || data?.purchased)
-          return { alreadyPurchased: true };
-        return { error: data?.message ?? 'Erreur paiement' };
-      }
+      // Détecter "déjà acheté" quelle que soit la réponse HTTP
+      if (data?.alreadyPurchased || data?.purchased === true || data?.error?.toLowerCase?.().includes('already') || data?.message?.toLowerCase?.().includes('already'))
+        return { alreadyPurchased: true };
+      if (!res.ok)
+        return { error: data?.message ?? data?.error ?? 'Erreur paiement' };
       return {
         authorizationUrl: data.authorization_url ?? data.paymentUrl ?? data.authorizationUrl,
         reference:        data.reference,
-        alreadyPurchased: data.alreadyPurchased ?? false,
+        alreadyPurchased: false,
       };
     } catch (e: any) {
       return { error: e?.message ?? 'Erreur réseau' };
@@ -203,7 +210,7 @@ export const LibrairieService = {
       const localPath = `${dir}${livre.id}.pdf`;
 
       const info = await FS.getInfoAsync(localPath);
-      if (info.exists && (info as any).size > 1024) return { localUri: localPath };
+      if (info.exists && (info as any).size > 100) return { localUri: localPath };
       if (info.exists) await FS.deleteAsync(localPath, { idempotent: true });
 
       const result = await FS.downloadAsync(downloadUrl, localPath, {
@@ -215,7 +222,7 @@ export const LibrairieService = {
         return { error: `Téléchargement échoué (HTTP ${result.status})` };
 
       const dl = await FS.getInfoAsync(localPath);
-      if (!dl.exists || (dl as any).size < 1024) {
+      if (!dl.exists || (dl as any).size < 100) {
         await FS.deleteAsync(localPath, { idempotent: true });
         return { error: 'Fichier PDF invalide ou vide' };
       }
