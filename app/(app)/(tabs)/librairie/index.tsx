@@ -317,7 +317,7 @@ function BookDetailModal({ book, colors, onClose, onBuy, onDownload, onRead, pay
             {/* Notice sécurité */}
             <View style={[s.securityNote, { backgroundColor: 'rgba(16,185,129,0.07)', borderColor: 'rgba(16,185,129,0.2)' }]}>
               <Text style={{ fontSize: 11, color: colors.textSecondary, lineHeight: 17 }}>
-                🔒 Paiement sécurisé via <Text style={{ fontWeight: '700', color: '#10B981' }}>universdeslivres.squares</Text>. Le PDF est protégé et accessible uniquement après achat.
+                🔒 Paiement sécurisé via <Text style={{ fontWeight: '700', color: '#10B981' }}>Paystack</Text>. Le PDF est protégé et accessible uniquement après achat.
               </Text>
             </View>
           </View>

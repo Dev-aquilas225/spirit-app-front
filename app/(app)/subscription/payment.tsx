@@ -377,15 +377,13 @@ export default function PaymentScreen() {
           <Text style={[s.msg, { color: colors.textSecondary }]}>{planInfo.desc}</Text>
         </View>
 
-        {/* Bandeau partenaire financier */}
+        {/* Bandeau paiement sécurisé */}
         <View style={s.partnerBanner}>
           <Text style={s.partnerIcon}>🔒</Text>
           <View style={{ flex: 1 }}>
             <Text style={s.partnerTitle}>Paiement sécurisé</Text>
             <Text style={s.partnerText}>
-              Sur votre relevé bancaire, la transaction apparaîtra sous le nom{' '}
-              <Text style={s.partnerName}>universdeslivres.squares</Text>
-              {' '}— notre partenaire financier agréé.
+              Vos paiements sont traités de manière sécurisée via Paystack.
             </Text>
           </View>
         </View>
@@ -415,14 +413,14 @@ export default function PaymentScreen() {
           Votre paiement a bien été traité. Avant de continuer, veuillez noter l'information suivante :
         </Text>
 
-        {/* Encadré nom marchand */}
+        {/* Encadré confirmation */}
         <View style={s.merchantBox}>
-          <Text style={s.merchantLabel}>Nom marchand sur votre relevé</Text>
-          <Text style={s.merchantName}>universdeslivres.squares</Text>
+          <Text style={s.merchantLabel}>Paiement confirmé</Text>
+          <Text style={s.merchantName}>Oracle Plus</Text>
           <View style={s.merchantDivider} />
           <Text style={s.merchantDesc}>
-            Ce nom correspond à notre partenaire financier agréé qui traite les paiements pour Oracle Plus.
-            Si vous voyez ce nom sur votre relevé bancaire ou carte, c'est tout à fait normal — il s'agit bien de votre achat Oracle Plus.
+            Votre paiement a été traité avec succès via Paystack.
+            Votre accès sera activé dans quelques instants.
           </Text>
         </View>
 
@@ -512,13 +510,11 @@ export default function PaymentScreen() {
         <Text style={{ color: colors.primary, fontSize: 14 }}>Réouvrir Paystack</Text>
       </TouchableOpacity>
 
-      {/* Rappel partenaire financier */}
+      {/* Rappel paiement sécurisé */}
       <View style={[s.partnerBanner, { marginHorizontal: 32 }]}>
         <Text style={s.partnerIcon}>🔒</Text>
         <Text style={[s.partnerText, { flex: 1 }]}>
-          La transaction apparaîtra sous{' '}
-          <Text style={s.partnerName}>universdeslivres.squares</Text>
-          {' '}sur votre relevé — c'est normal, c'est notre partenaire financier.
+          Paiement sécurisé via Paystack. Votre accès sera activé dès confirmation.
         </Text>
       </View>
 
