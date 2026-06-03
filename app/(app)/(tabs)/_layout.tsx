@@ -87,15 +87,16 @@ export default function TabsLayout() {
         name="profile/index"
         options={{ tabBarLabel: 'Profil', tabBarIcon: ({ color, focused }) => <TabIcon icon={UserIcon} focused={focused} color={color} /> }}
       />
-      {/* Librairie — onglet visible */}
+      {/* Livres — achat et téléchargement */}
       <Tabs.Screen
-        name="librairie/index"
-        options={{ tabBarLabel: 'Librairie', tabBarIcon: ({ color, focused }) => <TabIcon icon={BookOpen} focused={focused} color={color} /> }}
+        name="livres/index"
+        options={{ tabBarLabel: 'Livres', tabBarIcon: ({ color, focused }) => <TabIcon icon={BookOpen} focused={focused} color={color} /> }}
       />
       {/* Onglets cachés */}
-      <Tabs.Screen name="home/index"    options={{ href: null }} />
-      <Tabs.Screen name="prayers/index" options={{ href: null }} />
-      <Tabs.Screen name="library/index" options={{ href: null }} />
+      <Tabs.Screen name="home/index"       options={{ href: null }} />
+      <Tabs.Screen name="prayers/index"    options={{ href: null }} />
+      <Tabs.Screen name="library/index"    options={{ href: null }} />
+      <Tabs.Screen name="librairie/index"  options={{ href: null }} />
     </Tabs>
   );
 }
