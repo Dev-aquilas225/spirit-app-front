@@ -66,11 +66,6 @@ function BookCard({ book, onBuy, onDownload, buying }: {
             {book.author}
           </Text>
         ) : null}
-        {book.category ? (
-          <View style={[s.catBadge, { backgroundColor: colors.primaryPale }]}>
-            <Text style={[s.catTxt, { color: '#C9A84C' }]}>{book.category}</Text>
-          </View>
-        ) : null}
         {book.description ? (
           <Text style={[s.desc, { color: colors.textSecondary }]} numberOfLines={3}>
             {book.description}

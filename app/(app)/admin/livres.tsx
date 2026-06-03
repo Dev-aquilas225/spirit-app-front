@@ -38,29 +38,39 @@ const EMPTY: Omit<Book, 'id'> = {
 
 const CATEGORIES = ['Spiritualité', 'Prophétie', 'Prières', 'Rêves', 'Formation', 'Délivrance', 'Autre'];
 
-/* ─── Helper upload ──────────────────────────────────────────────────────── */
-async function uploadToServer(endpoint: string, file: File | { uri: string; name: string; type: string }): Promise<string | null> {
+/* ─── Helpers upload ─────────────────────────────────────────────────────── */
+async function uploadToServer(
+  endpoint: string,
+  file: File | { uri: string; name: string; type: string },
+): Promise<string | null> {
+  const apiBase = (process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://api.oracle-plus.online').replace(/\/$/, '');
+  const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
+  const form = new FormData();
+  form.append('file', file as any);
   try {
-    const apiBase = (process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://api.oracle-plus.online').replace(/\/$/, '');
-    const token = await StorageService.get<string>(STORAGE_KEYS.AUTH_TOKEN);
-    const form = new FormData();
-
-    if (Platform.OS === 'web') {
-      form.append('file', file as File);
-    } else {
-      form.append('file', file as any);
-    }
-
     const res = await fetch(`${apiBase}/api/v1${endpoint}`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token ?? ''}` },
       body: form,
     });
+    if (!res.ok) return null;
     const data = await res.json();
     return data?.url ?? null;
   } catch {
     return null;
   }
+}
+
+// Ouvre un <input file> web et retourne le fichier choisi
+function pickFileWeb(accept: string): Promise<File | null> {
+  return new Promise(resolve => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = accept;
+    input.onchange = (e: any) => resolve(e.target?.files?.[0] ?? null);
+    input.oncancel = () => resolve(null);
+    input.click();
+  });
 }
 
 /* ─── Formulaire livre ───────────────────────────────────────────────────── */
@@ -79,30 +89,26 @@ function BookForm({
 
   const set = (k: keyof typeof form, v: any) => setForm(f => ({ ...f, [k]: v }));
 
-  /* ── Choisir couverture ── */
+  /* ── Couverture ── */
   async function pickCover() {
     if (Platform.OS === 'web') {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*';
-      input.onchange = async (e: any) => {
-        const file: File = e.target.files?.[0];
-        if (!file) return;
-        setUploadingCover(true);
-        const url = await uploadToServer('/library/upload/cover', file);
-        setUploadingCover(false);
-        if (url) set('coverUrl', url);
-        else Alert.alert('Erreur', 'Upload couverture échoué');
-      };
-      input.click();
+      const file = await pickFileWeb('image/*');
+      if (!file) return;
+      setUploadingCover(true);
+      const url = await uploadToServer('/library/upload/cover', file);
+      setUploadingCover(false);
+      if (url) set('coverUrl', url);
+      else Alert.alert('Erreur', 'Upload couverture échoué. Vérifiez votre connexion.');
       return;
     }
-    // Natif
     try {
-      const ImagePicker = await import('expo-image-picker');
-      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!perm.granted) { Alert.alert('Permission requise', 'Autorisez l\'accès à la galerie.'); return; }
-      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', quality: 0.85 });
+      const IP = await import('expo-image-picker');
+      const perm = await IP.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('Permission requise', 'Autorisez l\'accès à la galerie dans les paramètres.');
+        return;
+      }
+      const result = await IP.launchImageLibraryAsync({ mediaTypes: 'images', quality: 0.85 });
       if (result.canceled || !result.assets?.[0]) return;
       const asset = result.assets[0];
       setUploadingCover(true);
@@ -113,40 +119,30 @@ function BookForm({
       });
       setUploadingCover(false);
       if (url) set('coverUrl', url);
-      else Alert.alert('Erreur', 'Upload couverture échoué');
+      else Alert.alert('Erreur', 'Upload couverture échoué.');
     } catch (e: any) {
       setUploadingCover(false);
-      Alert.alert('Erreur', e?.message ?? 'Erreur upload');
+      Alert.alert('Erreur', e?.message ?? 'Erreur upload image');
     }
   }
 
-  /* ── Choisir PDF ── */
+  /* ── PDF ── */
   async function pickPdf() {
     if (Platform.OS === 'web') {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'application/pdf';
-      input.onchange = async (e: any) => {
-        const file: File = e.target.files?.[0];
-        if (!file) return;
-        setUploadingPdf(true);
-        const url = await uploadToServer('/library/upload/pdf', file);
-        setUploadingPdf(false);
-        if (url) set('pdfUrl', url);
-        else Alert.alert('Erreur', 'Upload PDF échoué');
-      };
-      input.click();
+      const file = await pickFileWeb('application/pdf');
+      if (!file) return;
+      setUploadingPdf(true);
+      const url = await uploadToServer('/library/upload/pdf', file);
+      setUploadingPdf(false);
+      if (url) set('pdfUrl', url);
+      else Alert.alert('Erreur', 'Upload PDF échoué. Vérifiez votre connexion.');
       return;
     }
-    // Natif
     try {
-      const DocPicker = await import('expo-document-picker');
-      const result = await DocPicker.getDocumentAsync({ type: 'application/pdf', copyToCacheDirectory: true });
+      const DP = await import('expo-document-picker');
+      const result = await DP.getDocumentAsync({ type: 'application/pdf', copyToCacheDirectory: true });
       if (result.canceled || !result.assets?.[0]) return;
       const asset = result.assets[0];
-      setUploadingPdf(true);
-
-      // Android : content:// → copier dans le cache
       let uri = asset.uri;
       if (Platform.OS === 'android' && uri.startsWith('content://')) {
         const FS = await import('expo-file-system/legacy');
@@ -154,7 +150,7 @@ function BookForm({
         await FS.copyAsync({ from: uri, to: dest });
         uri = dest;
       }
-
+      setUploadingPdf(true);
       const url = await uploadToServer('/library/upload/pdf', {
         uri,
         name: asset.name ?? 'livre.pdf',
@@ -162,7 +158,7 @@ function BookForm({
       });
       setUploadingPdf(false);
       if (url) set('pdfUrl', url);
-      else Alert.alert('Erreur', 'Upload PDF échoué');
+      else Alert.alert('Erreur', 'Upload PDF échoué.');
     } catch (e: any) {
       setUploadingPdf(false);
       Alert.alert('Erreur', e?.message ?? 'Erreur upload PDF');

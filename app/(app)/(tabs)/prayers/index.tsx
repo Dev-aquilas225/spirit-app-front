@@ -2,6 +2,7 @@ import { Heart, History, MessageCircle, User } from "lucide-react-native";
 import { router } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import { useAccess } from "../../../../src/hooks/useAccess";
+import { useCreditsStore } from "../../../../src/store/credits.store";
 
 import {
   FlatList,
@@ -51,7 +52,11 @@ export default function PrayerProgramScreen() {
   const [view, setView] = useState<PrayerView>("chat");
 
   const { hasSubscription, canPerform } = useAccess();
+  const fetchBalance = useCreditsStore((s) => s.fetchBalance);
   const canAccess = hasSubscription || canPerform('prayer_generation');
+
+  // Resynchroniser le solde depuis le backend à chaque ouverture
+  useEffect(() => { fetchBalance().catch(() => {}); }, []);
 
   const {
     messages,

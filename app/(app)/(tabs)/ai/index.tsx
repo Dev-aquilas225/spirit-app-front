@@ -19,6 +19,7 @@ import { ChatInput } from '../../../../src/components/ai/ChatInput';
 import { AppIcon } from '../../../../src/components/common/AppIcon';
 import { CreditGate } from '../../../../src/components/credits/CreditGate';
 import { NoCreditsBanner } from '../../../../src/components/credits/NoCreditsBanner';
+import { useCreditsStore } from '../../../../src/store/credits.store';
 import { FadeInView } from '../../../../src/components/common/FadeInView';
 import { LoadingSpinner } from '../../../../src/components/common/LoadingSpinner';
 
@@ -38,7 +39,11 @@ export default function FuturScreen() {
   const insets = useSafeAreaInsets();
   const user = useAuthStore((s) => s.user);
   const { hasSubscription, canPerform } = useAccess();
+  const fetchBalance = useCreditsStore((s) => s.fetchBalance);
   const canAccess = hasSubscription || canPerform('prophetic_consultation');
+
+  // Resynchroniser le solde depuis le backend à chaque ouverture de l'onglet
+  useEffect(() => { fetchBalance().catch(() => {}); }, []);
 
   const {
     messages,

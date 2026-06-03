@@ -22,6 +22,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { Crown, ExternalLink, XCircle } from 'lucide-react-native';
 import { useTheme } from '../../../src/theme';
 import { useSubscription } from '../../../src/hooks/useSubscription';
+import { useSubscriptionStore } from '../../../src/store/subscription.store';
 import { useAuthStore } from '../../../src/store/auth.store';
 import { useCreditsStore } from '../../../src/store/credits.store';
 import { PaymentService } from '../../../src/services/payment.service';
@@ -48,9 +49,13 @@ type Step = 'confirm' | 'initiating' | 'waiting' | 'partner' | 'vip' | 'timeout'
 /* ─── Helpers ────────────────────────────────────────────────────────────── */
 async function openPaystackUrl(url: string): Promise<void> {
   if (Platform.OS === 'web') {
-    // Redirection dans le même onglet — window.open est bloqué par les navigateurs
-    // mobiles quand appelé hors d'un gestionnaire d'événement synchrone.
-    window.location.href = url;
+    // Ouvrir dans un nouvel onglet — préserve le polling dans l'onglet courant
+    // et fonctionne en navigation privée (pas de dépendance au localStorage inter-onglets)
+    const win = window.open(url, '_blank', 'noopener,noreferrer');
+    if (!win) {
+      // Popup bloqué — fallback même onglet
+      window.location.href = url;
+    }
     return;
   }
   try {
@@ -207,16 +212,31 @@ export default function PaymentScreen() {
       stopAll();
       cleanupListeners();
       try { if (Platform.OS !== 'web') await WebBrowser.dismissBrowser(); } catch {}
-      // Rafraîchir immédiatement + retry après 4s (délai traitement backend Paystack)
+      // Rafraîchir immédiatement puis poller jusqu'à ce que le backend ait traité
       if (isCreditPack) {
-        await Promise.all([fetchBalance(), refreshUser()]);
-        setTimeout(() => fetchBalance().catch(() => {}), 4000);
+        const balanceBefore = useCreditsStore.getState().credits;
+        await fetchBalance().catch(() => {});
+        // Poller jusqu'à 30s pour détecter l'augmentation du solde (délai webhook Paystack)
+        let attempts = 0;
+        const pollBalance = setInterval(async () => {
+          attempts++;
+          await fetchBalance().catch(() => {});
+          const newBalance = useCreditsStore.getState().credits;
+          if (newBalance > balanceBefore || attempts >= 10) {
+            clearInterval(pollBalance);
+          }
+        }, 3000);
       } else {
-        await Promise.all([loadSubscription(), refreshUser(), fetchBalance()]);
-        // S'assurer que isActive est bien true après traitement complet
-        setTimeout(async () => {
+        await Promise.all([loadSubscription(), refreshUser(), fetchBalance()]).catch(() => {});
+        // Poller jusqu'à ce que isActive soit true
+        let attempts = 0;
+        const pollSub = setInterval(async () => {
+          attempts++;
           await Promise.all([loadSubscription(), fetchBalance()]).catch(() => {});
-        }, 4000);
+          if (useSubscriptionStore.getState().isActive || attempts >= 10) {
+            clearInterval(pollSub);
+          }
+        }, 3000);
       }
       fbPurchase(plan, PLAN_AMOUNTS[plan] ?? 0);
       // Étape obligatoire : afficher la page partenaire avant de valider

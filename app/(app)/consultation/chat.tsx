@@ -14,6 +14,7 @@ import { EmptyState } from '../../../src/components/common/EmptyState';
 import { FadeInView } from '../../../src/components/common/FadeInView';
 import { LoadingSpinner } from '../../../src/components/common/LoadingSpinner';
 import { CreditGate } from '../../../src/components/credits/CreditGate';
+import { useCreditsStore } from '../../../src/store/credits.store';
 import { useAIChat } from '../../../src/hooks/useAIChat';
 import { useAccess } from '../../../src/hooks/useAccess';
 import { useAuthStore } from '../../../src/store/auth.store';
@@ -29,7 +30,11 @@ export default function ConsultationChatScreen() {
   const firstName = user?.firstName?.trim() || user?.name?.split(' ')[0] || '';
   const [view, setView] = useState<ConsultView>('chat');
   const { hasSubscription, canPerform } = useAccess();
+  const fetchBalance = useCreditsStore((s) => s.fetchBalance);
   const canAccess = hasSubscription || canPerform('prophetic_consultation');
+
+  // Resynchroniser le solde depuis le backend à chaque ouverture
+  useEffect(() => { fetchBalance().catch(() => {}); }, []);
 
   const {
     messages, conversations, isLoading, isSending,
